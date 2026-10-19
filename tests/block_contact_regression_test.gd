@@ -13,7 +13,7 @@ func run() -> void:
 		for speed in [12.0, 24.0, 40.0]:
 			lab._reset()
 			var bots = lab.training_bots
-			bots.away_enabled[3] = true
+			bots.settings[(3) + 4].enabled = true
 			lab.ball_active = true
 			lab.ball.position = Vector3(0, 3.6, 2)
 			lab.ball_velocity = Vector3(0, -2, -speed)
@@ -28,7 +28,7 @@ func run() -> void:
 			check(lab.ball_velocity.z > 2 and lab.ball_velocity.y < 0, "Bot block returns ball downward without stalling")
 	for rate in [30, 60, 120]:
 		lab._reset()
-		lab.training_bots.away_enabled.fill(false)
+		lab.training_bots.disable_side(true)
 		lab.player.position = Vector3(0, 1.1, 0.9)
 		lab.camera_rig.facing_yaw = 0
 		lab.motion.jumped = true

@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Shared bot action animation
 
 Court helpers and Pepper partners use bot_animation.gd, a presentation driver over the same authored pose files and stage modules as the player. Each rig has independent contact time, source state and PoseSmoother.

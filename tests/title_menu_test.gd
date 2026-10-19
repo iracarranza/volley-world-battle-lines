@@ -51,7 +51,8 @@ func run() -> void:
 	menu._toggle_innate("Tiny")
 	check(menu.draft.innates.is_empty(), "Innate toggles off")
 	check(menu.tree_view.get_parent() is ScrollContainer, "Trait tree is scrollable")
-	check(menu.tree_view.nodes.has("root") and menu.tree_view.nodes.has("Quick Step") and menu.tree_view.nodes.has("power"), "Tree has root, attribute and trait nodes")
+	menu.tree_view.show_page("speed")
+	check(menu.tree_view.nodes.has("speed_quick_step") and not menu.tree_view.nodes.has("power_jump"), "Attribute page shows its authored stable-ID trait nodes")
 	check(Store.height_cost(73) == 0 and Store.height_cost(69) == 1 and Store.height_cost(68) == 2 and Store.height_cost(66) == 2 and Store.height_cost(77) == 1 and Store.height_cost(78) == 2 and Store.height_cost(80) == 2, "Height costs scale outside the free range")
 	menu.draft.innates = []
 	menu._apply_height(60)

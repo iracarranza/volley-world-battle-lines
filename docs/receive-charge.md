@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Receive charge matching
 
 Serve and attack shots carry immutable charge-fraction metadata (1.0 = 100%; effective values may exceed 1.0). Receives resolve geometry, confirmation timing, charge match, then facing/platform intersection/directional influence. A charge match permits clean reception; it never upgrades bad geometry or mistiming.

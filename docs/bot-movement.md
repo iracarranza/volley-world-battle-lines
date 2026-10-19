@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Test bot movement and receive targeting
 
 Each court helper has Follow ball, Static and Move modes in F9. Follow retains immediate placement; Static keeps its designated ground location. Move travels from its existing location toward the assigned contact interception, with an independent 0–12 m/s ground-speed slider (default 6). Zero holds ground position. Tracking accuracy applies to Follow and Move; contact-order assignments remain unchanged. Slow Move bots can miss. Attack/block jump height and contact preparation retain the existing physical motion; horizontal movement including their approach obeys the Move speed cap without teleporting at plan start or landing. Settings survive lab reset.

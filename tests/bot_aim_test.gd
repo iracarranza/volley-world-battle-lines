@@ -29,8 +29,8 @@ func run() -> void:
 	lab.set_physics_process(false)
 	await physics_frame
 	var bots = lab.training_bots
-	bots.enabled[1] = true
-	bots.contact_order[1] = 1
+	bots.settings[1].enabled = true
+	bots.settings[1].contact_order = 1
 	var outputs: Array[Vector3] = []
 	for rating in [100.0, 0.0]:
 		lab._reset()
@@ -47,14 +47,14 @@ func run() -> void:
 		check(bots.tick(0.02) and bots.last_action == 1, "Actual setter contact resolves with aim setting")
 		outputs.append(lab.ball_velocity)
 	check(outputs[0].distance_to(outputs[1]) > 0.1 and outputs[0].y == outputs[1].y, "Actual bot contact applies shot scatter independently of arc")
-	check(bots.tracking_accuracy[1] == 100 and bots.physique.build.accuracy == 65, "Aim slider does not change tracking or athlete Accuracy")
+	check(bots.settings[1].tracking_accuracy == 100 and bots.physique.build.accuracy == 65, "Aim slider does not change tracking or athlete Accuracy")
 	bots.reset()
-	check(bots.aiming_accuracy[1] == 0, "Aim settings persist across reset")
+	check(bots.settings[1].aiming_accuracy == 0, "Aim settings persist across reset")
 	bots.set_aiming_accuracy(1, -20)
 	bots.set_aiming_accuracy(5, 120)
-	check(bots.aiming_accuracy[1] == 0 and bots.aiming_accuracy[5] == 100, "Independent home/away settings clamp safely")
+	check(bots.settings[1].aiming_accuracy == 0 and bots.settings[5].aiming_accuracy == 100, "Independent home/away settings clamp safely")
 	lab.pepper.set_aiming_accuracy(0, 30)
-	check(lab.pepper.aiming_accuracy[0] == 30 and lab.pepper.aiming_accuracy[1] == 100, "Pepper partners have separate aiming settings")
+	check(lab.pepper.settings[0].aiming_accuracy == 30 and lab.pepper.settings[1].aiming_accuracy == 100, "Pepper partners have separate aiming settings")
 	print("BOT AIMING ACCURACY: %d / %d passed" % [checks - failures, checks])
 	lab.queue_free()
 	await process_frame

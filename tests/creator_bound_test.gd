@@ -47,7 +47,7 @@ func run() -> void:
 	check(lab.body_type == "Avi" and lab.body.find_child("Beak", true, false) != null, "On-court body must match the chosen VWM body")
 	check(lab.athlete.build.power == 77 and lab.athlete.build.speed == 65 and lab.position_role == "L", "Rally Lanes role/attribute choices must reach the gameplay model")
 	check(absf(lab.athlete.reach() - (1.215 * 1.90 + 0.32 * 0.06)) < 0.001, "Creator physique must change authoritative reach")
-	check(lab.athlete.contact_cost(0, 1).y < lab.athlete.contact_cost(2, 1).y, "Created Libero must keep its positional receive economy")
+	check(lab.athlete.contact_cost(0, 1).y == 0 and lab.athlete.contact_cost(2, 1).y == 0, "Created athletes reserve HP for abilities, not ordinary contacts")
 	var prior: Dictionary = lab.athlete.build.duplicate()
 	creator.open()
 	creator.draft.power = 65

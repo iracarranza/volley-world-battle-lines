@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Map spec, recovered from the handoff
 
 Source: `RallyLanesHandoff1.md`, the recovered conversation plus its consolidated summary. Line numbers below point into that file.

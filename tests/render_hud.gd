@@ -26,8 +26,8 @@ func capture() -> void:
 	for frame in range(5):
 		await process_frame
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png("/tmp/rally-hud-alternate.png" if "--avi" in OS.get_cmdline_user_args() else "/tmp/rally-hud.png")
-	print("HUD capture: /tmp/rally-hud.png")
+	root.get_texture().get_image().save_png("res://artifacts/rally-hud-alternate.png" if "--avi" in OS.get_cmdline_user_args() else "res://artifacts/rally-hud.png")
+	print("HUD capture: res://artifacts/rally-hud.png")
 	lab.queue_free()
 	await process_frame
 	quit()

@@ -5,6 +5,8 @@ Usage: python3 tools/test.py [suite stems ...] [--render] [--timeout 90]
 No suites means all *_test.gd files. Rendering utilities require --render.
 """
 import argparse
+import io
+import tarfile
 import json
 import os
 from pathlib import Path
@@ -16,10 +18,38 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 
+def run_suite(command, log_path, timeout):
+    """Keep failures readable while a suite runs; a script error cannot recover."""
+    with log_path.open('wb') as log:
+        process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)
+        deadline = time.monotonic() + timeout
+        try:
+            while process.poll() is None:
+                output = log_path.read_bytes()
+                if b'SCRIPT ERROR:' in output or time.monotonic() >= deadline:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait()
+                    if time.monotonic() >= deadline:
+                        log.write(b'\nTEST TIMEOUT\n')
+                    return False, -1
+                time.sleep(0.1)
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait()
+    output = log_path.read_bytes()
+    return process.returncode == 0 and b'ERROR:' not in output, process.returncode
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('suites', nargs='*')
     parser.add_argument('--render', action='store_true')
+    parser.add_argument('--revision', help='Run an isolated committed snapshot for comparison')
     parser.add_argument('--timeout', type=float, default=90)
     parser.add_argument('--godot', default=os.environ.get('GODOT', shutil.which('godot') or '/Applications/Godot.app/Contents/MacOS/Godot'))
     parser.add_argument('--logs', type=Path, default=ROOT / 'artifacts' / 'checks')
@@ -31,7 +61,14 @@ def main():
     results = []
     with tempfile.TemporaryDirectory(prefix='volley-checks-') as temp:
         workspace = Path(temp) / 'project'
-        shutil.copytree(ROOT, workspace, ignore=shutil.ignore_patterns('.git', '.godot', 'artifacts', '__pycache__'))
+        if args.revision:
+            revision = subprocess.check_output(['git', 'rev-parse', '--verify', args.revision + '^{commit}'], cwd=ROOT, text=True).strip()
+            archive = subprocess.check_output(['git', 'archive', '--format=tar', revision], cwd=ROOT)
+            workspace.mkdir()
+            with tarfile.open(fileobj=io.BytesIO(archive)) as files:
+                files.extractall(workspace, filter='data')
+        else:
+            shutil.copytree(ROOT, workspace, ignore=shutil.ignore_patterns('.git', '.godot', 'artifacts', '__pycache__'))
         # Godot derives user:// from the project name. Use a unique identity so
         # even tests that instantiate the title cannot read the user's roster.
         config = workspace / 'project.godot'
@@ -45,14 +82,11 @@ def main():
             return 1
         for suite in suites:
             start = time.monotonic()
-            try:
-                result = subprocess.run(command + ([] if args.render else ['--headless']) + ['--script', 'res://tests/' + suite.name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=args.timeout)
-                output, code = result.stdout, result.returncode
-                passed = code == 0 and b'SCRIPT ERROR:' not in output and b'ERROR:' not in output
-            except subprocess.TimeoutExpired as error:
-                output, code, passed = (error.stdout or b'') + b'\nTEST TIMEOUT\n', -1, False
+            passed, code = run_suite(
+                command + ([] if args.render else ['--headless']) + ['--script', 'res://tests/' + suite.name],
+                args.logs / (suite.stem + '.log'), args.timeout,
+            )
             seconds = round(time.monotonic() - start, 2)
-            (args.logs / (suite.stem + '.log')).write_bytes(output)
             results.append(dict(suite=suite.stem, passed=passed, seconds=seconds, exit_code=code))
             print(f'{"PASS" if passed else "FAIL"} {suite.stem} ({seconds}s)', flush=True)
         shutil.copytree(workspace / 'artifacts', args.logs / 'renders', dirs_exist_ok=True)

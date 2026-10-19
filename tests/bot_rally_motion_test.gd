@@ -68,7 +68,7 @@ func run() -> void:
 	# Static attack keeps its ground position but can still jump to contact.
 	lab._reset()
 	bots.place_at_player(6)
-	var fixed: Vector3 = bots.fixed_positions[6]
+	var fixed: Vector3 = bots.settings[6].fixed_position
 	lab.ball_active = true
 	lab.ball.position = fixed + bots.contact_anchor(6).rotated(Vector3.UP, PI) + Vector3.UP * 2.0
 	lab.ball_velocity = Vector3(0, -1, 0)

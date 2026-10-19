@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Nearby-ball contact trajectory hint
 
 A prepared or charging action shows a fading cyan trajectory ribbon when a live ball is within 3.5 m of the athlete's upper-body reference. The path starts at the ball's current position, rather than the old synthetic hand-height origin. A bright core, translucent halo and small directional chevrons indicate the first 35% of the ideal outgoing flight, capped at 0.7 seconds and 5.5 m of path length. It is a partial hint, not a landing prediction. Existing approach footprints and incoming landing marker remain separate.

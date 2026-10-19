@@ -8,7 +8,7 @@ func run() -> void:
 	lab.set_physics_process(false)
 	await physics_frame
 	var bots = lab.training_bots
-	bots.enabled[0] = true
+	bots.settings[0].enabled = true
 	for speed in [0.0, 2.0, 12.0]:
 		lab._reset()
 		bots.set_mode(0, 2)
@@ -38,8 +38,8 @@ func run() -> void:
 	check(Vector2(bots.actors[2].position.x - attack_start.x, bots.actors[2].position.z - attack_start.z).length() <= 0.101, "Attack approach obeys Move slider")
 	for side in [0, 1]:
 		lab._reset()
-		bots.enabled[1] = side == 0
-		bots.away_enabled[1] = side == 1
+		bots.settings[1].enabled = side == 0
+		bots.settings[(1) + 4].enabled = side == 1
 		var receiver := 0 if side == 0 else 4
 		var setter := receiver + 1
 		var sign_side := 1.0 if side == 0 else -1.0
@@ -52,9 +52,9 @@ func run() -> void:
 			var duration: float = (lab.ball_velocity.y + sqrt(lab.ball_velocity.y * lab.ball_velocity.y + 2 * lab.GRAVITY * (origin.y - 0.105))) / lab.GRAVITY
 			check(lab.ball_velocity.x * duration < 20, "Setter targeting does not grant unlimited receive distance")
 	lab._reset()
-	bots.enabled[0] = true
-	bots.enabled[1] = true
-	bots.away_enabled.fill(false)
+	bots.settings[0].enabled = true
+	bots.settings[1].enabled = true
+	bots.disable_side(true)
 	bots.set_following(0, true)
 	bots.actors[1].position = Vector3(4, 0, 4)
 	bots.set_mode(1, 1)
@@ -72,7 +72,7 @@ func run() -> void:
 	check(bots.last_action == 0 and actual_direction.dot(setter_direction) > 0.9999, "Actual receive preserves setter heading after geometry and execution effects")
 	bots.set_mode(0, 2)
 	bots.reset()
-	check(bots.moves[0] and bots.move_speeds[0] == 12, "Reset preserves movement settings")
+	check(bots.settings[0].moves and bots.settings[0].move_speed == 12, "Reset preserves movement settings")
 	print("BOT MOVE / SETTER AIM: %d / %d passed" % [checks - failures, checks])
 	lab.queue_free()
 	await process_frame

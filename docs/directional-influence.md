@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Directional influence: Receive / Set / Attack
 
 WASD continues moving the athlete and now also influences the outgoing contact. Mouse facing and pitch remain the main aim. The game averages intended world-space movement over the last 80ms of real time, then projects that input into the confirmed contact's horizontal forward/right frame. Athlete velocity, sprint speed and jump momentum are not DI inputs. Diagonals share a normalized budget. A fresh one-frame press ramps in rather than applying maximum influence immediately; released input fades out across the same window. Reset/pause clear the history.

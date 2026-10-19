@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Benched prototype
 
 An Exhausted athlete participating in a live court rally or an active Pepper is immediately Benched. Court participation currently means an active free-play ball and the athlete within the provisional court bounds plus a 1.5 m perimeter. A distant rally does not bench an Exhausted bystander at Home Base. An active Pepper always counts as participation. Drill stations are excluded.

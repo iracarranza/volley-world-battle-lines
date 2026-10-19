@@ -38,7 +38,11 @@ func run() -> void:
 	lab.ball.position = lab.player.position + lab._raw_hurtbox_definition(0).center
 	lab.ball_velocity = Vector3(0, -1, 2)
 	lab._contact()
-	check(not lab.ground_contact_locked() and lab.confirm_window == 0, "Successful contact releases movement lock")
+	check(lab.ground_contact_locked() and lab.confirm_window == 0, "Contact ends confirmation but retains follow-through lock")
+	for frame in range(30):
+		lab._physics_process(1.0 / 120)
+		await physics_frame
+	check(not lab.ground_contact_locked(), "Transition recovery releases movement lock")
 	lab._physics_process(1.0 / 60)
 	await physics_frame
 	check(lab.player.position.x > start.x, "Held movement resumes after successful contact")

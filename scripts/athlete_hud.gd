@@ -21,6 +21,7 @@ var hp_value: Label
 var sta_value: Label
 var resources: VBoxContainer
 var xp_fraction := 0.0
+var portrait_revision := 0
 
 func setup(owner_lab: Node3D) -> void:
 	lab = owner_lab
@@ -155,7 +156,22 @@ func refresh_portrait() -> void:
 	portrait_camera.size = 0.72 * float(lab.athlete.build.height) / 1.86
 	portrait_camera.position = Vector3(0, head_height, 3)
 	portrait_camera.look_at(Vector3(0, head_height, 0))
-	portrait_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	portrait_revision += 1
+	_render_portrait.call_deferred(portrait_revision)
+
+func _render_portrait(revision: int) -> void:
+	if DisplayServer.get_name() == "headless":
+		portrait_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		return
+	# Render the rebuilt rig before capturing a stable texture for the canvas.
+	# A stopped viewport must not leave the portrait sampling an older framebuffer.
+	portrait_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	for frame in range(3):
+		await RenderingServer.frame_post_draw
+		if not is_inside_tree() or revision != portrait_revision:
+			return
+	portrait.texture = ImageTexture.create_from_image(portrait_viewport.get_texture().get_image())
+	portrait_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 
 func update_values() -> void:
 	name_label.text = lab.athlete_name

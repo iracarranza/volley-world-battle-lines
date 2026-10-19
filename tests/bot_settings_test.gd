@@ -31,7 +31,7 @@ func run() -> void:
 	check(bots.active_action == 1, "Static bot intercepts flight through its box")
 	check(bots.actors[1].position == fixed, "Static bot stays fixed")
 	bots.reset()
-	check(bots.actors[1].position == fixed and not bots.follows_ball[1], "Reset preserves static placement")
+	check(bots.actors[1].position == fixed and not bots.settings[1].follows_ball, "Reset preserves static placement")
 	bots.set_following(1, true)
 	lab.ball.position.x = 0
 	bots.replan()

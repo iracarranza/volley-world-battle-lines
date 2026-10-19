@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # MoC and trajectory gameplay plan
 
 Status: reviewed plan. The first player-impact MoC slice is implemented; see `moc-slice.md`. Remaining phases below are proposed work.

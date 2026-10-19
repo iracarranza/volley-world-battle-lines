@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # MoC slice implementation and parallel-work boundary
 
 Implemented: player and bot Receive, Set, Attack and Block impacts, player Serve, drill-feed strikes, and sweet-contact bonuses. Trajectory option menus, team visibility and Spike Points remain subsequent work.

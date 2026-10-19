@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Set contact geometry
 
 Set uses a spherical sector pointing straight upward from the athlete's head, radially symmetric around the body's vertical axis. The spherical radius is standing reach minus the sector origin height plus 0.55m; the cone half-angle is 70 degrees. The origin is at 85% of height and the base is clipped at 95% of height. Shared ball-radius overlap tolerance still applies.

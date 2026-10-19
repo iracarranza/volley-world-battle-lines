@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Contact Lab HUD
 
 The Action Wheel has a translucent quarter-disk background behind the four action buttons. Action power fills it vertically from bottom to top: green at the base, yellow through the middle, red at the top. Height represents the normalized current action charge, with a numeric percentage while charged. Charging uses live power; an armed action retains its chosen power until contact/cancellation. The fill clears afterward. Jump charge does not overwrite action power.

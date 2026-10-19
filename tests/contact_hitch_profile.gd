@@ -18,9 +18,9 @@ func run() -> void:
 			await RenderingServer.frame_post_draw
 	for mode in ["off","tracking","static"]:
 		for slot in range(8):
-			lab.training_bots.enabled[slot%4] = mode != "off"
-			lab.training_bots.away_enabled[slot%4] = mode != "off"
-			lab.training_bots.follows_ball[slot] = mode != "static"
+			lab.training_bots.settings[slot%4].enabled = mode != "off"
+			lab.training_bots.settings[(slot%4) + 4].enabled = mode != "off"
+			lab.training_bots.settings[slot].follows_ball = mode != "static"
 		for action in range(4):
 			lab._reset()
 			lab.ball_active = true

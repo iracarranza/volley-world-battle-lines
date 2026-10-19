@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Confirmation timing and contact geometry
 
 Confirmation starts a 200 ms windup, then a 160 ms Receive sweet-eligible window (200–360 ms) or 90 ms for Set/Attack/Block (200–290 ms), with contact forgiveness through 550 ms total. Initial power charging does not activate sweetspots. A remembered overlap (100 ms grace) is rescue-only, including a late confirmation after the ball leaves the volume. Actual geometry is still required for a sweet contact. After 550 ms the input expires. Dive confirmation also uses this same maximum.

@@ -215,6 +215,8 @@ func tick_visuals() -> void:
 		var actor: Node3D = actors[actor_id]
 		var flow := amount(actor_id)/CAP
 		aura.visible = flow > 0 and actor.is_visible_in_tree() and not (actor_id == "player" and lab.is_benched())
+		if not aura.visible:
+			continue
 		var height: float = lab.athlete.build.height if actor_id == "player" else lab.training_bots.physique.build.height
 		aura.global_position = actor.global_position+Vector3.UP*height*0.55
 		aura.scale = Vector3.ONE*height/1.86

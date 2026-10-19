@@ -15,16 +15,11 @@ func run() -> void:
 	for build in a.BUILDS:
 		a.build = build.duplicate()
 		for height in [0.5, 1.0, 1.6]:
-			var old_charge: float = 0.35 + float(build.power) / 250.0
-			var old_distance: Dictionary = lab.Flight.solve_flight(5.0 + old_charge * 5.5, 60.0, height - 0.105)
-			var old_launch: Dictionary = lab.Flight.solve_between(old_distance.range_meters, 76.0, height, 0.105)
-			var old_upward := float(old_launch.required_speed_mps) * sin(deg_to_rad(76.0))
-			var old_tap_peak: float = height + old_upward * old_upward / (2 * lab.GRAVITY)
-			var full: Vector3 = lab._shot_velocity(Vector3(0, height, 5), 0, 1.0)
-			var full_peak: float = height + full.y * full.y / (2 * lab.GRAVITY)
-			var tapped: Vector3 = lab._shot_velocity(Vector3(0, height, 5), 0, old_charge)
-			check(absf(full_peak - old_tap_peak) < 0.001, "Full bump must peak at exactly the former tapped bump height")
-			check(tapped.y < full.y, "Recalibrated tapped bump must remain below the full-charge ceiling")
+			var origin := Vector3(0, height, 5)
+			var low: Vector3 = lab._shot_velocity(origin, 0, 0.2)
+			var full: Vector3 = lab._shot_velocity(origin, 0, 1.0)
+			check(low.is_equal_approx(full), "Receive charge cushions incoming pace without changing controlled pass distance or height")
+			check(full.y > 0 and full.is_finite(), "Controlled receive retains a finite lifted arc at each athlete height")
 		var set_launch: Vector3 = lab._shot_velocity(Vector3(0, 2.1, 5), 1, 1.0)
 		var set_peak: float = 2.1 + set_launch.y * set_launch.y / (2 * lab.GRAVITY)
 		check(absf(set_peak - (2.1 + (lab._bump_ceiling(1.0) - 2.1) * lab.SET_RISE_FACTOR * lab.GROUND_SET_RISE_FACTOR)) < 0.001, "Full Set uses the flatter calibrated rise")
@@ -104,11 +99,12 @@ func run() -> void:
 	lab.player.position = Vector3(13, 0, 6)
 	lab.station.start()
 	lab.station.serve()
+	lab.station.strike_feed()
 	lab.locked_action = 0
 	lab.selected = 0
 	lab.ball.position = lab.player.position + lab._hurtbox_definition(0).center
 	lab._contact()
-	check(lab.selected == 0 and lab.station.streak == 1, "Serve Receive drill must keep Receive selected despite successful contact")
+	check(lab.selected == 0 and lab.station.state == lab.station.State.RETURNING and lab.station.points == 0, "Drill keeps Receive selected and defers scoring until landing")
 	lab._reset()
 	lab.motion.jumped = true
 	lab.motion.airborne_action = 0

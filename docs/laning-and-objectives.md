@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Laning, Nets and objectives: accepted rules
 
 Design record, from the conversation of 2026-10-18. It extends `docs/map-spec.md`. Status: **accepted by the designer unless marked

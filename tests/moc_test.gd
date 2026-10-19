@@ -129,7 +129,7 @@ func run() -> void:
 	lab._process(0.004)
 	check(lab.camera_rig.camera_anchor.x > 0.2 and lab.camera_rig.camera_anchor.x < 0.35, "Camera smoothing uses unscaled real time during MoC")
 	clock.clear()
-	# Live engine deltas: CharacterBody, ball and drill timers share slowdown.
+	# World scheduling stays live; only the contacting actor and ball slow down.
 	prepare(lab, 1)
 	lab.player.position = Vector3(0, 10, 5)
 	lab.player.velocity = Vector3(2, 0, 0)
@@ -143,13 +143,14 @@ func run() -> void:
 	lab.training_bots.active_action = 0
 	lab.training_bots.remaining = 1.0
 	clock.begin(event())
-	lab.set_physics_process(true)
-	await wait_real(0.065)
-	lab.set_physics_process(false)
+	clock._end_usec = Time.get_ticks_usec() + 500000
+	await physics_frame
+	var step: float = lab.player.get_physics_process_delta_time()
+	lab._physics_process(step)
 	var simulated: float = lab.elapsed - initial_elapsed
-	check(simulated > 0 and simulated < 0.05, "World physics advances at the shared slowed simulation rate")
-	check(absf((lab.player.position.x - initial_player.x) - 2 * simulated) < 0.01 and absf((lab.ball.position.x - initial_ball.x) - 2 * simulated) < 0.01, "CharacterBody and ball use matching simulation-time displacement")
-	check(absf((1.0 - lab.training_bots.remaining) - simulated) < 0.001, "Bot interception timer uses the same slowed simulation clock")
+	check(is_equal_approx(simulated, step), "World physics retains its unscaled delta")
+	check(absf((lab.player.position.x - initial_player.x) - 2 * simulated * 0.6) < 0.01 and absf((lab.ball.position.x - initial_ball.x) - 2 * simulated * 0.6) < 0.01, "Contacting athlete and ball advance at 60% speed")
+	check(absf((1.0 - lab.training_bots.remaining) - simulated) < 0.001, "Other bot timers remain at full speed")
 	clock.clear()
 	# A drill's waiting interval is simulation time, not impact wall time.
 	prepare(lab, 0)

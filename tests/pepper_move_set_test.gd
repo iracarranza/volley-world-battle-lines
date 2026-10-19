@@ -26,6 +26,7 @@ func run() -> void:
 	lab.ball.position = lab.player.position + lab._raw_hurtbox_definition(0).center
 	lab.ball_velocity = Vector3(0, -5, 10)
 	lab._confirm_action()
+	lab.confirm_window = lab.confirm_duration - 0.22
 	lab._contact()
 	check(pepper.stage == 1 and pepper.npc_turn and pepper.planned, "Good actual player Receive schedules NPC Set")
 	check(pepper.MOVEMENT_MODE == "Move", "Pepper partners always use Move")

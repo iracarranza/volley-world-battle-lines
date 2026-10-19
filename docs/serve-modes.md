@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Serving inputs and feed telegraph
 
 Hold E for one second to complete a basic standing serve. The first 180 ms distinguishes a tap from a hold. Once channeling, grounded movement locks; releasing early cancels. Completion automatically serves through a safe arc to a target inside the opposing court. From the serve line, the solver checks net clearance including ball radius and a 20 cm margin; lateral facing chooses a clamped in-court target. Aim away from the court cannot turn the basic serve into a deliberate fault. The guarantee describes the untouched flight; an opponent may receive it.

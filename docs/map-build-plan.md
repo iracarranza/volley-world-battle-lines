@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Map build plan
 
 Status: **phase 1 (graybox) is built as a separate scene** (`map_graybox.tscn`, see section 9). Phases 2 onward are not started. Reads `docs/map-spec.md` (topology) and `docs/laning-and-objectives.md` (rules). Numbers marked

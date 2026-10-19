@@ -1,0 +1,520 @@
+[
+  {
+    "suite": "athlete_menu_layout_test",
+    "passed": true,
+    "seconds": 0.76,
+    "exit_code": 0,
+    "source": "targeted final rerun"
+  },
+  {
+    "suite": "athlete_picks_test",
+    "passed": true,
+    "seconds": 0.26,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "ball_framing_test",
+    "passed": true,
+    "seconds": 0.88,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "ball_view_controls_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "bench_status_test",
+    "passed": true,
+    "seconds": 0.95,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "block_contact_regression_test",
+    "passed": true,
+    "seconds": 1.07,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "bot_aim_test",
+    "passed": true,
+    "seconds": 0.95,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "bot_animation_test",
+    "passed": true,
+    "seconds": 0.97,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "bot_block_fallback_test",
+    "passed": true,
+    "seconds": 1.07,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "bot_camera_arc_test",
+    "passed": true,
+    "seconds": 0.85,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "bot_facing_drill_layout_test",
+    "passed": true,
+    "seconds": 1.04,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "bot_jump_attempt_test",
+    "passed": true,
+    "seconds": 1.06,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "bot_move_test",
+    "passed": true,
+    "seconds": 1.15,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "bot_rally_motion_test",
+    "passed": true,
+    "seconds": 4.18,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "bot_settings_test",
+    "passed": true,
+    "seconds": 0.87,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "box_jump_routes_test",
+    "passed": true,
+    "seconds": 39.28,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "cleanup_contracts_test",
+    "passed": true,
+    "seconds": 1.07,
+    "exit_code": 0,
+    "source": "targeted final rerun"
+  },
+  {
+    "suite": "confirmation_movement_test",
+    "passed": true,
+    "seconds": 1.55,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "contact_execution_test",
+    "passed": true,
+    "seconds": 0.95,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "contact_flow_test",
+    "passed": true,
+    "seconds": 0.95,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "contact_zones_test",
+    "passed": true,
+    "seconds": 0.97,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "creator_bound_test",
+    "passed": true,
+    "seconds": 2.97,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "directional_influence_test",
+    "passed": true,
+    "seconds": 0.98,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "dive_recovery_test",
+    "passed": true,
+    "seconds": 2.97,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "dive_seams_test",
+    "passed": true,
+    "seconds": 1.95,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "dive_stage_test",
+    "passed": true,
+    "seconds": 1.07,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "dive_turn_test",
+    "passed": true,
+    "seconds": 0.95,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "exploration_rally_test",
+    "passed": true,
+    "seconds": 2.26,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "fatigue_status_test",
+    "passed": true,
+    "seconds": 0.96,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "floor_recovery_lab_test",
+    "passed": true,
+    "seconds": 1.66,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "floor_recovery_test",
+    "passed": true,
+    "seconds": 0.96,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "graduated_spike_test",
+    "passed": true,
+    "seconds": 0.85,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "impact_visual_test",
+    "passed": true,
+    "seconds": 0.85,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "map_drills_test",
+    "passed": true,
+    "seconds": 9.77,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "map_lab_test",
+    "passed": true,
+    "seconds": 3.27,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "map_traversal_test",
+    "passed": true,
+    "seconds": 80.68,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "moc_duration_extension_test",
+    "passed": true,
+    "seconds": 1.56,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "moc_modes_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "moc_slowdown_test",
+    "passed": true,
+    "seconds": 1.45,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "moc_test",
+    "passed": true,
+    "seconds": 2.05,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "pepper_move_set_test",
+    "passed": true,
+    "seconds": 1.04,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "pepper_sequence_test",
+    "passed": true,
+    "seconds": 1.27,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "pose_blender_test",
+    "passed": true,
+    "seconds": 0.55,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "pose_library_test",
+    "passed": true,
+    "seconds": 0.55,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "pose_smoother_test",
+    "passed": true,
+    "seconds": 0.47,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "pose_transition_lab_test",
+    "passed": true,
+    "seconds": 1.46,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "pose_wiring_test",
+    "passed": true,
+    "seconds": 0.87,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "prototype_test",
+    "passed": true,
+    "seconds": 10.37,
+    "exit_code": 0,
+    "source": "targeted final rerun"
+  },
+  {
+    "suite": "receive_charge_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "receive_outcome_test",
+    "passed": true,
+    "seconds": 1.04,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "receive_platform_test",
+    "passed": true,
+    "seconds": 0.95,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "receive_window_bounds_test",
+    "passed": true,
+    "seconds": 0.86,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "serve_modes_moc_test",
+    "passed": true,
+    "seconds": 1.06,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "serve_pepper_test",
+    "passed": true,
+    "seconds": 1.27,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "serve_receive_scoring_test",
+    "passed": true,
+    "seconds": 0.96,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "set_and_shuffle_test",
+    "passed": true,
+    "seconds": 0.56,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "set_follow_continuity_test",
+    "passed": true,
+    "seconds": 1.06,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "set_hurtbox_test",
+    "passed": true,
+    "seconds": 1.04,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "six_step_completion_test",
+    "passed": true,
+    "seconds": 0.96,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "spike_confirm_test",
+    "passed": true,
+    "seconds": 0.98,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "spike_geometry_direction_test",
+    "passed": true,
+    "seconds": 0.95,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "spike_stage_test",
+    "passed": true,
+    "seconds": 0.45,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "stamina_spike_depth_test",
+    "passed": true,
+    "seconds": 0.96,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "stance_test",
+    "passed": true,
+    "seconds": 0.95,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "stat_movement_test",
+    "passed": true,
+    "seconds": 4.84,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "stat_tuning_test",
+    "passed": true,
+    "seconds": 0.97,
+    "exit_code": 0,
+    "source": "targeted final rerun"
+  },
+  {
+    "suite": "station_approach_test",
+    "passed": true,
+    "seconds": 8.25,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "title_menu_test",
+    "passed": true,
+    "seconds": 1.41,
+    "exit_code": 0,
+    "source": "targeted final rerun"
+  },
+  {
+    "suite": "trait_book_test",
+    "passed": true,
+    "seconds": 0.25,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "trait_effect_editor_test",
+    "passed": true,
+    "seconds": 0.25,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "trait_pick_ui_test",
+    "passed": true,
+    "seconds": 0.65,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "traits_test",
+    "passed": true,
+    "seconds": 1.67,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "trajectory_preview_test",
+    "passed": true,
+    "seconds": 1.05,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  },
+  {
+    "suite": "wing_pose_test",
+    "passed": true,
+    "seconds": 0.56,
+    "exit_code": 0,
+    "source": "artifacts/cleanup-final"
+  }
+]

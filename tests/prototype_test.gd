@@ -143,7 +143,7 @@ func run() -> void:
 	var facing_before: float = lab.camera_rig.facing_yaw
 	lab.camera_rig.rotate_view(Vector2(150, 20))
 	lab.camera_rig.update_aim()
-	check(absf(lab.camera_rig.facing_yaw - facing_before + 150 * lab.LOOK_SENSITIVITY) < 0.0001, "Ball View mouse turns athlete independently")
+	check(absf(lab.camera_rig.facing_yaw - facing_before + 150 * lab.camera_tuning.mouse_sensitivity) < 0.0001, "Ball View mouse turns athlete independently")
 	lab.motion.jumped = true
 	lab.motion.airborne_aim = Vector3.FORWARD
 	lab.camera_rig.set_mode(lab.ViewMode.ATHLETE)
@@ -186,7 +186,7 @@ func run() -> void:
 	lab._reset()
 	lab.camera_rig.update(2.0)
 	lab.camera_rig.rotate_view(Vector2(100, 0))
-	check(absf(lab.camera_rig.facing_yaw + 100.0 * lab.LOOK_SENSITIVITY) < 0.00001, "Facing must apply exact mouse delta immediately")
+	check(absf(lab.camera_rig.facing_yaw + 100.0 * lab.camera_tuning.mouse_sensitivity) < 0.00001, "Facing must apply exact mouse delta immediately")
 	lab.camera_rig.update(1.0 / 144.0)
 	var camera_forward: Vector3 = -lab.camera.global_basis.z
 	camera_forward.y = 0
@@ -205,7 +205,7 @@ func run() -> void:
 		lab.camera_rig.update(2.0)
 		var centered: Vector2 = lab.camera.unproject_position(lab.camera_rig.camera_anchor)
 		var screen_center: Vector2 = lab.get_viewport().get_visible_rect().size * 0.5
-		if pitch <= 0.27 + asin((lab.camera_rig.camera_anchor.y - 0.4) / lab.ATHLETE_CAMERA_DISTANCE):
+		if pitch <= 0.27 + asin((lab.camera_rig.camera_anchor.y - 0.4) / lab.camera_tuning.distance):
 			check(centered.distance_to(screen_center) < 0.1, "Athlete pivot stays centered until the camera reaches floor for pitch %s" % pitch)
 		else:
 			check(absf(lab.camera.position.y - 0.4) < 0.01, "Beyond floor limit camera tilts from fixed ground clearance")
@@ -253,9 +253,9 @@ func run() -> void:
 		check(not bot.actors[action + (4 if action == 3 else 0)].visible and bot.active_action == -1, "Disabled bot must disappear and relinquish intercept")
 		lab._reset()
 	bot.toggle(3)
-	check(not bot.enabled[3], "Home blocker cannot be enabled")
+	check(not bot.settings[3].enabled, "Home blocker cannot be enabled")
 	bot.toggle(0, true)
-	check(bot.away_enabled[0] and not bot.enabled[0], "Away receiver toggles independently")
+	check(bot.settings[(0) + 4].enabled and not bot.settings[0].enabled, "Away receiver toggles independently")
 	bot.toggle(0, true)
 	lab.player.position = Vector3(2, 0, 4)
 	var debug_key := InputEventKey.new()
@@ -285,7 +285,7 @@ func run() -> void:
 	check(bot_actions_seen.has(0) and bot_actions_seen.has(1) and bot_actions_seen.has(2), "Receive/set/attack sustain practice; block reach is tested separately")
 	check(bot.total_contacts > 12, "Enabled bots must sustain repeated camera-test contacts")
 	bot.toggle_all()
-	check(not bot.enabled.has(true) and bot.active_action == -1, "Toggle all off must release the ball to normal play")
+	check(not bot.any_enabled() and bot.active_action == -1, "Toggle all off must release the ball to normal play")
 	lab._reset()
 	bot.toggle(1)
 	bot.toggle(2)

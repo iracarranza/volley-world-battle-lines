@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Bot and camera tuning
 
 F9 opens the independently configurable home/away bots. Each uses the real VWM Feli construction, default 73-inch height / 1.90m span, and POW/SPD/ACC/END 65. Contact geometry comes from the same `contact_geometry.gd` definitions as the athlete, including actual rig shoulder measurements. Receive uses the forward-only fan, Set the overhead ellipsoid, Attack the dominant-arm sector, and Block the wall. Tracking positions the athlete around its preferred contact point; high Attack/Block contacts raise the entire bot instead of detaching its hurtbox. Static contacts and swept tracking contacts test this actual geometry.

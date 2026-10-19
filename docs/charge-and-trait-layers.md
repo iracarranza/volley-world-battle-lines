@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Charge, velocity and trait layers: decisions
 
 Updated runtime record, 2026-10-19. The later designer revisions place Stability on weak set execution and Cushioning under END as the additive receive stat. See `attribute-runtime.md` for implementation and tuning.

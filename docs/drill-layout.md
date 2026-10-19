@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Narrow drill lanes and jump-serve feed
 
 Spike Trainer occupies a 6 m-wide lane (x -19 to -13). Its suspended ball is standing reach + 1.40 m, 30 cm above the earlier setting. A 1.5 m-wide floor runway runs from z 10.5 toward the plant stripe at z 7.5, centered at x -16. Start/plant labels and right-left-inward foot marks suggest the approach rhythm. These are provisional guidance, not a movement lock; physique and approach execution still matter.

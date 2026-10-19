@@ -35,7 +35,7 @@ func run() -> void:
 		movement = current
 	lab.camera_rig.rotate_view(Vector2(200, -80))
 	lab.camera_rig.update(2)
-	check(absf(lab.camera_rig.facing_yaw - facing + 200 * lab.LOOK_SENSITIVITY) < 0.0001, "Mouse turns athlete at normal sensitivity")
+	check(absf(lab.camera_rig.facing_yaw - facing + 200 * lab.camera_tuning.mouse_sensitivity) < 0.0001, "Mouse turns athlete at normal sensitivity")
 	check(lab.camera_rig.view_pitch > loft, "Mouse vertical changes deliberate loft")
 	check(lab.camera_rig.facing_yaw != facing, "Aiming remains independent of automatic framing")
 	check(lab.camera_rig.movement_direction(Vector3.FORWARD).distance_to(movement) < 0.001, "Mouse aiming cannot redirect ball-relative movement")

@@ -64,7 +64,7 @@ func run() -> void:
 	await physics_frame
 	var origin := Vector3(0,1,5)
 	check(lab._shot_velocity(origin, 0, 0.1).is_equal_approx(lab._shot_velocity(origin, 0, 1.0)), "Receive charge no longer controls range")
-	check(lab.training_bots.charge_accuracy.size() == 8 and lab.pepper.charge_accuracy.size() == 3, "Independent charge controls for all bots")
+	check(lab.training_bots.settings.size() == 8 and lab.pepper.settings.size() == 3, "Independent charge controls for all bots")
 	for amount in [0.4, 0.675, 0.9]:
 		lab._reset()
 		lab.moc.enabled = false
@@ -84,7 +84,7 @@ func run() -> void:
 		if amount != 0.675:
 			check(not lab.last_contact_result.sweet, "Perfect player timing cannot hide mismatch")
 	var bots = lab.training_bots
-	bots.enabled[0] = true
+	bots.settings[0].enabled = true
 	for amount in [0.4, 0.675, 0.9]:
 		lab._reset()
 		lab.ball_active = true
@@ -102,7 +102,7 @@ func run() -> void:
 			check(lab.ball_velocity.z > 0, "Bot undercharge is not silently corrected toward setter")
 	bots.set_charge_accuracy(0, 25)
 	bots.reset()
-	check(bots.charge_accuracy[0] == 25 and bots.aiming_accuracy[0] == 100 and bots.tracking_accuracy[0] == 100, "Charge slider persists independently")
+	check(bots.settings[0].charge_accuracy == 25 and bots.settings[0].aiming_accuracy == 100 and bots.settings[0].tracking_accuracy == 100, "Charge slider persists independently")
 	var low_under := false
 	var low_over := false
 	for index in range(80):

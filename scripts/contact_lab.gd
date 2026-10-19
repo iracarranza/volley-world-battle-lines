@@ -1,20 +1,20 @@
 class_name LabSession
 extends Node3D
 
+@export var camera_tuning: LabCameraTuning = preload("res://resources/lab_camera.tres")
+
 signal receive_resolved(event: Dictionary)
+const ContactEvent := preload("res://scripts/contact/contact_event.gd")
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
 const Action := preload("res://scripts/contact/action.gd").Type
-const ReceiveOutcome := preload("res://scripts/receive_outcome.gd")
 
-const ReceivePose := preload("res://scripts/receive_pose.gd")
 
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
 var ball_shot: Dictionary = {}
 var last_receive_match: Dictionary = {}
 const ReceivePlatform := preload("res://scripts/receive_platform.gd")
 const ContactIntent := preload("res://scripts/contact_intent.gd")
-const SpikeDirection := preload("res://scripts/spike_direction.gd")
 const DirectionalInfluence := preload("res://scripts/directional_influence.gd")
 var directional_input := DirectionalInfluence.new()
 var last_directional_influence: Dictionary = {}
@@ -28,15 +28,8 @@ const Athlete = preload("res://scripts/athlete.gd")
 const Execution = preload("res://scripts/contact_execution.gd")
 const Geometry = preload("res://scripts/contact_geometry.gd")
 const Pose := preload("res://scripts/athlete_pose.gd")
-const DiveStage := preload("res://scripts/dive_stage.gd")
 const DiveRecovery := preload("res://scripts/dive_recovery.gd")
-const FloorRecovery := preload("res://scripts/floor_recovery.gd")
-const PoseLibrary := preload("res://scripts/pose_library.gd")
-const PoseSmoother := preload("res://scripts/pose_smoother.gd")
-const SpikeStage := preload("res://scripts/spike_stage.gd")
-const SetStage := preload("res://scripts/set_stage.gd")
 const VoliVisual = preload("res://scripts/voli_visual.gd")
-const WingPose := preload("res://scripts/wing_pose.gd")
 const Approach = preload("res://scripts/approach_run.gd")
 const Flight = preload("res://vendor/vwm/ball_flight_model.gd")
 const GRAVITY = Flight.DEFAULT_GRAVITY_MPS2
@@ -46,19 +39,16 @@ const SET_RISE_FACTOR := 0.80
 const SET_RANGE_FACTOR := 1.40
 const GROUND_SET_RANGE_FACTOR := 1.65
 const GROUND_SET_RISE_FACTOR := 0.80
-const SPIKE_LATERAL_RETENTION := 0.02
 var start_position := Vector3(0, 0.03, 5.0)
 var station_origin := Vector3.ZERO
 var box_origin := Vector3.ZERO
 var spike_origin := Vector3.ZERO
-const SPIKE_MOMENTUM_CONVERSION := 0.495
-const ACTIONS = ["RECEIVE", "SET", "ATTACK", "BLOCK"]
+const ACTIONS = preload("res://scripts/contact/action.gd").CONTACT_LABELS
 const TEAL = Color("54ead0")
 const GOLD = Color("ffce73")
 var serve: Node3D
 var pepper: Node3D
 var debug_volumes_visible := true
-const ATHLETE_CAMERA_DISTANCE := 4.2
 const BallFraming := preload("res://scripts/ball_camera_framing.gd")
 var facing_arrow: MeshInstance3D
 var drills: Node3D
@@ -96,6 +86,7 @@ var contact_flow: Node3D
 var impact_visual: Node3D
 var bench: Node3D
 var station: Node3D
+var hurtbox_view: LabHurtboxView
 var hurtbox_root: Node3D
 var hurtbox_mesh: MeshInstance3D
 var hurtbox_label: Label3D
@@ -132,15 +123,10 @@ var last_quality := "—"
 var last_contact := -10.0
 var elapsed := 0.0
 var trail_points: Array[Vector3] = []
-enum ViewMode { ATHLETE, BALL }
-const LOOK_SENSITIVITY := 0.0022
+const ViewMode = LabCamera.ViewMode
 var cursor_release_click := false
 var action_endlag := 0.0
-const QUICK_STEP_COOLDOWN_EXPLORE := 5.0
-const QUICK_STEP_COOLDOWN_RALLY := 8.0
-const DOUBLE_TAP_WINDOW := 0.28
 const ROLL_TIME := 0.9
-const QUICK_STEP_TIME := 0.18
 var contact_memory: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var body_collision_view: MeshInstance3D
 var arms: Array[Node3D] = []
@@ -243,6 +229,9 @@ func _build_player() -> void:
 	player.add_child(body_collision_view)
 
 func _rebuild_visual() -> void:
+	if hurtbox_view != null:
+		hurtbox_view.clear()
+		hurtbox_action = -1
 	if is_instance_valid(body):
 		body.get_parent().remove_child(body)
 		body.queue_free()
@@ -303,6 +292,7 @@ func _build_hurtbox() -> void:
 	hurtbox_root = Node3D.new()
 	add_child(hurtbox_root)
 	hurtbox_root.hide()
+	hurtbox_view = LabHurtboxView.new(hurtbox_root, world_builder)
 
 func ground_contact_locked() -> bool:
 	return (confirm_window > 0.0 or action_endlag > 0.0 or (is_instance_valid(serve) and serve.channeling())) and player.is_on_floor() and not motion.jumped and not motion.approach_bound
@@ -325,109 +315,11 @@ func _confirm_action(window: float = -1.0) -> void:
 	sweet_visual_phase = ""
 	hurtbox_action = locked_action
 	hurtbox_linger = confirm_window + 0.35
-	for child in hurtbox_root.get_children():
-		hurtbox_root.remove_child(child)
-		child.queue_free()
 	var shape := _hurtbox_definition(locked_action)
 	confirmed_geometry = shape.duplicate(true)
-	var color: Color = [TEAL, Color("ac9df2"), GOLD, Color("8bbdf4")][locked_action]
-	hurtbox_mesh = MeshInstance3D.new()
-	hurtbox_root.add_child(hurtbox_mesh)
-	if shape.shape == "sector":
-		hurtbox_mesh.mesh = Geometry.zone_mesh(shape)
-		var m := world_builder.debug_material(Color.WHITE, 1.0)
-		m.vertex_color_use_as_albedo = true
-		m.cull_mode = BaseMaterial3D.CULL_DISABLED
-		hurtbox_mesh.material_override = m
-		var wire := MeshInstance3D.new()
-		wire.mesh = Geometry.zone_mesh(shape, true)
-		wire.material_override = m
-		hurtbox_root.add_child(wire)
-		var sweet_point := Geometry.sector_point(shape, 0.74, 67.5, 0.0)
-		world_builder.sphere(hurtbox_root, 0.045, sweet_point, Color("67f3a3"))
-	elif shape.shape == "set_sector":
-		hurtbox_mesh.mesh = Geometry.SetHurtbox.mesh(shape)
-		var m := world_builder.debug_material(Color.WHITE, 1.0)
-		m.vertex_color_use_as_albedo = true
-		m.cull_mode = BaseMaterial3D.CULL_DISABLED
-		hurtbox_mesh.material_override = m
-		var wire := MeshInstance3D.new()
-		wire.mesh = Geometry.SetHurtbox.mesh(shape, true)
-		wire.material_override = m
-		hurtbox_root.add_child(wire)
-	elif shape.get("receive_platform", false):
-		hurtbox_mesh.mesh = ReceivePlatform.mesh(shape)
-		var m := world_builder.debug_material(Color.WHITE, 1.0)
-		m.vertex_color_use_as_albedo = true
-		m.cull_mode = BaseMaterial3D.CULL_DISABLED
-		hurtbox_mesh.material_override = m
-		var wire := MeshInstance3D.new()
-		wire.mesh = ReceivePlatform.mesh(shape, true)
-		wire.material_override = m
-		hurtbox_root.add_child(wire)
-	elif shape.shape == "ellipsoid":
-		var mesh := SphereMesh.new()
-		mesh.radius = 1.0
-		mesh.height = 2.0
-		mesh.radial_segments = 32
-		mesh.rings = 16
-		hurtbox_mesh.mesh = mesh
-		hurtbox_mesh.scale = shape.size * 0.5
-		hurtbox_mesh.material_override = world_builder.debug_material(color, 0.12)
-		var wire := MeshInstance3D.new()
-		var lines := ImmediateMesh.new()
-		lines.surface_begin(Mesh.PRIMITIVE_LINES)
-		for axis in range(3):
-			for i in range(48):
-				var a := TAU * i / 48.0
-				var b := TAU * (i + 1) / 48.0
-				var first := Vector3.ZERO
-				var second := Vector3.ZERO
-				first[(axis + 1) % 3] = cos(a) * shape.size[(axis + 1) % 3] * 0.5
-				first[(axis + 2) % 3] = sin(a) * shape.size[(axis + 2) % 3] * 0.5
-				second[(axis + 1) % 3] = cos(b) * shape.size[(axis + 1) % 3] * 0.5
-				second[(axis + 2) % 3] = sin(b) * shape.size[(axis + 2) % 3] * 0.5
-				lines.surface_add_vertex(first)
-				lines.surface_add_vertex(second)
-		lines.surface_end()
-		wire.mesh = lines
-		wire.material_override = world_builder.debug_material(color, 0.85)
-		hurtbox_root.add_child(wire)
-		if shape.has("edge_zone"):
-			for side in [-1.0, 1.0]:
-				world_builder.sphere(hurtbox_root, 0.07, Vector3(side * (shape.size.x * 0.5 + Geometry.BALL_RADIUS) * float(shape.edge_zone), 0, 0), Color("ee617b"))
-	elif shape.shape == "block_columns":
-		hurtbox_mesh.mesh = Geometry.block_mesh(shape)
-		var material := world_builder.debug_material(Color.WHITE, 1.0)
-		material.vertex_color_use_as_albedo = true
-		material.cull_mode = BaseMaterial3D.CULL_DISABLED
-		hurtbox_mesh.material_override = material
-		for side in [-1.0, 1.0]:
-			var marker := MeshInstance3D.new()
-			var cylinder := CylinderMesh.new()
-			cylinder.top_radius = shape.column_radius * 0.58
-			cylinder.bottom_radius = cylinder.top_radius
-			cylinder.height = shape.size.y * 0.65
-			marker.mesh = cylinder
-			marker.position.x = side * shape.column_x
-			marker.material_override = world_builder.debug_material(Color("67f3a3"), 0.35)
-			hurtbox_root.add_child(marker)
-			var sweet_wire := world_builder.wire_box(hurtbox_root, Vector3(shape.column_radius * 1.16, shape.size.y * 0.65, shape.column_radius * 1.16), Color("67f3a3"))
-			sweet_wire.position.x = side * shape.column_x
-	else:
-		var mesh := BoxMesh.new()
-		mesh.size = shape.size
-		hurtbox_mesh.mesh = mesh
-		hurtbox_mesh.material_override = world_builder.debug_material(color, 0.14)
-		world_builder.wire_box(hurtbox_root, shape.size, color)
-	hurtbox_label = Label3D.new()
-	hurtbox_label.text = ACTIONS[locked_action] + " HURTBOX"
-	hurtbox_label.font_size = 29
-	hurtbox_label.pixel_size = 0.005
-	hurtbox_label.position.y = (float(shape.radius) if shape.shape == "sector" else (float(shape.radius) if shape.shape == "set_sector" else shape.size.y * 0.5)) + 0.18
-	hurtbox_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	hurtbox_label.modulate = color
-	hurtbox_root.add_child(hurtbox_label)
+	var presentation := hurtbox_view.present(shape, locked_action)
+	hurtbox_mesh = presentation.mesh
+	hurtbox_label = presentation.label
 	hurtbox_root.show()
 	_update_hurtbox_visual(0.0)
 
@@ -444,11 +336,11 @@ func _update_hurtbox_visual(dt: float) -> void:
 	sweet_visual_expired = age > Execution.SWEET_DELAY + Execution.sweet_seconds(hurtbox_action)
 	var phase := "sweet" if Execution.sweet_active(hurtbox_action, age) else ("windup" if age < Execution.SWEET_DELAY else "rescue")
 	if phase != sweet_visual_phase:
-		for child in hurtbox_root.get_children():
+		for child in hurtbox_view.active.get_children():
 			if child is MeshInstance3D:
 				if not child.has_meta("sweet_material"):
 					child.set_meta("sweet_material", child.material_override)
-				child.material_override = child.get_meta("sweet_material") if phase == "sweet" else world_builder.debug_material(Color("8faabb") if phase == "windup" else Color("f69c69"), 0.22)
+				child.material_override = child.get_meta("sweet_material") if phase == "sweet" else hurtbox_view.phase_material(phase)
 		sweet_visual_phase = phase
 	if is_instance_valid(hurtbox_label):
 		hurtbox_label.text = ACTIONS[hurtbox_action] + (" / WINDUP" if phase == "windup" else (" / SWEET ACTIVE" if phase == "sweet" else " / RESCUE"))
@@ -807,28 +699,47 @@ func _capture_contact_intent() -> void:
 	var influence := DirectionalInfluence.resolve(_shot_velocity(origin, locked_action, locked_charge), locked_action, directional_input.value(), forward, 1.0)
 	committed_intent = ContactIntent.capture("player", side_index(player.position.z), locked_action, locked_charge, origin, aim, influence.velocity, elapsed, influence)
 
-func _emit_contact_impact(incoming_velocity: Vector3, assessment: Dictionary, incoming_shot: Dictionary = {}) -> void:
+func _impact_event(actor_id: String, action: int, incoming: Vector3, assessment: Dictionary, incoming_shot: Dictionary) -> ContactEvent:
 	_contact_event_serial += 1
-	last_contact_result = {"id": "player:%d" % _contact_event_serial, "actor": "player", "team": side_index(player.position.z), "action": locked_action, "charge": locked_charge, "physical_hit": bool(assessment.hit), "point": ball.position, "incoming_velocity": incoming_velocity, "incoming_shot": incoming_shot, "outgoing_shot": ball_shot, "charge_match": assessment.get("charge_match", {}), "outgoing_velocity": ball_velocity, "zone": last_quality, "quality":assessment.get("quality",0.0), "sweet": assessment.get("sweet", false), "rescue": assessment.get("rescue", false), "confirmation_age": assessment.get("confirmation_age", 0.0), "posture": assessment.get("posture", ""), "receive_outcome": assessment.get("receive_outcome", {}), "recovery": assessment.get("recovery", ""), "recovery_seconds": assessment.get("recovery_seconds", 0.0), "recovery_penalty_seconds":assessment.get("receive_outcome",{}).get("recovery_penalty_seconds",0.0), "platform_band": assessment.get("band", ""), "platform_coord": assessment.get("platform_coord", Vector3.ZERO), "simulation_time": elapsed, "intent": committed_intent, "directional_influence": last_directional_influence}
-	last_contact_result.make_read_only()
-	if locked_action == 0:
-		receive_resolved.emit(last_contact_result)
-	action_endlag = [0.16,0.12,0.22,0.16][locked_action]
-	contact_flow.record(last_contact_result)
-	moc.begin(last_contact_result)
-	# The next preparation owns a new snapshot; history retains this immutable one.
+	var event := ContactEvent.new()
+	event.id = "%s:%d" % [actor_id, _contact_event_serial]
+	event.actor = actor_id
+	event.action = action
+	event.team = side_index(ball.position.z)
+	event.point = ball.position
+	event.incoming_velocity = incoming
+	event.outgoing_velocity = ball_velocity
+	event.incoming_shot = incoming_shot
+	event.outgoing_shot = ball_shot
+	event.charge = float(ball_shot.get("charge", 0.0))
+	event.assessment = assessment
+	event.simulation_time = elapsed
+	return event
+
+func _publish_impact(event: Dictionary) -> void:
+	if event.action == Action.RECEIVE:
+		receive_resolved.emit(event)
+	contact_flow.record(event)
+	moc.begin(event)
+
+func _emit_contact_impact(incoming_velocity: Vector3, assessment: Dictionary, incoming_shot: Dictionary = {}) -> void:
+	var event := _impact_event("player", locked_action, incoming_velocity, assessment, incoming_shot)
+	event.team = side_index(player.position.z)
+	event.charge = locked_charge
+	event.intent = committed_intent
+	event.directional_influence = last_directional_influence
+	event.assessment = assessment.duplicate()
+	event.assessment["zone"] = last_quality
+	last_contact_result = event.publish()
+	action_endlag = [0.16, 0.12, 0.22, 0.16][locked_action]
+	_publish_impact(last_contact_result)
 	committed_intent = {}
 
 func _emit_external_impact(actor_id: String, action: int, incoming: Vector3, assessment: Dictionary, incoming_shot: Dictionary = {}) -> void:
-	_contact_event_serial += 1
-	var event := {"id": "%s:%d" % [actor_id, _contact_event_serial], "actor": actor_id, "incoming_shot":incoming_shot, "action": action, "point": ball.position, "quality": assessment.get("quality", 0.75), "rescue": assessment.get("rescue", false), "charge_match": assessment.get("charge_match", {}), "physical_hit": assessment.get("hit", false), "sweet": assessment.get("sweet", false), "incoming_velocity": incoming, "outgoing_velocity": ball_velocity, "receive_outcome": assessment.get("receive_outcome", {}), "recovery": assessment.get("recovery", ""), "recovery_seconds": assessment.get("recovery_seconds", 0.0), "recovery_penalty_seconds":assessment.get("receive_outcome",{}).get("recovery_penalty_seconds",0.0)}
-	event.make_read_only()
-	if action == 0:
-		receive_resolved.emit(event)
+	var event := _impact_event(actor_id, action, incoming, assessment, incoming_shot)
 	if actor_id == "player_serve":
 		action_endlag = 0.22
-	contact_flow.record(event)
-	moc.begin(event)
+	_publish_impact(event.publish())
 
 func _exit_tree() -> void:
 	if is_instance_valid(moc):

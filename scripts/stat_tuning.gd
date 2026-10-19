@@ -16,17 +16,10 @@ static func rating(build: Dictionary, name: String) -> float:
 		return clampf(float(named[name]),50,99)
 	var parent: String = PARENTS[name]
 	var value := float(build.get(parent,65))
-	# Offsets are safe only when their saved labels identify the new stat. Old
-	# positional offsets are never reinterpreted as a different capability.
-	var labels: Array = build.get("stat_names",{}).get(parent,[])
-	var offsets: Array = build.get("offsets",{}).get(parent,[])
-	if labels.is_empty() and name == "ball_control" and offsets.size() > 1:
-		return clampf(value+float(offsets[1]),50,99)
-	for index in range(mini(labels.size(),offsets.size())):
-		if str(labels[index]).to_snake_case() == name:
-			value += float(offsets[index])
-			break
-	return clampf(value,50,99)
+	# Runtime inputs use canonical named values. Bare comparison builds inherit
+	# their parent rating; legacy offset interpretation belongs to Store.migrate.
+	return clampf(value, 50, 99)
+
 static func pace(rating: float) -> float:
 	var band := tier(rating)
 	return 0.70 if band == -2 else (0.90 if band == -1 else 1.0+0.08*band)

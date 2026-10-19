@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Pose editor (VWBL)
 
 Author movement poses by dragging joints on the real voli rig instead of editing code.

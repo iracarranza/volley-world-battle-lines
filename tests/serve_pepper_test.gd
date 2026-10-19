@@ -24,14 +24,14 @@ func run() -> void:
 	await physics_frame
 	lab._serve()
 	check(lab.serve.tossing() and lab.ball_active and not lab.outgoing and lab.ball_velocity.y > 0, "First E tosses without automatically serving")
-	check(not lab.training_bots.away_enabled[0], "Toss does not spawn court receiver yet")
+	check(not lab.training_bots.settings[(0) + 4].enabled, "Toss does not spawn court receiver yet")
 	var early: Dictionary = await toss_trial(lab, 0.15)
 	var late: Dictionary = await toss_trial(lab, 0.6)
 	check(not early.is_empty() and not late.is_empty(), "Both early and late swings can meet the physical toss")
 	if not early.is_empty() and not late.is_empty():
 		check(early.incoming_velocity.y > 0 and late.incoming_velocity.y < 0 and early.angle_degrees > late.angle_degrees + 8, "Identical aim produces higher arc on rising contact")
 		check(early.point.distance_to(early.hand) <= lab.serve.HAND_RADIUS + lab.Geometry.BALL_RADIUS + 0.06, "Serve meets actual striking hand")
-		check(lab.training_bots.away_enabled[0], "Successful main-Net strike enables away receiver")
+		check(lab.training_bots.settings[(0) + 4].enabled, "Successful main-Net strike enables away receiver")
 	lab._reset()
 	lab._serve()
 	for frame in range(18):
@@ -57,7 +57,7 @@ func run() -> void:
 	check(lab.hurtbox_root.visible and lab.training_bots.contact_boxes[0].visible, "Debug toggle restores volumes without losing confirmation")
 	lab._reset()
 	lab.camera_rig.update(2)
-	check(absf(lab.camera.position.distance_to(lab.camera_rig.camera_anchor) - lab.ATHLETE_CAMERA_DISTANCE) < 0.01, "Athlete View uses shorter fixed distance")
+	check(absf(lab.camera.position.distance_to(lab.camera_rig.camera_anchor) - lab.camera_tuning.distance) < 0.01, "Athlete View uses shorter fixed distance")
 	var position: Vector3 = lab.camera.position
 	lab.ball_active = true
 	lab.ball.position = lab.player.position + Vector3(0, 12, -2)

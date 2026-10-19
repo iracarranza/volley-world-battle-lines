@@ -27,7 +27,7 @@ func run() -> void:
 			await process_frame
 			await process_frame
 			await RenderingServer.frame_post_draw
-			root.get_texture().get_image().save_png("/tmp/contact-%d-%d.png" % [action, roundi(age * 100)])
+			root.get_texture().get_image().save_png("res://artifacts/contact-%d-%d.png" % [action, roundi(age * 100)])
 	lab.queue_free()
 	await process_frame
 	quit()

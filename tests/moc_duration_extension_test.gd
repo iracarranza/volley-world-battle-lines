@@ -69,14 +69,14 @@ func run() -> void:
 		lab._reset()
 		clock.set_mode(mode)
 		var bots = lab.training_bots
-		bots.enabled[1] = true
-		bots.contact_order[1] = 1
+		bots.settings[1].enabled = true
+		bots.settings[1].contact_order = 1
 		lab.ball_active = true
 		lab.ball.position = Vector3(0,2.25,5)
 		lab.ball_velocity = Vector3(0,-1,0)
 		bots._plan(1,lab.ball.position,0.01)
 		check(bots.tick(0.02) and clock.last_event.action == 1 and not clock.active,"Actual bot Set also has no MoC")
-		bots.enabled[1] = false
+		bots.settings[1].enabled = false
 	check(Clock.tuned_parts({"action":2,"physical_hit":true,"incoming_velocity":Vector3.ZERO,"outgoing_velocity":Vector3.UP}).total == 0,"Previously zero-hold soft contacts remain zero")
 	print("MOC DURATION EXTENSION: %d / %d passed" % [checks-failures,checks])
 	lab.queue_free()

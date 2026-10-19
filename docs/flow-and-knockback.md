@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Provisional Flow and receive knockback
 
 `scripts/contact_flow.gd` owns contact-driven Flow, inactivity decay, prepared aura resources, and underpowered receive impulses. It covers the player (including player_serve alias), eight training bots, and three Pepper partners. Machine drill feeds do not accumulate Flow. Flow contact effects and reactive traits are now implemented; see `attribute-runtime.md` for the subsequent stat/trait layer.

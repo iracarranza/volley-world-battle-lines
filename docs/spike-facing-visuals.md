@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 Spike presentation now limits combined waist/chest yaw to 10 degrees and counter-rotates the neck, keeping the eyes aligned with athlete facing. Natural loading, trunk pitch, and reach lean remain. Arm aiming magnifies the resolved shot yaw by 1.65 (capped at 65 degrees), increases lateral reach from 32 to 48 degrees, and exposes directional sweep at contact as well as follow-through. Training and Pepper bots use the same SpikeStage context instead of separate torso/arm yaw overlays. These are presentation changes; contact geometry, directional influence, shot speed and player facing are unchanged.
 
 Validated 69 spike-stage checks, 88 geometry/DI checks, and 14 shared-bot-animation checks. Rendered and inspected artifacts/spike-strip-ball0.65.png.

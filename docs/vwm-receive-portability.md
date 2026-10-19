@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # VWM receive portability review
 
 Reviewed the current local `/Users/iracarranza/volley-world-manager` checkout at `7da049b`. This is a source review; no VWM receive resolver was imported or enabled in Rally Lanes in this change.

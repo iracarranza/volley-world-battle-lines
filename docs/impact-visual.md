@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Contact impact visual
 
 Adapted from the current VWM workspace's experimental `tools/ball_treatment_gallery.gd` (`_draw_shell`, `_shell_point`, shell/stop/boom profiles). This is the gallery's contact-air treatment, not a claim that it is already wired into VWM's production replay. The existing vendored `construction/assets/vfx/aura_soft.svg` supplies the short soft contact flash used by VWM's signature presentation.

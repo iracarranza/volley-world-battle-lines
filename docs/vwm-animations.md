@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # VWM voli animations: what the lab has
 
 Inventory of the animation families in `vendor/vwm/construction` against what the Contact Lab draws. The lab drives the VWM rig

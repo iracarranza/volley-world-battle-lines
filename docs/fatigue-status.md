@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Winded and Exhaustion
 
 The first positive-to-zero stamina depletion applies Winded for 10.5 simulation seconds. Winded halves resting regeneration from 9 to 4.5 stamina/s and moving regeneration from 2 to 1 stamina/s. It does not change movement, jumps or HP costs. The regeneration multiplier is provisional tuning.

@@ -1,4 +1,5 @@
 extends "res://tests/support/test_case.gd"
+const Store := preload("res://scripts/athlete_store.gd")
 const Stats := preload("res://scripts/stat_tuning.gd")
 const Athlete := preload("res://scripts/athlete.gd")
 const Charge := preload("res://scripts/receive_charge.gd")
@@ -19,7 +20,8 @@ func run() -> void:
 	check(Stats.charge_multiplier(65) == 1 and is_equal_approx(Stats.charge_multiplier(66),1.04) and is_equal_approx(Stats.charge_multiplier(99),1.2),"Jump/Swing charge +4% steps")
 	check(Stats.rating({"power":65,"statistics":{"explosiveness":99}},"explosiveness") == 99,"Named stat overrides parent")
 	check(Stats.rating({"power":65,"offsets":{"power":[8,8,8]}},"explosiveness") == 65,"Legacy offsets are never silently remapped")
-	check(Stats.rating({"power":65,"stat_names":{"power":["Explosiveness"]},"offsets":{"power":[5]}},"explosiveness") == 70,"Labelled offsets remain usable")
+	var labelled := Store.migrate({"stat_version": 2, "power":65,"stat_names":{"power":["Explosiveness"]},"offsets":{"power":[5]}})
+	check(Stats.rating(labelled,"explosiveness") == 70,"Labelled offsets migrate at the save boundary before runtime lookup")
 	var base := athlete("explosiveness",65)
 	var fast := athlete("explosiveness",99)
 	var height := 1.5

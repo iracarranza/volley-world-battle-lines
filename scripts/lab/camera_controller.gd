@@ -2,10 +2,8 @@ class_name LabCamera
 extends RefCounted
 
 ## Owns camera rig state. LabSession schedules updates and composes peers.
-const ATHLETE_CAMERA_DISTANCE := 4.2
 const BallFraming := preload("res://scripts/ball_camera_framing.gd")
 enum ViewMode { ATHLETE, BALL }
-const LOOK_SENSITIVITY := 0.0022
 
 var lab: LabSession
 var ball_frame_pivot := Vector3.ZERO
@@ -25,7 +23,7 @@ var ball_orbit := 0.0
 var _camera_frame_usec := 0
 
 func rotate_view(relative: Vector2) -> void:
-	var yaw_delta := -relative.x * LOOK_SENSITIVITY
+	var yaw_delta := -relative.x * lab.camera_tuning.mouse_sensitivity
 	if camera_mode == ViewMode.ATHLETE:
 		view_yaw += yaw_delta
 		# Looking in the air is independent of committed athlete aim.
@@ -38,7 +36,7 @@ func rotate_view(relative: Vector2) -> void:
 			facing_yaw += yaw_delta
 			if lab.motion.jumped:
 				lab.motion.airborne_aim = Vector3(-sin(facing_yaw), 0, -cos(facing_yaw))
-	view_pitch = clampf(view_pitch - relative.y * LOOK_SENSITIVITY, -0.65, 1.15)
+	view_pitch = clampf(view_pitch - relative.y * lab.camera_tuning.mouse_sensitivity, lab.camera_tuning.minimum_pitch, lab.camera_tuning.maximum_pitch)
 	# Apply the exact mouse delta immediately; smoothing belongs to camera translation.
 	update_aim()
 	lab.animation.update()
@@ -103,17 +101,17 @@ func update(dt: float) -> void:
 		camera_anchor = stable_target
 		camera_anchor_ready = true
 	# Ball View is attached to the athlete, not a lagging world-space pivot.
-	camera_anchor = stable_target if camera_mode == ViewMode.BALL else camera_anchor.lerp(stable_target, 1.0 - exp(-dt * 18.0))
+	camera_anchor = stable_target if camera_mode == ViewMode.BALL else camera_anchor.lerp(stable_target, 1.0 - exp(-dt * lab.camera_tuning.follow_response))
 	var anchor := camera_anchor
 	var forward := Vector3(-sin(view_yaw), 0, -cos(view_yaw))
 	var orbit_pitch := view_pitch - 0.27
-	var floor_pitch := asin(clampf((anchor.y - 0.4) / ATHLETE_CAMERA_DISTANCE, -0.99, 0.99))
+	var floor_pitch := asin(clampf((anchor.y - lab.camera_tuning.floor_clearance) / lab.camera_tuning.distance, -0.99, 0.99))
 	var position_pitch := minf(orbit_pitch, floor_pitch)
 	var orbit_forward := forward * cos(position_pitch) + Vector3.UP * sin(position_pitch)
-	var desired_position := anchor - orbit_forward * ATHLETE_CAMERA_DISTANCE
+	var desired_position := anchor - orbit_forward * lab.camera_tuning.distance
 	var look_target := anchor
 	if orbit_pitch > floor_pitch:
-		look_target = desired_position + (forward * cos(orbit_pitch) + Vector3.UP * sin(orbit_pitch)) * ATHLETE_CAMERA_DISTANCE
+		look_target = desired_position + (forward * cos(orbit_pitch) + Vector3.UP * sin(orbit_pitch)) * lab.camera_tuning.distance
 	if camera_mode == ViewMode.BALL:
 		if not ball_camera_offset_ready:
 			ball_camera_offset = desired_position - anchor
@@ -121,27 +119,27 @@ func update(dt: float) -> void:
 			ball_view_entry_pitch = view_pitch
 		var feet := anchor - Vector3.UP * float(lab.athlete.build.height) * 0.55
 		var focus := lab.ball.position if lab.ball_active else feet + Vector3(-sin(ball_movement_yaw), 0, -cos(ball_movement_yaw)) * 8 + Vector3.UP * float(lab.athlete.build.height)
-		var frame := BallFraming.frame(feet, float(lab.athlete.build.height), focus, ball_camera_offset, ATHLETE_CAMERA_DISTANCE, dt)
+		var frame := BallFraming.frame(feet, float(lab.athlete.build.height), focus, ball_camera_offset, lab.camera_tuning.distance, dt)
 		ball_camera_offset = frame.offset
 		ball_frame_pivot = frame.pivot
 		ball_frame_screen_y = frame.screen_y
 		desired_position = anchor + ball_camera_offset
-		look_target = BallFraming.look_target(desired_position, ball_frame_pivot, ball_frame_screen_y, 65.0)
+		look_target = BallFraming.look_target(desired_position, ball_frame_pivot, ball_frame_screen_y, lab.camera_tuning.field_of_view)
 	var query := PhysicsRayQueryParameters3D.create(anchor, desired_position)
 	query.exclude = [lab.player.get_rid()]
 	var hit := lab.get_world_3d().direct_space_state.intersect_ray(query)
 	if not hit.is_empty():
 		desired_position = hit.position + hit.normal * 0.25
-	desired_position.y = maxf(0.4, desired_position.y)
+	desired_position.y = maxf(lab.camera_tuning.floor_clearance, desired_position.y)
 	if camera_mode == ViewMode.BALL:
-		look_target = BallFraming.look_target(desired_position, ball_frame_pivot, ball_frame_screen_y, 65.0)
+		look_target = BallFraming.look_target(desired_position, ball_frame_pivot, ball_frame_screen_y, lab.camera_tuning.field_of_view)
 		if lab.ball_active:
 			var net_allowance := (1.0 - smoothstep(1.0, 3.5, absf(lab.player.position.z))) * (1.0 - smoothstep(4.75, 6.0, absf(lab.player.position.x)))
-			look_target = BallFraming.net_look_target(desired_position, ball_frame_pivot, lab.ball.position, look_target, net_allowance, 65.0)
+			look_target = BallFraming.net_look_target(desired_position, ball_frame_pivot, lab.ball.position, look_target, net_allowance, lab.camera_tuning.field_of_view)
 	camera_transition = maxf(0, camera_transition - dt)
 	# Ball View automatically positions around the athlete/ball pair; mouse controls athlete aim.
 	lab.camera.position = desired_position
-	lab.camera.fov = 65.0
+	lab.camera.fov = lab.camera_tuning.field_of_view
 	if lab.camera.position.distance_squared_to(look_target) > 0.01:
 		var desired_rotation := Transform3D(Basis.IDENTITY, lab.camera.position).looking_at(look_target, Vector3.UP).basis.get_rotation_quaternion()
 		lab.camera.quaternion = desired_rotation

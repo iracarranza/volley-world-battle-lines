@@ -85,8 +85,8 @@ func run() -> void:
 		if lab.serve.state == lab.serve.State.FLIGHT:
 			break
 		lab._tick_ball(1.0 / 120)
-	check(lab.ball_active and lab.training_bots.away_enabled[0], "E starts live rally and spawns enemy receiver")
-	check(not lab.training_bots.away_enabled[1] and not lab.training_bots.enabled[0], "Serving only adds one enemy receiving role")
+	check(lab.ball_active and lab.training_bots.settings[(0) + 4].enabled, "E starts live rally and spawns enemy receiver")
+	check(not lab.training_bots.settings[(1) + 4].enabled and not lab.training_bots.settings[0].enabled, "Serving only adds one enemy receiving role")
 	check(lab.court_half_width == 2.5 and lab.court_half_depth == 5, "One versus one uses provisional 5 by 10 court")
 	lab.motion.begin_jump()
 	check(not lab.motion.generic_jump, "Live rally preserves sporting approach controls")

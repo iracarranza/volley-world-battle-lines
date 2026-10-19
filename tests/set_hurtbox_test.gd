@@ -27,8 +27,8 @@ func run() -> void:
 	var low := Geometry.definition(1, 1.86, athlete.reach(), false, 1.0, -1, -1, 20)
 	var high := Geometry.definition(1, 1.86, athlete.reach(), false, 1.0, -1, -1, 90)
 	check(high.column_radius > low.column_radius and high.radius == low.radius, "Ball Control widens column without changing contact reach")
-	athlete.build["offsets"] = {"accuracy": [-4, 8, -4]}
-	check(athlete.ball_control() == 70, "Ball Control uses its individual ACC offset")
+	athlete.build["statistics"] = {"ball_control": 73}
+	check(athlete.ball_control() == 70, "Ball Control uses its canonical named rating")
 	var lab = load("res://main.tscn").instantiate()
 	root.add_child(lab)
 	lab.set_physics_process(false)

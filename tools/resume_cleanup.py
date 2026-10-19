@@ -28,8 +28,9 @@ message = (
     'in this thread. Read docs/cleanup-methodology.md and docs/cleanup-checkpoint.md '
     f'in {args.workspace}. Continue from the verified checkpoint; do not restart '
     'or discard work. Finish the outstanding work and validation. Monitor both '
-    'usage windows. The user permits ONE full reset only if weekly remaining '
-    'falls below 3%; none has been consumed. If five-hour usage exhausts first, '
+    'usage windows. Read the checkpoint and artifacts/cleanup-reset.json before '
+    'any reset: at most ONE is authorized, only below 3% weekly remaining. '
+    'If five-hour usage exhausts first, '
     'checkpoint and resume at its next replenishment. This is the authorized '
     'one-time continuation, not a new reminder or recurring schedule.'
 )

@@ -92,6 +92,8 @@ func run() -> void:
 	lab.player.position = Vector3(13, 0.03, 6)
 	lab.station.start()
 	lab.station.serve()
+	check(lab.station.state == lab.station.State.TOSS, "Drill telegraphs the toss before striking")
+	lab.station.strike_feed()
 	var velocity: Vector3 = lab.ball_velocity
 	check(Vector2(velocity.x, velocity.z).length() > 12 and velocity.y < 3, "Receive feeds must be driven hard on a flat arc")
 	var arrival: Vector3 = lab.ball.position + velocity * lab.station.serve_duration + Vector3.DOWN * lab.GRAVITY * lab.station.serve_duration * lab.station.serve_duration * 0.5

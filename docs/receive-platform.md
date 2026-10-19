@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Forward receive fan and contact poses
 
 Receive uses a vertically extruded forward half-ellipse (a rough semicircular fan), not an ellipsoid. At reference height 1.86m, reach is 1.85m forward and 1.15m sideways. Its flat rear boundary is the athlete's body plane: no receiving volume or rendered vertex extends behind it. Ball-center positions behind that plane are rejected, including the old overlap-memory grace path.

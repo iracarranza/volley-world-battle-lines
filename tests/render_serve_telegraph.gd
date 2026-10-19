@@ -25,7 +25,7 @@ func run() -> void:
 		for frame in range(3):
 			await process_frame
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("/tmp/serve-feeder-%s.png" % phase)
+		root.get_texture().get_image().save_png("res://artifacts/serve-feeder-%s.png" % phase)
 	lab.queue_free()
 	await process_frame
 	quit()

@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Receive outcome handoff
 
 Gameplay rules live in `scripts/receive_outcome.gd`. Animation files, recovery playback, and recovery movement locks are deliberately left to Claude. Flow UI is a subsequent task.

@@ -17,7 +17,7 @@ func run() -> void:
 		for frame in range(4):
 			await process_frame
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("/tmp/flow-%d.png"%int(amount))
+		root.get_texture().get_image().save_png("res://artifacts/flow-%d.png"%int(amount))
 	lab.queue_free()
 	await process_frame
 	quit()

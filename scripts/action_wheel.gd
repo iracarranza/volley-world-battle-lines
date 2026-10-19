@@ -1,6 +1,6 @@
 extends Control
 
-const NAMES := ["RECEIVE", "SET", "ATTACK", "BLOCK"]
+const NAMES := preload("res://scripts/contact/action.gd").CONTACT_LABELS
 const ACCENT := Color("54ead0")
 var selected := 0
 var locked := false
@@ -20,6 +20,9 @@ func set_action(action: int, committed: bool) -> void:
 		selected = action
 		locked = committed
 		queue_redraw()
+		# Rebuild once after new glyphs enter the font atlas; stay event-driven after that.
+		if not RenderingServer.frame_post_draw.is_connected(queue_redraw):
+			RenderingServer.frame_post_draw.connect(queue_redraw, CONNECT_ONE_SHOT)
 
 func action_at_slot(slot: int) -> int:
 	if slot == 0:

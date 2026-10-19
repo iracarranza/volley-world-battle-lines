@@ -174,7 +174,7 @@ func basic_strike() -> void:
 	var incoming: Vector3 = lab.ball_velocity
 	input_held = false
 	# A completed basic channel chooses a legal target, while preserving lateral aim.
-	if main_court and not lab.training_bots.away_enabled[0]:
+	if main_court and not lab.training_bots.settings[(0) + 4].enabled:
 		lab.training_bots.toggle(0, true)
 	lab._resize_court()
 	state = State.SWING
@@ -216,7 +216,7 @@ func _finish_strike(incoming: Vector3, sweet: bool) -> void:
 	lab.attempts += 1
 	lab.athlete.spend(4)
 	if main_court:
-		if not lab.training_bots.away_enabled[0]:
+		if not lab.training_bots.settings[(0) + 4].enabled:
 			lab.training_bots.toggle(0, true)
 		lab._resize_court()
 		lab.training_bots.replan()

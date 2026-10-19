@@ -1,3 +1,5 @@
+> Design/implementation note retained for history. It may include superseded tuning or APIs. For current runtime and navigation, use [the README](../README.md) and [architecture guide](architecture.md).
+
 # Ball View: tracking camera, independent athlete input
 
 This experiment supersedes the athlete-centered orbit/framing experiment in `freeplay-serve-pepper.md`.

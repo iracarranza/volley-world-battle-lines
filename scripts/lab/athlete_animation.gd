@@ -16,7 +16,7 @@ const SpikeStage := preload("res://scripts/spike_stage.gd")
 const SetStage := preload("res://scripts/set_stage.gd")
 const WingPose := preload("res://scripts/wing_pose.gd")
 const Approach = preload("res://scripts/approach_run.gd")
-enum ViewMode { ATHLETE, BALL }
+const ViewMode = LabCamera.ViewMode
 const ROLL_TIME := 0.9
 
 var lab: LabSession

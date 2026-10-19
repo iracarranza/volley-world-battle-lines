@@ -14,7 +14,7 @@ func run() -> void:
 	for frame in range(5):
 		await process_frame
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png("/tmp/stat-roster-six.png")
+	root.get_texture().get_image().save_png("res://artifacts/stat-roster-six.png")
 	menu.queue_free()
 	await process_frame
 	quit()

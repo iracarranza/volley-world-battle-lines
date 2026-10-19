@@ -29,7 +29,7 @@ func capture() -> void:
 	for frame in range(4):
 		await process_frame
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png("/tmp/rally-ball-view-controls.png")
+	root.get_texture().get_image().save_png("res://artifacts/rally-ball-view-controls.png")
 	lab.queue_free()
 	await process_frame
 	quit()

@@ -8,8 +8,8 @@ func run() -> void:
 	lab.set_physics_process(false)
 	await physics_frame
 	var bots = lab.training_bots
-	bots.enabled[1] = true
-	bots.contact_order[1] = 1
+	bots.settings[1].enabled = true
+	bots.settings[1].contact_order = 1
 	bots.set_mode(1, 2)
 	bots.set_move_speed(1, 12)
 	lab.ball_active = true
@@ -28,9 +28,9 @@ func run() -> void:
 	check(bots.animation.state_for(bots.rigs[1].body).source == "set", "Jump uses shared set animation")
 	for action in [1, 2]:
 		lab._reset()
-		bots.enabled.fill(false)
-		bots.enabled[action] = true
-		bots.contact_order[action] = 1
+		bots.disable_side(false)
+		bots.settings[action].enabled = true
+		bots.settings[action].contact_order = 1
 		bots.set_mode(action, 2)
 		lab.ball_active = true
 		lab.ball.position = Vector3(12, 1.0, 5)

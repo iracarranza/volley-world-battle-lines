@@ -1,0 +1,213 @@
+{
+  "before": {
+    "samples": [
+      {
+        "mode": "off",
+        "action": 0,
+        "confirm": 3.1,
+        "contact": 0.34,
+        "render": 15.99
+      },
+      {
+        "mode": "off",
+        "action": 1,
+        "confirm": 15.06,
+        "contact": 0.28,
+        "render": 9.38
+      },
+      {
+        "mode": "off",
+        "action": 2,
+        "confirm": 7.32,
+        "contact": 0.29,
+        "render": 8.41
+      },
+      {
+        "mode": "off",
+        "action": 3,
+        "confirm": 9.48,
+        "contact": 0.22,
+        "render": 21.26
+      },
+      {
+        "mode": "tracking",
+        "action": 0,
+        "confirm": 2.9,
+        "contact": 0.36,
+        "render": 11.01
+      },
+      {
+        "mode": "tracking",
+        "action": 1,
+        "confirm": 17.92,
+        "contact": 0.25,
+        "render": 10.33
+      },
+      {
+        "mode": "tracking",
+        "action": 2,
+        "confirm": 7.21,
+        "contact": 0.35,
+        "render": 8.23
+      },
+      {
+        "mode": "tracking",
+        "action": 3,
+        "confirm": 8.02,
+        "contact": 0.26,
+        "render": 9.48
+      },
+      {
+        "mode": "static",
+        "action": 0,
+        "confirm": 2.9,
+        "contact": 11.88,
+        "render": 7.27
+      },
+      {
+        "mode": "static",
+        "action": 1,
+        "confirm": 17.86,
+        "contact": 10.64,
+        "render": 7.65
+      },
+      {
+        "mode": "static",
+        "action": 2,
+        "confirm": 7.2,
+        "contact": 2.77,
+        "render": 9.78
+      },
+      {
+        "mode": "static",
+        "action": 3,
+        "confirm": 7.87,
+        "contact": 1.8,
+        "render": 6.91
+      }
+    ],
+    "summary": {
+      "confirm": {
+        "median_ms": 7.595000000000001,
+        "max_ms": 17.92
+      },
+      "contact": {
+        "median_ms": 0.345,
+        "max_ms": 11.88
+      },
+      "render": {
+        "median_ms": 9.43,
+        "max_ms": 21.26
+      }
+    }
+  },
+  "after": {
+    "samples": [
+      {
+        "mode": "off",
+        "action": 0,
+        "confirm": 3.27,
+        "contact": 0.42,
+        "render": 7.4
+      },
+      {
+        "mode": "off",
+        "action": 1,
+        "confirm": 14.87,
+        "contact": 0.31,
+        "render": 15.03
+      },
+      {
+        "mode": "off",
+        "action": 2,
+        "confirm": 7.67,
+        "contact": 0.48,
+        "render": 7.88
+      },
+      {
+        "mode": "off",
+        "action": 3,
+        "confirm": 9.36,
+        "contact": 0.46,
+        "render": 7.64
+      },
+      {
+        "mode": "tracking",
+        "action": 0,
+        "confirm": 0.11,
+        "contact": 0.38,
+        "render": 7.47
+      },
+      {
+        "mode": "tracking",
+        "action": 1,
+        "confirm": 0.1,
+        "contact": 0.42,
+        "render": 22.66
+      },
+      {
+        "mode": "tracking",
+        "action": 2,
+        "confirm": 8.05,
+        "contact": 0.33,
+        "render": 9.02
+      },
+      {
+        "mode": "tracking",
+        "action": 3,
+        "confirm": 0.09,
+        "contact": 0.41,
+        "render": 7.64
+      },
+      {
+        "mode": "static",
+        "action": 0,
+        "confirm": 0.09,
+        "contact": 12.05,
+        "render": 8.99
+      },
+      {
+        "mode": "static",
+        "action": 1,
+        "confirm": 0.09,
+        "contact": 10.75,
+        "render": 7.43
+      },
+      {
+        "mode": "static",
+        "action": 2,
+        "confirm": 7.3,
+        "contact": 2.88,
+        "render": 6.91
+      },
+      {
+        "mode": "static",
+        "action": 3,
+        "confirm": 0.08,
+        "contact": 1.65,
+        "render": 8.28
+      }
+    ],
+    "summary": {
+      "confirm": {
+        "median_ms": 1.69,
+        "max_ms": 14.87
+      },
+      "contact": {
+        "median_ms": 0.44,
+        "max_ms": 12.05
+      },
+      "render": {
+        "median_ms": 7.76,
+        "max_ms": 22.66
+      }
+    }
+  },
+  "protocol": {
+    "before_revision": "dd4b32c",
+    "after": "structural cleanup and mesh caching, before final HUD snapshot repair",
+    "renderer": "Compatibility / Apple M2 / 1440x900",
+    "samples_per_version": 12,
+    "note": "Elapsed CPU confirmation/contact time and post-contact render wait; not GPU time or an FPS benchmark. One retained 12-contact run per version."
+  }
+}

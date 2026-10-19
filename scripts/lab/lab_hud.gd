@@ -6,10 +6,10 @@ const ReceiveCharge := preload("res://scripts/receive_charge.gd")
 const MoC := preload("res://scripts/moment_of_contact.gd")
 const Athlete = preload("res://scripts/athlete.gd")
 const Approach = preload("res://scripts/approach_run.gd")
-const ACTIONS = ["RECEIVE", "SET", "ATTACK", "BLOCK"]
+const ACTIONS = preload("res://scripts/contact/action.gd").CONTACT_LABELS
 const TEAL = Color("54ead0")
 const GOLD = Color("ffce73")
-enum ViewMode { ATHLETE, BALL }
+const ViewMode = LabCamera.ViewMode
 
 var lab: LabSession
 var ui: CanvasLayer
@@ -164,7 +164,7 @@ func build() -> void:
 		var order := OptionButton.new()
 		for text in ["Any contact", "1st contact", "2nd contact", "3rd contact"]:
 			order.add_item(text)
-		order.select(lab.training_bots.contact_order[slot])
+		order.select(lab.training_bots.settings[slot].contact_order)
 		order.tooltip_text = "Block jumps for reachable incoming attacks before the first contact." if action == 3 else "Which contact this action attempts on its side."
 		order.item_selected.connect(func(index: int): lab.training_bots.set_contact_order(slot, index))
 		order.focus_mode = Control.FOCUS_NONE
@@ -192,7 +192,7 @@ func build() -> void:
 		accuracy.min_value = 0
 		accuracy.max_value = 100
 		accuracy.step = 1
-		accuracy.value = lab.training_bots.tracking_accuracy[slot]
+		accuracy.value = lab.training_bots.settings[slot].tracking_accuracy
 		accuracy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		accuracy.custom_minimum_size.x = 220
 		accuracy.tooltip_text = "Follow Ball / Move: 100% centers the hurtbox; lower values add up to 2.5m of positioning error."
@@ -212,7 +212,7 @@ func build() -> void:
 		speed.min_value = 0
 		speed.max_value = 12
 		speed.step = 0.25
-		speed.value = lab.training_bots.move_speeds[slot]
+		speed.value = lab.training_bots.settings[slot].move_speed
 		speed.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		speed.custom_minimum_size.x = 220
 		speed.editable = false
@@ -224,14 +224,14 @@ func build() -> void:
 		mode.item_selected.connect(func(index: int): speed.editable = index == 2)
 		place.pressed.connect(func(): speed.editable = false)
 		speed_row.add_child(speed)
-		bot_stack.add_child(bot_aim_control("Aiming accuracy", lab.training_bots.aiming_accuracy[slot], func(value: float): lab.training_bots.set_aiming_accuracy(slot, value)))
-		bot_stack.add_child(bot_aim_control("Charge accuracy", lab.training_bots.charge_accuracy[slot], func(value: float): lab.training_bots.set_charge_accuracy(slot, value), true))
+		bot_stack.add_child(bot_aim_control("Aiming accuracy", lab.training_bots.settings[slot].aiming_accuracy, func(value: float): lab.training_bots.set_aiming_accuracy(slot, value)))
+		bot_stack.add_child(bot_aim_control("Charge accuracy", lab.training_bots.settings[slot].charge_accuracy, func(value: float): lab.training_bots.set_charge_accuracy(slot, value), true))
 
 	bot_stack.add_child(label("PEPPER PARTNER AIM / always Move", 13, TEAL))
 	for index in range(3):
 		var aim_title: String = ["Box partner aim", "East partner aim", "Home path aim"][index]
-		bot_stack.add_child(bot_aim_control(aim_title, lab.pepper.aiming_accuracy[index], func(value: float): lab.pepper.set_aiming_accuracy(index, value)))
-		bot_stack.add_child(bot_aim_control("Pepper %d charge accuracy" % (index + 1), lab.pepper.charge_accuracy[index], func(value: float): lab.pepper.set_charge_accuracy(index, value), true))
+		bot_stack.add_child(bot_aim_control(aim_title, lab.pepper.settings[index].aiming_accuracy, func(value: float): lab.pepper.set_aiming_accuracy(index, value)))
+		bot_stack.add_child(bot_aim_control("Pepper %d charge accuracy" % (index + 1), lab.pepper.settings[index].charge_accuracy, func(value: float): lab.pepper.set_charge_accuracy(index, value), true))
 	bot_stack.add_child(button("G  /  TOGGLE ALL BOTS", func(): lab.training_bots.toggle_all()))
 	bot_status = label("Helpers off", 12)
 	bot_stack.add_child(bot_status)
@@ -352,10 +352,12 @@ func toggle_bot_menu() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func update() -> void:
+	if not ui.visible:
+		return
 	station_status.text = lab.drills.hud_text() if lab.drills.in_zone() or lab.drills.running() else lab.station.hud_text()
 	for slot in range(8):
 		bot_buttons[slot].set_pressed_no_signal(lab.training_bots.is_enabled(slot % 4, -1 if slot >= 4 else 1))
-	bot_status.text = "Next: %d / 3  ·  %d bot contacts" % [mini(lab.side_contacts[lab.side_index(lab.ball.position.z)] + 1, 3), lab.training_bots.total_contacts] if lab.training_bots.enabled.has(true) or lab.training_bots.away_enabled.has(true) else "Helpers off / E serve / G bots"
+	bot_status.text = "Next: %d / 3  ·  %d bot contacts" % [mini(lab.side_contacts[lab.side_index(lab.ball.position.z)] + 1, 3), lab.training_bots.total_contacts] if lab.training_bots.any_enabled() else "Helpers off / E serve / G bots"
 	action_wheel.set_action(lab.selected, lab.armed or lab.charging or lab.motion.jumped)
 	action_wheel.set_charge(lab.charge if lab.charging else (lab.locked_charge if lab.armed else 0.0))
 	athlete_hud.update_values()

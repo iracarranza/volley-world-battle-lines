@@ -1,19 +1,17 @@
 extends Node3D
+const Settings := preload("res://scripts/bot_settings.gd")
+var settings: Array[Settings] = [Settings.new(), Settings.new(), Settings.new()]
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
-const ReceiveOutcome := preload("res://scripts/receive_outcome.gd")
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
 const Preparation := preload("res://scripts/bot_preparation.gd")
 var preparation := Preparation.new()
-var charge_accuracy := [100.0, 100.0, 100.0]
 var charge_random := RandomNumberGenerator.new()
-const BotAim := preload("res://scripts/bot_aim.gd")
 const Visual := preload("res://scripts/voli_visual.gd")
 const BotAnimation :=  preload("res://scripts/bot_animation.gd")
 var animation := BotAnimation.new()
 const Pose := preload("res://scripts/athlete_pose.gd")
 const Execution := preload("res://scripts/contact_execution.gd")
-const SpikeDirection := preload("res://scripts/spike_direction.gd")
 const Influence := preload("res://scripts/directional_influence.gd")
 const Geometry := preload("res://scripts/contact_geometry.gd")
 const SPOTS := [Vector3(-29, 3.5, 3), Vector3(8, 0, 5), Vector3(0, 0, 27)]
@@ -22,7 +20,6 @@ const LABELS := ["AWAY PEPPER / BOX 3", "AWAY PEPPER / EAST", "AWAY PEPPER / HOM
 const MOVEMENT_MODE := "Move"
 const MOVE_SPEED := 6.0
 const RADIUS := 3.9894228
-var aiming_accuracy := [100.0, 100.0, 100.0]
 var aim_random := RandomNumberGenerator.new()
 var last_aim: Dictionary = {}
 var lab: Node3D
@@ -69,10 +66,10 @@ func setup(owner_lab: Node3D) -> void:
 		actor.rotation.y = PI
 
 func set_charge_accuracy(index: int, value: float) -> void:
-	charge_accuracy[index] = clampf(value, 0, 100)
+	settings[index].charge_accuracy = clampf(value, 0, 100)
 
 func set_aiming_accuracy(index: int, value: float) -> void:
-	aiming_accuracy[index] = clampf(value, 0, 100)
+	settings[index].aiming_accuracy = clampf(value, 0, 100)
 
 func active() -> bool:
 	return partner >= 0
@@ -182,7 +179,7 @@ func plan() -> void:
 		lab.contact_flow.consume_jump("pepper_%d"%partner)
 	rise_time = minf(sqrt(2 * maxf(jump_height, 0.01) / lab.GRAVITY)/lab.training_bots.physique.explosiveness_rate(), remaining)
 	planned = true
-	preparation.begin(partner, stage, lab.ball_shot, remaining, charge_accuracy[partner], charge_random,lab.training_bots.physique.cushioning_bonus(),lab.training_bots.physique.low_stamina_factor())
+	preparation.begin(partner, stage, lab.ball_shot, remaining, settings[partner].charge_accuracy, charge_random,lab.training_bots.physique.cushioning_bonus(),lab.training_bots.physique.low_stamina_factor())
 	_show_volume(definition)
 
 func _show_volume(definition: Dictionary) -> void:
@@ -308,7 +305,7 @@ func tick(dt: float) -> bool:
 	# Cooperative target solving uses baseline sweet strength as its reference.
 	request.attack_strength_reference = 1.08
 	var assessment := ContactResolver.assess(request)
-	request.aiming_accuracy = 100.0 if assessment.get("rescue", false) else aiming_accuracy[partner]
+	request.aiming_accuracy = 100.0 if assessment.get("rescue", false) else settings[partner].aiming_accuracy
 	request.aim_random = aim_random
 	var incoming: Vector3 = lab.ball_velocity
 	player_action = next_action(stage, float(assessment.quality))
