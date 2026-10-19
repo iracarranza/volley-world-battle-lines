@@ -21,16 +21,15 @@ func run() -> void:
 			for sweet in [false,true]:
 				clock.clear()
 				var e := event("duration-%d-%d-%s" % [mode,action,sweet],action,sweet)
-				var old_seconds := (0.18 if sweet else 0.14) if mode == Clock.Mode.CURRENT_SLOWDOWN else ((3.0/60 if action == 0 else 5.0/60) if sweet else 1.0/60)
-				var expected := 0.0 if action == 1 else old_seconds+0.100
+				var expected := (0.0 if action == 1 else (0.28 if sweet else 0.24)) if mode == Clock.Mode.CURRENT_SLOWDOWN else (0.4 if action == 2 else 0.0)
 				var measured: float = Clock.duration_for(action,e.incoming_velocity,e.outgoing_velocity,sweet) if mode == Clock.Mode.CURRENT_SLOWDOWN else Clock.tuned_parts(e).total
-				check(absf(measured-expected) < 0.000001,"Every non-Set duration is exactly previous tuning +100ms")
+				check(absf(measured-expected) < 0.000001,"Current durations are preserved; Tuned is spike-only 400ms")
 				var visual_count: int = lab.impact_visual.emitted
 				clock.begin(e)
 				check(absf(clock.last_event.duration_seconds-expected) < 0.000001,"Runtime event exposes expected duration")
 				check(lab.impact_visual.emitted == visual_count+1,"Sets retain physical impact visuals")
-				check(absf(clock.last_event.velocity_duration_seconds+clock.last_event.sweet_duration_seconds+clock.last_event.duration_extension_seconds-expected) < 0.000001,"Duration components remain additive")
-				if action == 1:
+				check(absf(clock.last_event.contact_duration_seconds+clock.last_event.velocity_duration_seconds+clock.last_event.sweet_duration_seconds+clock.last_event.duration_extension_seconds-expected) < 0.000001,"Duration components remain additive")
+				if expected == 0.0:
 					check(not clock.active and Engine.time_scale == 1 and clock.simulation_scale() > 0.0,"Even a sweet fast Set never starts either MoC mode")
 				else:
 					check(absf(float(clock._end_usec-clock._chain_start_usec)/1000000-expected) < 0.00001,"Increased caps do not clip the extra 100ms")
@@ -77,7 +76,7 @@ func run() -> void:
 		bots._plan(1,lab.ball.position,0.01)
 		check(bots.tick(0.02) and clock.last_event.action == 1 and not clock.active,"Actual bot Set also has no MoC")
 		bots.settings[1].enabled = false
-	check(Clock.tuned_parts({"action":2,"physical_hit":true,"incoming_velocity":Vector3.ZERO,"outgoing_velocity":Vector3.UP}).total == 0,"Previously zero-hold soft contacts remain zero")
+	check(Clock.tuned_parts({"action":2,"physical_hit":true,"incoming_velocity":Vector3.ZERO,"outgoing_velocity":Vector3.UP}).total == 0.4,"Even soft spikes use the full observation window")
 	print("MOC DURATION EXTENSION: %d / %d passed" % [checks-failures,checks])
 	lab.queue_free()
 	await process_frame

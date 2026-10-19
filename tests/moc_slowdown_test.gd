@@ -43,7 +43,8 @@ func run() -> void:
 				var prior: Vector3 = lab.ball.position
 				lab._physics_process(1.0/60)
 				check(lab.ball.position != prior,"Ball advances on every contact frame, action %d mode %d" % [action,mode])
-			var expected := 1.0 if action == 1 else 0.6
+			var slowed := action != 1 if mode == Clock.Mode.CURRENT_SLOWDOWN else action == 2
+			var expected := 0.6 if slowed else 1.0
 			check(is_equal_approx(lab.elapsed-before_time,4.0/60),"World clock stays at normal speed")
 			check(is_equal_approx(before.z-lab.ball.position.z,10*4.0/60*expected),"Outgoing ball travels continuously at exact requested speed")
 			check(lab.moc.actor_scale("unrelated_bot") == 1.0,"Other athletes never slow")

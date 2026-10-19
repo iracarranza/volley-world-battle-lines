@@ -14,15 +14,16 @@ Its velocity contribution is 18–140 ms, plus 40 ms for a sweet contact and 100
 for a nonzero effect. A contact chain is capped at 280 ms, followed by 80 ms of
 normal-speed recovery. Exchanges below the impact threshold receive no effect.
 
-Tuned duration uses 60 Hz frame units. Sweet Receive contributes two or three
-velocity/sweet frames; sweet Attack/Block/Serve uses up to five. Ordinary or rescue
-contacts receive at most one frame when impact is strong enough. Nonzero effects
-add 100 ms; the chain limit is 183.33 ms. This is the retained REMATCH-inspired
-comparison tuning, now implemented as continuous slowdown.
+Tuned applies only to spikes (Attack contacts). Preparation remains at normal speed;
+actual physical contact starts a fixed 400 ms real-time window at 60% speed for
+both the outgoing ball and the acting athlete, including follow-through. There is
+no pause or global time change. A subsequent non-spike contact ends the effect
+immediately. A distinct spike restarts the window; duplicate events cannot extend
+it. Current's chain cap and recovery cooldown do not apply to Tuned.
 
 `scripts/moment_of_contact.gd` owns the clock, event deduplication, duration and
 actor scale. A monotonic clock can be injected for tests. Event evidence reports
-velocity, sweet and extension contributions separately. Scene exit, pause and
+velocity, sweet, extension and fixed-contact contributions separately. Scene exit, pause and
 mode changes clear the effect.
 
 Coverage: `moc_test`, `moc_modes_test`, `moc_slowdown_test`,

@@ -3,13 +3,11 @@ extends Node
 signal impact_started(event: Dictionary)
 signal impact_ended
 
-# Real-time milliseconds, deliberately brief impact emphasis, not selection time.
+# Contact-triggered local simulation clocks; preparation always runs at full speed.
 enum Mode { CURRENT_SLOWDOWN, TUNED_SLOWDOWN, NONE }
 var mode := Mode.CURRENT_SLOWDOWN
-const TUNED_FRAME := 1.0 / 60.0
+const TUNED_DURATION := 0.4
 const DURATION_EXTENSION := 0.100
-const TUNED_BASE_LIMIT := 5.0 / 60.0
-const TUNED_LIMIT := TUNED_BASE_LIMIT + DURATION_EXTENSION
 const SLOW_SCALE := 0.60
 const SWEET_BONUS := 0.040
 const CHAIN_BASE_LIMIT := 0.18
@@ -59,27 +57,9 @@ func mode_name() -> String:
 	return "No MoC" if mode == Mode.NONE else ("Current Slowdown" if mode == Mode.CURRENT_SLOWDOWN else "Tuned Slowdown")
 
 static func tuned_parts(event: Dictionary) -> Dictionary:
-	var action := int(event.get("action",0))
-	if action == 1 or action < 0 or action > 4:
-		return {"velocity":0.0,"sweet":0.0,"extension":0.0,"total":0.0}
-	var incoming := Vector3(event.get("incoming_velocity",Vector3.ZERO))
-	var outgoing := Vector3(event.get("outgoing_velocity",Vector3.ZERO))
-	var sweet := bool(event.get("sweet",false))
-	var rescue: bool = bool(event.get("rescue",false)) or not event.get("charge_match",{}).get("matched",true)
-	var impact := impact_speed(incoming,outgoing)
-	var velocity_frames := 0
-	var sweet_frames := 0
-	if rescue or not sweet:
-		velocity_frames = 1 if impact >= 12.0 else 0
-	else:
-		sweet_frames = 1
-		if action == 0:
-			velocity_frames = 1 + roundi(clampf(impact/30.0,0,1))
-		else:
-			velocity_frames = maxi(2,1+roundi(clampf(impact/30.0,0,1)*3))
-	var base := minf(TUNED_BASE_LIMIT,(velocity_frames+sweet_frames)*TUNED_FRAME)
-	var extension := DURATION_EXTENSION if base > 0 else 0.0
-	return {"velocity":velocity_frames*TUNED_FRAME,"sweet":sweet_frames*TUNED_FRAME,"extension":extension,"total":base+extension}
+	# Fixed real-time observation window, independent of charge or contact quality.
+	var duration := TUNED_DURATION if int(event.get("action", -1)) == 2 else 0.0
+	return {"contact":duration,"velocity":0.0,"sweet":0.0,"extension":0.0,"total":duration}
 
 func simulation_scale() -> float:
 	if active and _now() >= _end_usec:
@@ -95,7 +75,9 @@ func begin(event: Dictionary) -> void:
 	var legacy_duration := duration_for(int(event.action), incoming, outgoing, bool(event.get("sweet", false)))
 	var parts := tuned_parts(event)
 	var duration: float = 0.0 if mode == Mode.NONE else (legacy_duration if mode == Mode.CURRENT_SLOWDOWN else parts.total)
-	if (legacy_duration <= 0 and int(event.action) != 1) or not bool(event.get("physical_hit", false)):
+	if not bool(event.get("physical_hit", false)):
+		return
+	if mode == Mode.CURRENT_SLOWDOWN and legacy_duration <= 0 and int(event.action) != 1:
 		return
 	var event_id := str(event.get("id", ""))
 	if not event_id.is_empty():
@@ -109,14 +91,15 @@ func begin(event: Dictionary) -> void:
 	last_event["velocity_duration_seconds"] = base_duration_for(int(event.action), incoming, outgoing) if mode == Mode.CURRENT_SLOWDOWN else parts.velocity
 	last_event["sweet_duration_seconds"] = (SWEET_BONUS if event.get("sweet", false) and int(event.action) != 1 else 0.0) if mode == Mode.CURRENT_SLOWDOWN else parts.sweet
 	last_event["duration_extension_seconds"] = DURATION_EXTENSION if mode == Mode.CURRENT_SLOWDOWN and duration > 0 else (parts.extension if mode == Mode.TUNED_SLOWDOWN else 0.0)
+	last_event["contact_duration_seconds"] = parts.contact if mode == Mode.TUNED_SLOWDOWN else 0.0
 	last_event["duration_seconds"] = duration
 	last_event["incoming_speed"] = incoming.length()
 	last_event["outgoing_speed"] = outgoing.length()
 	last_event["velocity_change"] = (outgoing - incoming).length()
 	last_event.make_read_only()
 	event_count += 1
-	# A set must launch at normal speed even if a prior contact is still slowed.
-	if int(event.action) == 1:
+	# A new non-spike contact ends the tuned observation of the previous spike.
+	if int(event.action) == 1 or (mode == Mode.TUNED_SLOWDOWN and int(event.action) != 2):
 		clear()
 	impact_started.emit(last_event)
 	if duration <= 0 or not enabled or (is_instance_valid(owner_lab) and owner_lab.paused):
@@ -124,12 +107,18 @@ func begin(event: Dictionary) -> void:
 	var now := _now()
 	if active and now >= _end_usec:
 		_expire(now)
+	if mode == Mode.TUNED_SLOWDOWN:
+		_chain_start_usec = now
+		_end_usec = now + int(TUNED_DURATION * 1000000)
+		acting_actor = str(event.get("actor", "player"))
+		active = true
+		return
 	if now < _blocked_until_usec:
 		return
 	if not active:
 		_chain_start_usec = now
 		active = true
-	var limit := CHAIN_LIMIT if mode == Mode.CURRENT_SLOWDOWN else TUNED_LIMIT
+	var limit := CHAIN_LIMIT
 	_end_usec = mini(maxi(_end_usec, now) + int(duration * 1000000), _chain_start_usec + int(limit * 1000000))
 	acting_actor = str(event.get("actor", "player"))
 	# Slow simulation deltas locally; leave engine scheduling and rendering live.
@@ -143,8 +132,8 @@ func _process(_delta: float) -> void:
 		_expire(_now())
 
 func _expire(now: int) -> void:
-	var limit := CHAIN_LIMIT if mode == Mode.CURRENT_SLOWDOWN else TUNED_LIMIT
-	var capped := _end_usec >= _chain_start_usec + int(limit*1000000)
+	var limit := CHAIN_LIMIT
+	var capped := mode == Mode.CURRENT_SLOWDOWN and _end_usec >= _chain_start_usec + int(limit*1000000)
 	clear()
 	if capped:
 		_blocked_until_usec = now + int(CHAIN_RECOVERY * 1000000)

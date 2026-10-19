@@ -22,11 +22,9 @@ func run() -> void:
 	check(clock.mode == Clock.Mode.TUNED_SLOWDOWN and not clock.active and Engine.time_scale == 1 and lab.hud.moc_button.text.contains("TUNED"), "Toggle safely restores clock and selects new mode")
 	for action in range(5):
 		var parts := Clock.tuned_parts(event("parts",action))
-		check(is_equal_approx(parts.total,parts.velocity+parts.sweet+parts.extension) and is_equal_approx(parts.sweet,0.0 if action == 1 else 1.0/60), "Sweet contribution adds one frame")
-		check(parts.total <= (3.0/60 if action in [0,1] else 5.0/60)+0.1+0.000001, "Contact-class hold budget is bounded")
-		var ordinary := Clock.tuned_parts(event("ordinary",action,false))
-		var rescue := Clock.tuned_parts(event("rescue",action,false,true))
-		check(ordinary.total <= 1.0/60+0.1 and rescue.total <= 1.0/60+0.1, "Ordinary and rescue contacts receive one frame plus 100ms at most")
+		check(is_equal_approx(parts.total,0.4 if action == 2 else 0.0), "Only spikes get a fixed 400ms observation window")
+		for sweet in [false,true]:
+			check(is_equal_approx(Clock.tuned_parts(event("quality",action,sweet,true)).total,parts.total), "Timing quality does not change the observation window")
 	var soft := event("soft",1,false)
 	soft.incoming_velocity = Vector3.ZERO
 	soft.outgoing_velocity = Vector3.UP
@@ -102,13 +100,13 @@ func run() -> void:
 		lab.confirm_window = lab.confirm_duration-0.22
 		lab.animation.update()
 		lab._contact()
-		check(clock.active == (action != 1) and clock.last_event.sweet and clock.last_event.moc_mode == "Tuned Slowdown", "Actual sweet contact selects hold tuning for action %d" % action)
+		check(clock.active == (action == 2) and clock.last_event.sweet and clock.last_event.moc_mode == "Tuned Slowdown", "Actual sweet contact selects hold tuning for action %d" % action)
 		clock._end_usec = Time.get_ticks_usec()+500000
 		var contact_point: Vector3 = lab.ball.position
 		var resolved_velocity: Vector3 = lab.ball_velocity
 
 		lab._tick_ball(0.016)
-		if action == 1:
+		if action != 2:
 			check(lab.ball.position != contact_point and not clock.active, "Actual Set launches without MoC")
 		else:
 			check(lab.ball.position != contact_point and Engine.time_scale == 1.0 and clock.simulation_scale() == 0.60, "Actual contact continues moving at 60% speed")

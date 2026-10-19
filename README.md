@@ -90,7 +90,8 @@ See [attribute runtime](docs/attribute-runtime.md) for implemented stat/trait ef
 
 MoC is local **60% speed**, never a pause: only the ball and contacting athlete
 slow down. Sets cancel existing MoC and launch at full speed. Off retains impact
-visuals. [Current MoC tuning](docs/moc-comparison.md) describes duration and scope.
+visuals. Tuned applies only to spikes, for 0.4 real seconds after contact; preparation
+runs at normal speed. [Current MoC tuning](docs/moc-comparison.md) describes duration and scope.
 
 Court helpers have independent enabled state, contact assignment, Follow ball /
 Static / Move mode, movement speed, tracking accuracy, aiming accuracy and charge
