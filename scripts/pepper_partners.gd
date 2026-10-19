@@ -287,6 +287,7 @@ func tick(dt: float) -> bool:
 	var incoming_shot: Dictionary = lab.ball_shot
 	var request := ContactRequest.new()
 	request.action = stage
+	request.response_seed = exchanges + 1
 	request.athlete = lab.training_bots.physique
 	request.actor_id = "pepper_%d" % partner
 	request.shape = definition
@@ -328,8 +329,12 @@ func tick(dt: float) -> bool:
 	request.base_velocity = lab.ball_velocity
 	var result := ContactResolver.resolve(request, assessment)
 	lab.ball_velocity = result.velocity
+	lab.ball.position += result.separation_offset
+	assessment = result.assessment
 	last_aim = result.aiming
 	lab.ball_shot = ReceiveCharge.shot(["receive", "set", "attack"][stage], lab.contact_flow.attack_charge(float(prepared.locked_charge),"pepper_%d"%partner,lab.ball.position) if stage == 2 else float(prepared.locked_charge), "pepper_%d" % partner)
+	if not result.outgoing_shot.is_empty():
+		lab.ball_shot = result.outgoing_shot
 	if stage == 2 and assessment.hit:
 		lab.contact_flow.consume_attack("pepper_%d"%partner)
 	lab._emit_external_impact("pepper_%d" % partner, stage, incoming, assessment,incoming_shot)

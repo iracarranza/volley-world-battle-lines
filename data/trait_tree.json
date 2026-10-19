@@ -424,6 +424,66 @@
 			"effects": {
 				"exertion_efficiency": 12
 			}
+		},
+		{
+			"id": "accuracy_steady_platform",
+			"name": "Steady Platform",
+			"attribute": "accuracy",
+			"needs": {
+				"accuracy": 70
+			},
+			"parent": "accuracy_platform_quality",
+			"pos": [
+				210,
+				110
+			],
+			"text": "+10% Receive Control: less incoming influence on an uncontrolled dig. Does not grant a charge match.",
+			"effects": {
+				"receive_control": 10
+			},
+			"kind": "trait",
+			"cost": 0,
+			"exclusive": ""
+		},
+		{
+			"id": "endurance_soft_platform",
+			"name": "Soft Platform",
+			"attribute": "endurance",
+			"needs": {
+				"endurance": 70
+			},
+			"parent": "endurance_charge_tolerance",
+			"pos": [
+				520,
+				110
+			],
+			"text": "+12% Receive Absorption: reduces residual impact pace on poor receives, especially low contacts.",
+			"effects": {
+				"receive_absorption": 12
+			},
+			"kind": "trait",
+			"cost": 0,
+			"exclusive": ""
+		},
+		{
+			"id": "accuracy_guided_dig",
+			"name": "Guided Dig",
+			"attribute": "accuracy",
+			"needs": {
+				"accuracy": 72
+			},
+			"parent": "accuracy_steady_platform",
+			"pos": [
+				210,
+				220
+			],
+			"text": "+12% Receive Redirection: reduces late placement error and scatter on uncontrolled receives.",
+			"effects": {
+				"receive_redirection": 12
+			},
+			"kind": "trait",
+			"cost": 0,
+			"exclusive": ""
 		}
 	]
 }

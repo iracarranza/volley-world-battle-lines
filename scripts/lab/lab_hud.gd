@@ -367,6 +367,8 @@ func update() -> void:
 	if lab.pepper.active():
 		camera_badge.text += "\n" + (("PARTNER " + ACTIONS[lab.pepper.stage]) if lab.pepper.npc_turn else ("YOUR " + ACTIONS[lab.pepper.required_player_action()]))
 	camera_badge.text += "\n" + ("DRILL" if lab.station.running() or lab.drills.running() or lab.drills.box_state == lab.drills.State.ACTIVE else ("PEPPER" if lab.pepper.active() else ("HOLD E / STANDING SERVE" if lab.serve.channeling() else ("TOSS / E STRIKE" if lab.serve.tossing() else ("RALLY" if lab.ball_active else "EXPLORE / hold E serve · tap E toss / strike")))))
+	if lab.debug_volumes_visible and lab.ball_shot.get("kind", "") == "receive" and lab.ball_shot.has("delivery_quality"):
+		camera_badge.text += "\nDIG %d%% input → %d%% ball · delivery %d%%" % [roundi(float(lab.ball_shot.action_charge) * 100), roundi(float(lab.ball_shot.charge) * 100), roundi(float(lab.ball_shot.delivery_quality) * 100)]
 	if lab.is_benched():
 		lab.bench.refresh_ui()
 		camera_badge.text = "BENCHED / %.1fs\nV spectate / Q–R cycle Home teammates" % lab.bench.remaining

@@ -2,6 +2,8 @@
 
 ## Current runtime and development
 
+- [Contact mechanics](contact-mechanics.md): shared stages, Receive Conditioning, ball charge and new traits.
+
 - [Project README](../README.md): play, controls, current locations and limitations.
 - [Architecture](architecture.md): ownership, contracts, clocks, persistence and where to edit.
 - [Attribute runtime](attribute-runtime.md): stat tiers and mechanics.

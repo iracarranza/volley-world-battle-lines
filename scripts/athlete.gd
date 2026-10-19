@@ -3,6 +3,7 @@ extends RefCounted
 
 # Standing reach and stride originate in VWM. Other coefficients are prototype tuning.
 const Store := preload("res://scripts/athlete_store.gd")
+const Mechanics := preload("res://scripts/contact/mechanic_registry.gd")
 const Stats := preload("res://scripts/stat_tuning.gd")
 const JUMP_HEIGHT_MULTIPLIER := 2.25
 const BUILDS = [
@@ -35,6 +36,8 @@ func stat(name: String) -> float:
 	return clampf(Stats.rating(build,name)+(jump_power_bonus if name == "jump_power" else 0.0),50,99)
 
 func trait_effect(name: String) -> float:
+	if not Mechanics.EFFECTS.has(name):
+		return 0.0
 	var book = Store.trait_book()
 	var key := str(trait_ids)+str(book.get_instance_id())
 	if key != _effect_key:

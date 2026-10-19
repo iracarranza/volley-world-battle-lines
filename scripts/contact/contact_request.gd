@@ -11,6 +11,7 @@ var incoming := Vector3.ZERO
 var incoming_shot: Dictionary = {}
 var charge := 0.65
 var confirmation_age := 0.20
+var response_seed := 0
 var remembered := false
 var movement_speed := 0.0
 var facing := Vector3.FORWARD

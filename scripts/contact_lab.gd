@@ -359,6 +359,7 @@ func _overlaps_contact(action: int) -> bool:
 func contact_request(action: int) -> ContactRequest:
 	var request := ContactRequest.new()
 	request.action = action
+	request.response_seed = _contact_event_serial + 1
 	request.athlete = athlete
 	request.shape = _hurtbox_definition(action)
 	request.local_point = _local_contact_position()
@@ -811,10 +812,14 @@ func _contact() -> void:
 	request.intent_direction = committed_intent.direction
 	var result := ContactResolver.resolve(request, assessment)
 	ball_velocity = result.velocity
+	ball.position += result.separation_offset
+	assessment = result.assessment
 	last_directional_influence = result.influence
 	if locked_action == Action.ATTACK:
 		animation.spike_swing_yaw = result.influence.shot_yaw_radians
 	ball_shot = ReceiveCharge.shot(["receive", "set", "attack", "block"][locked_action], contact_flow.attack_charge(locked_charge,"player",ball.position) if locked_action == 2 else locked_charge, "player")
+	if not result.outgoing_shot.is_empty():
+		ball_shot = result.outgoing_shot
 	if locked_action == 2 and assessment.hit:
 		contact_flow.consume_attack("player")
 	var cost: Vector2 = athlete.contact_cost(locked_action, contacts)

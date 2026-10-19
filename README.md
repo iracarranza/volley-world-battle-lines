@@ -69,6 +69,11 @@ block columns. Sweet timing starts 0.2 s after confirmation and lasts 0.16 s for
 Receive, 0.09 s for the other contacts. Later contacts can remain ordinary or rescue
 contacts according to their timing and placement.
 
+Receive Conditioning now resolves low, glancing and uncontrolled contacts through
+named mechanics, with separate action charge, resultant ball charge and delivery
+quality. The Trait Tree includes Steady Platform, Soft Platform and Guided Dig;
+see [contact mechanics](docs/contact-mechanics.md).
+
 Receive charge cushions incoming serve/attack charge; it does not directly set
 pass distance. Cushioning adds to effective charge, and Charge Tolerance reduces
 mismatch severity. Mild mismatches have mild consequences. Offensive charge and

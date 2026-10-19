@@ -502,6 +502,7 @@ func tick(dt: float) -> bool:
 	var local_contact: Vector3 = (lab.ball.position - actors[slot].position).rotated(Vector3.UP, -actors[slot].rotation.y)
 	var request := ContactRequest.new()
 	request.action = action
+	request.response_seed = total_contacts + 1
 	request.athlete = physique
 	request.actor_id = "training_bot_%d" % slot
 	request.shape = shapes[slot]
@@ -534,10 +535,14 @@ func tick(dt: float) -> bool:
 	request.base_velocity = lab.ball_velocity
 	var result := ContactResolver.resolve(request, execution)
 	lab.ball_velocity = result.velocity
+	lab.ball.position += result.separation_offset
+	execution = result.assessment
 	last_aim = result.aiming
 	if action == 2 and motion.plans.has(slot):
 		motion.plans[slot]["swing_yaw"] = result.influence.shot_yaw_radians
 	lab.ball_shot = ReceiveCharge.shot(["receive", "set", "attack", "block"][action], lab.contact_flow.attack_charge(float(prepared.locked_charge),"training_bot_%d"%slot,lab.ball.position) if action == 2 else float(prepared.locked_charge), "training_bot_%d" % slot)
+	if not result.outgoing_shot.is_empty():
+		lab.ball_shot = result.outgoing_shot
 	if action == 2 and execution.hit:
 		lab.contact_flow.consume_attack("training_bot_%d"%slot)
 	preparation.finish(slot)

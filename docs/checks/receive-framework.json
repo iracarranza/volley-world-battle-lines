@@ -1,0 +1,534 @@
+[
+  {
+    "suite": "athlete_menu_layout_test",
+    "passed": true,
+    "seconds": 0.73,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "athlete_picks_test",
+    "passed": true,
+    "seconds": 0.32,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "ball_framing_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "ball_view_controls_test",
+    "passed": true,
+    "seconds": 0.93,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "bench_status_test",
+    "passed": true,
+    "seconds": 0.93,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "block_contact_regression_test",
+    "passed": true,
+    "seconds": 1.04,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "bot_aim_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "bot_animation_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "bot_block_fallback_test",
+    "passed": true,
+    "seconds": 1.14,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "bot_camera_arc_test",
+    "passed": true,
+    "seconds": 0.84,
+    "exit_code": 0,
+    "source": "final affected-suite rerun"
+  },
+  {
+    "suite": "bot_facing_drill_layout_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "bot_jump_attempt_test",
+    "passed": true,
+    "seconds": 1.15,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "bot_move_test",
+    "passed": true,
+    "seconds": 1.15,
+    "exit_code": 0,
+    "source": "final affected-suite rerun"
+  },
+  {
+    "suite": "bot_pads_test",
+    "passed": true,
+    "seconds": 1.15,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "bot_rally_motion_test",
+    "passed": true,
+    "seconds": 4.27,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "bot_settings_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "box_jump_routes_test",
+    "passed": true,
+    "seconds": 39.32,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "cleanup_contracts_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "final affected-suite rerun"
+  },
+  {
+    "suite": "confirmation_movement_test",
+    "passed": true,
+    "seconds": 1.66,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "contact_execution_test",
+    "passed": true,
+    "seconds": 0.95,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "contact_flow_test",
+    "passed": true,
+    "seconds": 1.14,
+    "exit_code": 0,
+    "source": "final release rerun after trace/separation checks"
+  },
+  {
+    "suite": "contact_zones_test",
+    "passed": true,
+    "seconds": 0.95,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "creator_bound_test",
+    "passed": true,
+    "seconds": 3.02,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "directional_influence_test",
+    "passed": true,
+    "seconds": 1.04,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "dive_recovery_test",
+    "passed": true,
+    "seconds": 2.8,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "dive_seams_test",
+    "passed": true,
+    "seconds": 1.98,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "dive_stage_test",
+    "passed": true,
+    "seconds": 1.04,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "dive_turn_test",
+    "passed": true,
+    "seconds": 0.93,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "exploration_rally_test",
+    "passed": true,
+    "seconds": 2.28,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "fatigue_status_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "floor_recovery_lab_test",
+    "passed": true,
+    "seconds": 1.66,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "floor_recovery_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "graduated_spike_test",
+    "passed": true,
+    "seconds": 0.84,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "impact_visual_test",
+    "passed": true,
+    "seconds": 0.83,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "map_drills_test",
+    "passed": true,
+    "seconds": 9.82,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "map_lab_test",
+    "passed": true,
+    "seconds": 3.23,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "map_traversal_test",
+    "passed": true,
+    "seconds": 80.71,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "moc_duration_extension_test",
+    "passed": true,
+    "seconds": 1.56,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "moc_modes_test",
+    "passed": true,
+    "seconds": 0.93,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "moc_slowdown_test",
+    "passed": true,
+    "seconds": 1.47,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "moc_test",
+    "passed": true,
+    "seconds": 2.07,
+    "exit_code": 0,
+    "source": "final release rerun after trace/separation checks"
+  },
+  {
+    "suite": "pepper_move_set_test",
+    "passed": true,
+    "seconds": 1.04,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "pepper_sequence_test",
+    "passed": true,
+    "seconds": 1.15,
+    "exit_code": 0,
+    "source": "final affected-suite rerun"
+  },
+  {
+    "suite": "pose_blender_test",
+    "passed": true,
+    "seconds": 0.52,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "pose_library_test",
+    "passed": true,
+    "seconds": 0.63,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "pose_smoother_test",
+    "passed": true,
+    "seconds": 0.63,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "pose_transition_lab_test",
+    "passed": true,
+    "seconds": 1.46,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "pose_wiring_test",
+    "passed": true,
+    "seconds": 1.05,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "prototype_test",
+    "passed": true,
+    "seconds": 9.83,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "receive_charge_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "final release rerun after trace/separation checks"
+  },
+  {
+    "suite": "receive_outcome_test",
+    "passed": true,
+    "seconds": 0.83,
+    "exit_code": 0,
+    "source": "final affected-suite rerun"
+  },
+  {
+    "suite": "receive_platform_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "receive_response_test",
+    "passed": true,
+    "seconds": 0.42,
+    "exit_code": 0,
+    "source": "final release rerun after trace/separation checks"
+  },
+  {
+    "suite": "receive_window_bounds_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "serve_modes_moc_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "serve_pepper_test",
+    "passed": true,
+    "seconds": 1.15,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "serve_receive_scoring_test",
+    "passed": true,
+    "seconds": 0.83,
+    "exit_code": 0,
+    "source": "final affected-suite rerun"
+  },
+  {
+    "suite": "set_and_shuffle_test",
+    "passed": true,
+    "seconds": 0.53,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "set_follow_continuity_test",
+    "passed": true,
+    "seconds": 1.05,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "set_hurtbox_test",
+    "passed": true,
+    "seconds": 0.93,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "six_step_completion_test",
+    "passed": true,
+    "seconds": 0.84,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "spike_confirm_test",
+    "passed": true,
+    "seconds": 0.83,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "spike_geometry_direction_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "spike_stage_test",
+    "passed": true,
+    "seconds": 0.52,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "stamina_spike_depth_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "stance_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "stat_movement_test",
+    "passed": true,
+    "seconds": 4.89,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "stat_tuning_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "station_approach_test",
+    "passed": true,
+    "seconds": 8.19,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "title_menu_test",
+    "passed": true,
+    "seconds": 1.26,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "trait_book_test",
+    "passed": true,
+    "seconds": 0.31,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "trait_effect_editor_test",
+    "passed": true,
+    "seconds": 0.32,
+    "exit_code": 0,
+    "source": "final release rerun after trace/separation checks"
+  },
+  {
+    "suite": "trait_pick_ui_test",
+    "passed": true,
+    "seconds": 0.73,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "traits_test",
+    "passed": true,
+    "seconds": 1.67,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "trajectory_preview_test",
+    "passed": true,
+    "seconds": 0.94,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  },
+  {
+    "suite": "wing_pose_test",
+    "passed": true,
+    "seconds": 0.52,
+    "exit_code": 0,
+    "source": "full run before final departure-cone correction"
+  }
+]

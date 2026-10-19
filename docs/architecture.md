@@ -38,6 +38,10 @@ navigate. Map placement hooks remain overridden by `map_lab.gd`.
 
 ## Contact data flow
 
+The Receive Conditioning slice and mechanic registry are documented in
+[contact mechanics](contact-mechanics.md). Outgoing receive charge is now a
+resolved ball state rather than a copy of its action input.
+
 1. Controls or bot planning select an action and intended target. Confirmation
    captures an immutable intent; live DI remains a separate execution input.
 2. `ContactRequest` supplies shape, local intersection, age, incoming shot,

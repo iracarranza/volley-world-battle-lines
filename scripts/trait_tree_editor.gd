@@ -19,7 +19,8 @@ var tab_buttons := {}
 var name_edit: LineEdit
 var effects_box: VBoxContainer
 var effect_pick: OptionButton
-const EFFECT_KEYS := ["spike_velocity","serve_velocity","platform_quality","charge_tolerance","flow_attack_velocity","second_wind","revenge_jump_power","revenge_spike_velocity","back_attack_velocity","jump_stamina_threshold","recovery","stamina_recovery","exertion_efficiency"]
+const Mechanics := preload("res://scripts/contact/mechanic_registry.gd")
+const EFFECT_KEYS := Mechanics.EFFECT_KEYS
 var text_edit: TextEdit
 var kind_pick: OptionButton
 var cost_spin: SpinBox
@@ -108,7 +109,8 @@ func _ready() -> void:
 	form.add_child(effect_row)
 	effect_pick = OptionButton.new()
 	for key in EFFECT_KEYS:
-		effect_pick.add_item(str(key).capitalize())
+		effect_pick.add_item(Mechanics.effect(key).label)
+		effect_pick.set_item_tooltip(effect_pick.item_count - 1, Mechanics.effect(key).description)
 	effect_row.add_child(effect_pick)
 	effect_row.add_child(_button("+",func():
 		var node := _selected_node()
@@ -298,14 +300,16 @@ func _refresh_effects(node: Dictionary) -> void:
 	for key in node.get("effects",{}):
 		var row := HBoxContainer.new()
 		effects_box.add_child(row)
-		var caption := Style.label(str(key).capitalize(),12,Style.INK_MUTED)
+		var definition := Mechanics.effect(key)
+		var caption := Style.label(definition.label,12,Style.INK_MUTED)
+		caption.tooltip_text = definition.description + " / " + definition.stage
 		caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(caption)
 		var amount := SpinBox.new()
 		amount.min_value = 0
 		amount.max_value = 100
 		amount.step = 1
-		amount.suffix = " pp" if key in ["spike_velocity","serve_velocity","flow_attack_velocity","revenge_spike_velocity","back_attack_velocity"] else (" pts" if key in ["platform_quality","revenge_jump_power"] else "%")
+		amount.suffix = definition.unit
 		amount.value = float(node.effects[key])
 		amount.value_changed.connect(func(value):
 			node.effects[key] = value

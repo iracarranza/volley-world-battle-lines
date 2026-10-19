@@ -27,6 +27,8 @@ func publish() -> Dictionary:
 		"physical_hit": bool(assessment.get("hit", false)),
 		"zone": str(assessment.get("zone", "")),
 		"quality": float(assessment.get("quality", 0.75)),
+		"mechanics": assessment.get("mechanics", []),
+		"receive_response": assessment.get("receive_response", {}),
 		"sweet": bool(assessment.get("sweet", false)),
 		"rescue": bool(assessment.get("rescue", false)),
 		"confirmation_age": float(assessment.get("confirmation_age", 0.0)),
