@@ -1,0 +1,161 @@
+extends RefCounted
+
+const SetHurtbox := preload("res://scripts/set_hurtbox.gd")
+const ReceivePlatform := preload("res://scripts/receive_platform.gd")
+
+const VISUAL_BALL_RADIUS := 0.105
+const BALL_RADIUS := VISUAL_BALL_RADIUS * 1.25
+# Receive: contacts at the widest horizontal edges are sour spots.
+const EDGE_ZONE := 0.78
+const ZONE_COLORS := {"SWEET SPOT": Color("67f3a3"), "FAIR": Color("ffcf70"), "WEAK": Color("f69c69"), "SOUR SPOT": Color("ee617b")}
+
+static func definition(action: int, height: float, reach: float, dive: bool, dominant_sign: float, shoulder_height: float = -1.0, shoulder_x: float = -1.0, ball_control: float = 65.0, arm_length: float = -1.0) -> Dictionary:
+	match action:
+		0:
+			return ReceivePlatform.definition(height, dive)
+		1:
+			return SetHurtbox.definition(height, reach, ball_control)
+		2:
+			var shoulder := height * 0.815 if shoulder_height < 0 else shoulder_height
+			var radius := maxf(0.40, minf(reach - shoulder, arm_length) if arm_length > 0 else reach - shoulder)
+			return {"shape": "sector", "center": Vector3((height * 0.17 if shoulder_x < 0 else shoulder_x) * dominant_sign, shoulder, -0.35), "size": Vector3(radius * 2, radius, 2.10), "radius": radius, "contact_margin": 0.12 * height / 1.86, "depth": 2.10, "physical_depth": 1.10, "dominant_sign": dominant_sign}
+		_:
+			return {"shape": "block_columns", "center": Vector3(0, reach - 0.20, -0.38), "size": Vector3(1.02, 1.10, 0.42) * height / 1.86, "column_x": 0.32 * height / 1.86, "column_radius": 0.19 * height / 1.86}
+
+static func contains(definition: Dictionary, local_ball: Vector3) -> bool:
+	var point: Vector3 = local_ball - definition.center
+	if definition.shape == "set_sector":
+		return SetHurtbox.contains(definition, local_ball, BALL_RADIUS)
+	if definition.get("receive_platform", false):
+		return ReceivePlatform.contains(definition, local_ball, BALL_RADIUS)
+	if definition.shape == "block_columns":
+		var nearest := Vector3(absf(point.x) - float(definition.column_x), 0, point.z)
+		return Vector2(nearest.x, nearest.z).length() <= float(definition.column_radius) + BALL_RADIUS and absf(point.y) <= float(definition.size.y) * 0.5 + BALL_RADIUS
+	if definition.shape == "sector":
+		return point.y >= -BALL_RADIUS and Vector2(point.x, point.y).length() <= float(definition.radius) + float(definition.get("contact_margin", 0)) + BALL_RADIUS and absf(point.z) <= float(definition.depth) * 0.5 + BALL_RADIUS
+	var radius: Vector3 = definition.size * 0.5 + Vector3.ONE * BALL_RADIUS
+	if definition.shape == "ellipsoid":
+		return (point / radius).length_squared() <= 1.0
+	point = point.abs()
+	return point.x <= radius.x and point.y <= radius.y and point.z <= radius.z
+
+static func zone_at(radius_ratio: float, angle: float) -> String:
+	if radius_ratio <= 0.32 or radius_ratio >= 0.90 or angle < 12.0 or angle > 168.0:
+		return "SOUR SPOT"
+	if radius_ratio >= 0.60 and radius_ratio <= 0.88 and angle >= 50.0 and angle <= 85.0:
+		return "SWEET SPOT"
+	return "FAIR" if angle < 90.0 else "WEAK"
+
+static func evaluate(definition: Dictionary, local_ball: Vector3) -> Dictionary:
+	if not contains(definition, local_ball):
+		return {"hit": false, "zone": "MISS", "quality": 0.0, "strength": 0.0}
+	var point: Vector3 = local_ball - definition.center
+	if definition.get("receive_platform", false):
+		return ReceivePlatform.evaluate(definition, point)
+	if definition.shape == "set_sector":
+		return SetHurtbox.grade(definition, point)
+	if definition.shape == "block_columns":
+		var radial := Vector2(absf(point.x) - float(definition.column_x), point.z).length() / float(definition.column_radius)
+		var vertical := absf(point.y) / (float(definition.size.y) * 0.5)
+		var sweet := radial < 0.58 and vertical < 0.65
+		var sour := radial > 0.88 or vertical > 0.85
+		return {"hit": true, "zone": "SWEET SPOT" if sweet else ("SOUR SPOT" if sour else "FAIR"), "quality": 1.0 if sweet else (0.30 if sour else 0.72), "strength": 1.0}
+	if definition.shape != "sector":
+		var normalized: Vector3 = point / (definition.size * 0.5 + Vector3.ONE * BALL_RADIUS)
+		if absf(normalized.x) >= float(definition.get("edge_zone", 2.0)):
+			return {"hit": true, "zone": "SOUR SPOT", "quality": 0.40, "strength": 1.0, "edge": true}
+		return {"hit": true, "zone": "CLEAN" if normalized.length() < 0.65 else "STRETCHED", "quality": clampf(1.0 - normalized.length() * 0.35, 0.55, 1.0), "strength": 1.0}
+	var ratio := Vector2(point.x, point.y).length() / float(definition.radius)
+	var angle := rad_to_deg(atan2(maxf(point.y, 0), point.x * float(definition.dominant_sign)))
+	var zone := zone_at(ratio, angle)
+	if (point + Vector3(0, 0, -0.35)).length() > float(definition.radius) or absf(point.z) > float(definition.get("physical_depth", definition.depth)) * 0.5:
+		zone = "SOUR SPOT"
+	var quality: float = {"SWEET SPOT": 1.0, "FAIR": 0.82, "WEAK": 0.58, "SOUR SPOT": 0.22}[zone]
+	var strength: float = {"SWEET SPOT": 1.08, "FAIR": 0.95, "WEAK": 0.78, "SOUR SPOT": 0.48}[zone]
+	return {"hit": true, "zone": zone, "quality": quality, "strength": strength, "rescue_only": (point + Vector3(0, 0, -0.35)).length() > float(definition.radius), "spike_geometry": true, "spike_lateral_offset": (point.x - cos(deg_to_rad(67.5)) * 0.74 * float(definition.radius) * float(definition.dominant_sign)) / float(definition.radius), "reach_ratio": (point + Vector3(0, 0, -0.35)).length() / float(definition.radius), "depth_ratio": absf(point.z) / (float(definition.depth) * 0.5)}
+
+static func zone_mesh(definition: Dictionary, lines: bool = false) -> ImmediateMesh:
+	var mesh := ImmediateMesh.new()
+	mesh.surface_begin(Mesh.PRIMITIVE_LINES if lines else Mesh.PRIMITIVE_TRIANGLES)
+	var radius: float = definition.radius
+	var depth: float = definition.depth * 0.5
+	var radial := [0.0, 0.32, 0.60, 0.88, 0.90, 1.0]
+	var angles: Array[float] = []
+	for value in range(0, 181, 5):
+		angles.append(float(value))
+	angles.append(12.0)
+	angles.append(168.0)
+	angles.sort()
+	for ring in range(radial.size() - 1):
+		for segment in range(angles.size() - 1):
+			var a: float = angles[segment]
+			var b: float = angles[segment + 1]
+			var r0: float = radial[ring]
+			var r1: float = radial[ring + 1]
+			var zone := zone_at((r0 + r1) * 0.5, (a + b) * 0.5)
+			var color: Color = ZONE_COLORS[zone]
+			color.a = 0.20 if not lines else 0.85
+			mesh.surface_set_color(color)
+			for z in [-depth, 0.0, depth]:
+				var grade := evaluate(definition, Vector3(definition.center) + sector_point(definition, (r0 + r1) * 0.5, (a + b) * 0.5, z))
+				color = ZONE_COLORS.get("WEAK" if grade.get("rescue_only", false) else grade.zone, Color("ee617b"))
+				color.a = 0.16 if not lines else 0.85
+				mesh.surface_set_color(color)
+				var points := [sector_point(definition, r0, a, z), sector_point(definition, r1, a, z), sector_point(definition, r1, b, z), sector_point(definition, r0, b, z)]
+				if lines:
+					if ring == radial.size() - 2:
+						mesh.surface_add_vertex(points[1])
+						mesh.surface_add_vertex(points[2])
+					if segment == 0 or segment == angles.size() - 2:
+						mesh.surface_add_vertex(points[0])
+						mesh.surface_add_vertex(points[1])
+				else:
+					for corner in [0, 1, 2, 0, 2, 3]:
+						mesh.surface_add_vertex(points[corner])
+	if lines:
+		for angle in [0.0, 50.0, 85.0, 90.0, 180.0]:
+			mesh.surface_add_vertex(sector_point(definition, 1, angle, -depth))
+			mesh.surface_add_vertex(sector_point(definition, 1, angle, depth))
+	if lines:
+		var outer: float = definition.radius + definition.get("contact_margin", 0)
+		mesh.surface_set_color(Color("f69c69"))
+		for step in range(36):
+			for z in [-depth, depth]:
+				for angle in [PI * step / 36.0, PI * (step + 1) / 36.0]:
+					mesh.surface_add_vertex(Vector3(cos(angle) * outer * definition.dominant_sign, sin(angle) * outer, z))
+	mesh.surface_end()
+	return mesh
+
+static func sector_point(definition: Dictionary, ratio: float, angle: float, z: float) -> Vector3:
+	return Vector3(cos(deg_to_rad(angle)) * ratio * float(definition.radius) * float(definition.dominant_sign), sin(deg_to_rad(angle)) * ratio * float(definition.radius), z)
+
+static func block_mesh(definition: Dictionary) -> ImmediateMesh:
+	var mesh := ImmediateMesh.new()
+	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	for side in [-1.0, 1.0]:
+		for ring in range(12):
+			for segment in range(24):
+				var y0 := lerpf(-definition.size.y * 0.5, definition.size.y * 0.5, ring / 12.0)
+				var y1 := lerpf(-definition.size.y * 0.5, definition.size.y * 0.5, (ring + 1) / 12.0)
+				var a := TAU * segment / 24.0
+				var b := TAU * (segment + 1) / 24.0
+				var radius: float = definition.column_radius
+				var points := [Vector3(side * definition.column_x + cos(a) * radius, y0, sin(a) * radius), Vector3(side * definition.column_x + cos(b) * radius, y0, sin(b) * radius), Vector3(side * definition.column_x + cos(b) * radius, y1, sin(b) * radius), Vector3(side * definition.column_x + cos(a) * radius, y1, sin(a) * radius)]
+				for corner in [0, 1, 2, 0, 2, 3]:
+					var point: Vector3 = points[corner]
+					var grade := evaluate(definition, point + Vector3(definition.center))
+					# Interior sweet region is drawn separately below.
+					var color: Color = ZONE_COLORS.get(grade.zone, Color("ffcf70"))
+					color.a = 0.25
+					mesh.surface_set_color(color)
+					mesh.surface_add_vertex(point)
+	mesh.surface_end()
+	return mesh
+
+static func arm_length(arm: Node3D, scale: float) -> float:
+	var elbow := arm.get_node_or_null("Elbow") as Node3D
+	var wrist := arm.get_node_or_null("Elbow/Wrist") as Node3D
+	if elbow == null or wrist == null:
+		return -1.0
+	var anchor := arm.get_node_or_null("Elbow/Wrist/ContactAnchor") as Node3D
+	return (elbow.position.length() + wrist.position.length() + (anchor.position.length() if anchor != null else 0.0)) * scale

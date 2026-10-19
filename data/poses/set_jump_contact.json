@@ -1,0 +1,47 @@
+{
+	"channels": {
+		"abduction": 0.0,
+		"elbow": 60.9284,
+		"forearm_rotation": 0.0,
+		"hip": 0.0,
+		"hip_hinge": 6.5707,
+		"hip_rotation": 0.0,
+		"hip_shift": 0.0,
+		"knee": -58.0,
+		"lumbar_bend": 0.0,
+		"lumbar_flexion": 0.0,
+		"lumbar_twist": 0.0,
+		"neck_bend": 0.0,
+		"neck_flexion": 0.0,
+		"neck_twist": 0.0,
+		"shoulder_pitch": 125.743,
+		"shoulder_roll": 16.8984,
+		"shoulder_rotation": 0.0,
+		"thoracic_bend": 0.0,
+		"thoracic_flexion": 0.0,
+		"thoracic_twist": 0.0
+	},
+	"left": {
+		"abduction": 0.0,
+		"elbow": 60.9284,
+		"forearm_rotation": 0.0,
+		"hip": 0.0,
+		"hip_rotation": 0.0,
+		"knee": -58.0,
+		"shoulder_pitch": 125.743,
+		"shoulder_roll": 16.8984,
+		"shoulder_rotation": 0.0
+	},
+	"mirror": false,
+	"right": {
+		"abduction": 0.0,
+		"elbow": 60.9284,
+		"forearm_rotation": 0.0,
+		"hip": 0.0,
+		"hip_rotation": 0.0,
+		"knee": -58.0,
+		"shoulder_pitch": 125.743,
+		"shoulder_roll": 16.8984,
+		"shoulder_rotation": 0.0
+	}
+}

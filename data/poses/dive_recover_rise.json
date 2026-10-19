@@ -1,0 +1,16 @@
+{
+	"mirror": true,
+	"channels": {
+		"hip": 34,
+		"knee": -88,
+		"abduction": 16,
+		"shoulder_pitch": 52,
+		"shoulder_roll": 16,
+		"elbow": 60,
+		"hip_hinge": 34,
+		"hip_shift": -6,
+		"lumbar_flexion": 6,
+		"thoracic_flexion": 4,
+		"neck_flexion": -4
+	}
+}

@@ -1,0 +1,143 @@
+extends SceneTree
+# The map graybox: layout data, and that a body can really traverse it (and cannot go where the layout says it should not).
+const Layout := preload("res://scripts/map_layout.gd")
+var checks := 0
+var failures := 0
+var map: Node3D
+var player: CharacterBody3D
+func check(ok: bool, message: String) -> void:
+	checks += 1
+	if not ok:
+		failures += 1
+		push_error(message)
+func _initialize() -> void:
+	call_deferred("run")
+# Walk toward `target` (flat) for up to `seconds`, stopping within `reach` metres. Returns the distance left.
+func walk_to(target: Vector3, seconds: float = 25.0, reach: float = 0.6, sprint: bool = true) -> float:
+	var frames := int(seconds * 60.0)
+	for i in range(frames):
+		var flat := Vector3(target.x - player.global_position.x, 0.0, target.z - player.global_position.z)
+		if flat.length() <= reach:
+			break
+		player.tick(1.0 / 60.0, flat.normalized(), sprint)
+		await physics_frame
+	return Vector2(target.x - player.global_position.x, target.z - player.global_position.z).length()
+func stand(position_in_world: Vector3) -> void:
+	player.place(position_in_world)
+	for i in range(12):
+		player.tick(1.0 / 60.0, Vector3.ZERO, false)
+		await physics_frame
+# Stand still holding Space for `held` seconds, then jump and head for `target`. Returns once it has landed.
+func jump_toward(target: Vector3, held: float) -> void:
+	player.charge = 0.0
+	var flat := Vector3(target.x - player.global_position.x, 0.0, target.z - player.global_position.z).normalized()
+	for i in range(int(held * 60.0)):
+		player.tick(1.0 / 60.0, Vector3.ZERO, false)
+		await physics_frame
+	player.release_jump()
+	for i in range(240):
+		player.tick(1.0 / 60.0, flat, false)
+		await physics_frame
+		if i > 20 and player.is_on_floor():
+			break
+	for i in range(10):
+		player.tick(1.0 / 60.0, Vector3.ZERO, false)
+		await physics_frame
+func run() -> void:
+	# --- Layout data ---
+	var nets := Layout.nets()
+	var by_id := {}
+	for net in nets:
+		by_id[net.id] = net
+		check(is_zero_approx(net.position.z), "%s is on the central line" % net.id)
+	check(nets.size() == 5, "three lane Nets and two Pit Nets")
+	check(is_equal_approx(by_id.top.position.x, -by_id.bottom.position.x) and is_zero_approx(by_id.middle.position.x), "the lane Nets are symmetric about the middle")
+	check(is_equal_approx(by_id.middle.position.x - by_id.top.position.x, 36.0) and is_equal_approx(by_id.pit_east.position.x - by_id.middle.position.x, 18.0), "36 m between lane Nets, 18 m to a Pit Net")
+	check(by_id.top.height > by_id.middle.height and by_id.middle.height > by_id.bottom.height, "the top Net is tallest and the bottom shortest")
+	check(by_id.top.width < by_id.middle.width and by_id.middle.width < by_id.bottom.width, "the top court is narrowest and the bottom widest")
+	check(is_equal_approx(by_id.pit_west.height, Layout.STANDARD_HEIGHT) and is_equal_approx(by_id.pit_east.width, Layout.STANDARD_WIDTH), "Pit Nets are the standard")
+	check(absf(float(by_id.middle.height) - (float(by_id.top.height) + float(by_id.bottom.height)) * 0.5) < 0.02, "the middle Net sits at the middle of the lane values")
+	check(Layout.zone_at(Vector3(0, 0, 58)) == "BLUE BASE" and Layout.zone_at(Vector3(0, 0, -58)) == "RED BASE", "base zones")
+	check(Layout.zone_at(Vector3(0, 0, 30)).begins_with("MIDDLE LANE") and Layout.zone_at(Vector3(-36, 0, 15)).begins_with("TOP LANE"), "lane zones")
+	check(Layout.zone_at(Vector3(-18, 0, 20)).begins_with("UPPER JUNGLE") and Layout.zone_at(Vector3(18, 0, -20)).begins_with("LOWER JUNGLE"), "jungle zones")
+	check(Layout.zone_at(Vector3(-18, 0, 4)) == "PIT" or Layout.zone_at(Vector3(-18, 0, 4)).begins_with("PIT NET COURT"), "the pit")
+	# --- The scene is its own thing ---
+	for path in ["res://scripts/map_traversal.gd", "res://scripts/map_world.gd", "res://scripts/map_layout.gd", "res://scripts/graybox_player.gd"]:
+		var source := FileAccess.get_file_as_string(path)
+		check(not source.contains("contact_lab") and not source.contains("PoseLibrary") and not source.contains("athlete"), "%s shares nothing with the Contact Lab" % path)
+	# --- Traversal in the real physics ---
+	map = load("res://map_traversal.tscn").instantiate()
+	root.add_child(map)
+	player = map.player
+	player.scripted = true
+	for i in range(20):
+		await physics_frame
+	for team in ["blue", "red"]:
+		for spawn in Layout.spawns(team):
+			await stand(spawn)
+			check(player.is_on_floor() and absf(player.global_position.y) < 0.2, "%s spawn %s is standing on the floor" % [team, str(spawn)])
+	# Each lane can be walked from either base to the edge of its Net's court.
+	for lane in Layout.lane_ids():
+		for blue in [true, false]:
+			var line := Layout.lane_points(lane)
+			if not blue:
+				line = Layout.mirrored(line)
+			await stand(Vector3(line[0].x, 0.1, line[0].y))
+			var left := 0.0
+			for i in range(1, line.size()):
+				left = await walk_to(Vector3(line[i].x, 0.0, line[i].y), 20.0, 1.0)
+			check(left < 1.5, "%s lane walks from the %s base to its Net (%.1f m short)" % [lane, "Blue" if blue else "Red", left])
+	# A Net is a wall across the central line, but the jungle between them is open.
+	await stand(Vector3(-36.0, 0.1, 6.0))
+	await walk_to(Vector3(-36.0, 0.0, -6.0), 8.0, 0.5)
+	check(player.global_position.z > 0.0, "the top Net blocks walking across the central line (stopped at z %.2f)" % player.global_position.z)
+	await stand(Vector3(-30.4, 0.1, 14.0))
+	var crossing := await walk_to(Vector3(-30.4, 0.0, -14.0), 12.0, 0.6)
+	check(crossing < 1.0, "the gap between the top Net and the west pit is open (%.1f m short)" % crossing)
+	# The pit ring: closed from the side, open at the north and south ends.
+	await stand(Vector3(-34.0, 0.1, 2.0))
+	await walk_to(Vector3(-18.0, 0.0, 2.0), 8.0, 0.6)
+	check(player.global_position.x < -26.0, "the pit wall stops you walking in from the side (x %.1f)" % player.global_position.x)
+	await stand(Vector3(-18.0, 0.1, 16.0))
+	var into := await walk_to(Vector3(-18.0, 0.0, 4.0), 8.0, 0.6)
+	check(into < 1.0, "the pit opening lets you walk in from the north (%.1f m short)" % into)
+	# Ledges: the stair in the west Blue sector, 0.7 / 1.2 / 1.7 m. A body stands still half a metre from the face, then jumps at it.
+	var center := Layout.sectors()[0]
+	var step_a := Layout.sector_point(center, -9.0, 4.0)
+	var step_b := Layout.sector_point(center, -5.8, 4.0)
+	var step_c := Layout.sector_point(center, -2.6, 4.0)
+	var before_a := Vector3(step_a.x - 1.5 - 0.4, 0.1, step_a.z)
+	var edge_a := step_a.x - 1.5
+	await stand(before_a)
+	await jump_toward(step_a, 0.0)
+	check(not (player.global_position.x > edge_a + 0.05 and player.global_position.y > 0.6), "a tap jump (0.6 m) does not get onto the 0.7 m ledge (x %.2f, y %.2f, edge x %.2f)" % [player.global_position.x, player.global_position.y, edge_a])
+	await stand(before_a)
+	await jump_toward(step_a, 0.2)
+	check(player.global_position.x > edge_a + 0.05 and absf(player.global_position.y - 0.7) < 0.15, "a short charge gets onto the 0.7 m ledge (x %.2f, y %.2f)" % [player.global_position.x, player.global_position.y])
+	await stand(Vector3(step_a.x + 0.6, 0.8, step_a.z))
+	await jump_toward(step_b, 0.1)
+	check(absf(player.global_position.y - 1.2) < 0.15, "from the first ledge a little charge gets onto the 1.2 m ledge (y %.2f)" % player.global_position.y)
+	await stand(Vector3(step_b.x + 0.6, 1.3, step_b.z))
+	await jump_toward(step_c, 0.1)
+	check(absf(player.global_position.y - 1.7) < 0.15, "and from there onto the 1.7 m ledge (y %.2f)" % player.global_position.y)
+	# From the floor a full charge tops out at 1.6 m, so 1.7 m is out of reach in one jump, and 1.2 m is not.
+	await stand(Vector3(step_c.x, 0.1, step_c.z - 3.0))
+	await jump_toward(step_c, 0.8)
+	check(player.global_position.y < 1.3, "a full-charge jump from the floor does not reach the 1.7 m ledge (y %.2f)" % player.global_position.y)
+	await stand(Vector3(step_c.x, 0.1, step_c.z - 3.0))
+	var low_step := Vector3(step_c.x, 0.0, step_c.z)
+	await stand(Vector3(step_b.x, 0.1, step_b.z - 3.0))
+	await jump_toward(step_b, 0.7)
+	check(absf(player.global_position.y - 1.2) < 0.15, "a charge of 0.7 s from the floor gets onto the 1.2 m ledge (y %.2f)" % player.global_position.y)
+	# The 2.2 m ledge: out of reach without a mobility jump.
+	var block := Layout.sector_point(center, -10.0, -9.0)
+	await stand(Vector3(block.x, 0.1, block.z + 3.0))
+	await jump_toward(block, 0.8)
+	check(player.global_position.y < 0.3, "the 2.2 m ledge cannot be reached from the floor (y %.2f)" % player.global_position.y)
+	player.mobility = true
+	await stand(Vector3(block.x, 0.1, block.z + 3.0))
+	await jump_toward(block, 0.8)
+	check(absf(player.global_position.y - 2.2) < 0.2, "with a mobility jump it can (y %.2f)" % player.global_position.y)
+	player.mobility = false
+	print("MAP TRAVERSAL CHECKS: %d passed / %d total" % [checks - failures, checks])
+	quit(1 if failures > 0 else 0)

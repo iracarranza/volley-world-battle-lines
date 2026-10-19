@@ -1,0 +1,9 @@
+# Set contact geometry
+
+Set uses a spherical sector pointing straight upward from the athlete's head, radially symmetric around the body's vertical axis. The spherical radius is standing reach minus the sector origin height plus 0.55m; the cone half-angle is 70 degrees. The origin is at 85% of height and the base is clipped at 95% of height. Shared ball-radius overlap tolerance still applies.
+
+A central vertical column is the sweetspot at every valid height. Its radius scales uniformly with physique height and ranges provisionally from 0.16m at Ball Control 0 to 0.42m at 100 (about 0.329m at 65 for a 1.86m athlete). Ball Control uses the canonical `statistics.ball_control` accessor and tier bands; in the current three-stat ACC roster it is index 0 in `offsets.accuracy`. Legacy allocations are migrated by name, not reinterpreted by index. Applying a created athlete now preserves those offsets in the live build. Raising Ball Control widens the sweet column without enlarging the outer contact volume.
+
+Outside the column, contact quality falls continuously from 1 toward 0.25 with horizontal distance from the column boundary. FAIR/WEAK labels summarize that continuous value; they do not introduce grading jumps. The existing outgoing accuracy calculation converts lower quality into greater deviation. Bot sets also apply that quality-based deviation after their scripted launch; ideal centered bot sets retain their fixed target.
+
+`set_hurtbox.gd` owns definition, overlap, quality and debug mesh generation. Both player and bot shapes use it through `contact_geometry.gd`. Confirmation freezes the same geometry used by the visible overlay, including the column radius. Green column lines identify the sweet area, with the surrounding sector showing the quality gradient. Tests cover column height, radial symmetry, gradual falloff, outer/cone rejection, Ball Control offsets, creator propagation, actual outgoing error and overlay geometry.

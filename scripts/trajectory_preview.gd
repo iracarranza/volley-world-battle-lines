@@ -1,0 +1,135 @@
+extends RefCounted
+const ReceiveOutcome := preload("res://scripts/receive_outcome.gd")
+const Geometry := preload("res://scripts/contact_geometry.gd")
+const Execution := preload("res://scripts/contact_execution.gd")
+const Influence := preload("res://scripts/directional_influence.gd")
+const Spike := preload("res://scripts/spike_direction.gd")
+const NEAR_METERS := 3.5
+const FLIGHT_FRACTION := 0.35
+const MAX_SECONDS := 0.70
+const MAX_LENGTH := 5.5
+const SAMPLES := 36
+
+# The hint assumes ideal timing and a matching receive charge. It retains the
+# current platform/arm intersection, stats and DI; it never changes live state.
+static func predict(lab: Node3D) -> Dictionary:
+	if lab.is_benched() or not lab.ball_active or not (lab.armed or lab.charging) or lab.serve.tossing():
+		return {}
+	var action: int = lab.locked_action if lab.armed else (lab.airborne_action if lab.jumped and lab.airborne_action >= 0 else lab.selected)
+	var origin: Vector3 = lab.ball.position
+	var nearby: Vector3 = lab.player.position + Vector3.UP * float(lab.athlete.build.height) * 0.8
+	if origin.distance_to(nearby) > NEAR_METERS:
+		return {}
+	var yaw: float = lab._contact_yaw()
+	var local: Vector3 = (origin-lab.player.position).rotated(Vector3.UP,-yaw)
+	if action == 0 and local.z > 0:
+		return {} # A receiving platform cannot reach behind the athlete.
+	var shape: Dictionary = lab._hurtbox_definition(action)
+	var reachable := Geometry.contains(shape,local)
+	var sample := local if reachable else projected_contact(shape,local,action)
+	var spatial := Geometry.evaluate(shape,sample)
+	if not spatial.hit:
+		return {}
+	var assessment := Execution.assess(spatial,Execution.SWEET_DELAY,false,action)
+	if action == 1:
+		assessment = lab.athlete.stabilize_set(assessment)
+	if action == 0:
+		assessment = ReceiveOutcome.assess(assessment,shape,sample,Vector2(lab.player.velocity.x,lab.player.velocity.z).length(),lab.directional_input.value(),yaw)
+	var power: float = lab.locked_charge if lab.armed else lab.charge
+	var target: Vector3 = lab.committed_intent.get("target",lab.aim)
+	var forward := Vector3.FORWARD.rotated(Vector3.UP,yaw)
+	var velocity: Vector3 = lab._shot_velocity(origin,action,power,target)
+	var ideal := velocity
+	if action == 0:
+		velocity = Geometry.ReceivePlatform.redirect(velocity,origin,yaw,lab.ball_velocity,assessment,lab.GRAVITY)
+	elif action == 2:
+		velocity *= float(assessment.strength)
+	if action == 2:
+		velocity = Spike.resolve(velocity,assessment,lab.directional_input.value(),forward).velocity
+	else:
+		velocity = Influence.resolve(velocity,action,lab.directional_input.value(),target-origin,float(assessment.quality)).velocity
+	velocity = Execution.velocity(action,velocity,lab.ball_velocity,forward,assessment,lab.athlete.timing(),ideal,lab.athlete.ball_control(),lab.athlete.flow,lab.athlete.low_stamina_factor())
+	if action == 0:
+		velocity = ReceiveOutcome.velocity(velocity,assessment)
+	var gravity: float = lab.GRAVITY
+	var drop := maxf(origin.y-Geometry.VISUAL_BALL_RADIUS,0)
+	var full_time := (velocity.y+sqrt(velocity.y*velocity.y+2*gravity*drop))/gravity
+	var duration := minf(full_time*FLIGHT_FRACTION,MAX_SECONDS)
+	var drawn_duration := duration
+	var points: Array[Vector3] = [origin]
+	var length := 0.0
+	for index in range(1,SAMPLES+1):
+		var t := duration*float(index)/SAMPLES
+		var point := origin+velocity*t+Vector3.DOWN*gravity*t*t*0.5
+		var segment := points[-1].distance_to(point)
+		if length+segment > MAX_LENGTH:
+			var fraction := (MAX_LENGTH-length)/maxf(segment,0.000001)
+			drawn_duration = duration*(index-1+fraction)/SAMPLES
+			points.append(points[-1].lerp(point,fraction))
+			break
+		points.append(point)
+		length += segment
+	var result := {"origin": origin,"velocity": velocity,"points": points,"duration": drawn_duration,"full_flight_time": full_time,"contact_ready": reachable,"action": action,"assessment": assessment,"charge": power,"ideal_timing": true,"ideal_charge_match": true}
+	result.make_read_only()
+	return result
+
+static func projected_contact(shape: Dictionary, local: Vector3, action: int) -> Vector3:
+	var center: Vector3 = shape.center
+	var point := local-center
+	match action:
+		0:
+			var x := local.x/float(shape.side_reach)
+			var front := maxf(0.02,-local.z/float(shape.forward_reach))
+			var footprint := Vector2(x,front).limit_length(0.94)
+			return Vector3(footprint.x*float(shape.side_reach),clampf(local.y,center.y-float(shape.size.y)*0.45,center.y+float(shape.size.y)*0.45),-footprint.y*float(shape.forward_reach))
+		1:
+			point.y = clampf(point.y,float(shape.min_y)+0.02,float(shape.radius)*0.94)
+			var radius := Geometry.SetHurtbox.outer_radius(shape,point.y)*0.94
+			var horizontal := Vector2(point.x,point.z).limit_length(radius)
+			return center+Vector3(horizontal.x,point.y,horizontal.y)
+		2:
+			var radial := Vector2(point.x,maxf(0.03,point.y)).limit_length(float(shape.radius)*0.94)
+			return center+Vector3(radial.x,radial.y,clampf(point.z,-float(shape.depth)*0.44,float(shape.depth)*0.44))
+		3:
+			var column := float(shape.column_x)*(1.0 if point.x >= 0 else -1.0)
+			var radial := Vector2(point.x-column,point.z).limit_length(float(shape.column_radius)*0.9)
+			return center+Vector3(column+radial.x,clampf(point.y,-float(shape.size.y)*0.45,float(shape.size.y)*0.45),radial.y)
+	return center
+
+static func ribbon(result: Dictionary, camera: Vector3) -> ImmediateMesh:
+	var mesh := ImmediateMesh.new()
+	if result.is_empty():
+		return mesh
+	var points: Array = result.points
+	if points.size() < 2:
+		return mesh
+	var readiness := 1.0 if result.contact_ready else 0.42
+	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	for index in range(points.size()-1):
+		var a: Vector3 = points[index]
+		var b: Vector3 = points[index+1]
+		var tangent := (b-a).normalized()
+		var side := tangent.cross(camera-(a+b)*0.5).normalized()
+		if side.length_squared() < 0.001:
+			side = tangent.cross(Vector3.UP).normalized()
+		var progress := float(index)/(points.size()-1)
+		var end_progress := float(index+1)/(points.size()-1)
+		for glow in [true,false]:
+			var half_width := 0.11 if glow else 0.023
+			var alpha := (0.18 if glow else 0.92)*readiness
+			var color := Color("59d8ff") if glow else Color("b9f7ff")
+			var fade_a := (1.0-smoothstep(0.65,1,progress))*alpha
+			var fade_b := (1.0-smoothstep(0.65,1,end_progress))*alpha
+			var offset_a := side*half_width*lerpf(1,0.55,progress)
+			var offset_b := side*half_width*lerpf(1,0.55,end_progress)
+			var corners := [a-offset_a,a+offset_a,b+offset_b,b-offset_b]
+			for corner in [0,1,2,0,2,3]:
+				mesh.surface_set_color(Color(color,fade_a if corner < 2 else fade_b))
+				mesh.surface_add_vertex(corners[corner])
+		if index % 7 == 3 and progress < 0.8:
+			var color := Color(0.55,0.91,1,0.8*readiness*(1-progress))
+			for point in [a+tangent*0.14,a-tangent*0.06+side*0.12,a-tangent*0.06-side*0.12]:
+				mesh.surface_set_color(color)
+				mesh.surface_add_vertex(point)
+	mesh.surface_end()
+	return mesh

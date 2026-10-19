@@ -1,0 +1,185 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://vendor/vwm/construction/scenes/components/player_actor_3d.gd" id="1_player"]
+[ext_resource type="PackedScene" path="res://vendor/vwm/construction/scenes/components/signature_surge_3d.tscn" id="2_surge"]
+[ext_resource type="Script" path="res://vendor/vwm/construction/scenes/components/high_contrast_surface_mark_renderer_3d.gd" id="3_surface_marks"]
+
+[sub_resource type="StandardMaterial3D" id="ShadowMaterial"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.015, 0.02, 0.03, 0.42)
+
+[sub_resource type="CylinderMesh" id="ShadowMesh"]
+material = SubResource("ShadowMaterial")
+top_radius = 0.34
+bottom_radius = 0.34
+height = 0.012
+radial_segments = 20
+
+[sub_resource type="StandardMaterial3D" id="RingMaterial"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.84, 0.21, 0.86)
+
+[sub_resource type="TorusMesh" id="RingMesh"]
+material = SubResource("RingMaterial")
+inner_radius = 0.39
+outer_radius = 0.44
+rings = 24
+ring_segments = 8
+
+[sub_resource type="CapsuleMesh" id="TorsoMesh"]
+radius = 0.31
+height = 1.05
+radial_segments = 12
+rings = 6
+
+[sub_resource type="SphereMesh" id="HeadMesh"]
+radius = 0.2
+height = 0.4
+radial_segments = 12
+rings = 6
+
+[sub_resource type="SphereMesh" id="PalmMesh"]
+radius = 0.08
+height = 0.16
+radial_segments = 10
+rings = 5
+
+[sub_resource type="CylinderMesh" id="ArmMesh"]
+top_radius = 0.075
+bottom_radius = 0.09
+height = 0.88
+radial_segments = 8
+
+[sub_resource type="CylinderMesh" id="LegMesh"]
+top_radius = 0.105
+bottom_radius = 0.085
+height = 0.74
+radial_segments = 8
+
+[sub_resource type="CapsuleMesh" id="ShoeMesh"]
+radius = 0.1
+height = 0.3
+radial_segments = 8
+rings = 4
+
+[node name="PlayerActor3D" type="Node3D" unique_id=763003403]
+script = ExtResource("1_player")
+
+[node name="SurfaceMarkRenderer3D" type="Node" parent="." unique_id=718644696]
+script = ExtResource("3_surface_marks")
+
+[node name="Shadow" type="MeshInstance3D" parent="." unique_id=1909835447]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.012, 0)
+cast_shadow = 0
+mesh = SubResource("ShadowMesh")
+
+[node name="FocusRing" type="MeshInstance3D" parent="." unique_id=142163648]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.022, 0)
+visible = false
+cast_shadow = 0
+mesh = SubResource("RingMesh")
+
+[node name="SignatureSurge3D" parent="." unique_id=1233410596 instance=ExtResource("2_surge")]
+
+[node name="BodyPivot" type="Node3D" parent="." unique_id=565602606]
+
+[node name="Torso" type="MeshInstance3D" parent="BodyPivot" unique_id=459623677]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.13, 0)
+mesh = SubResource("TorsoMesh")
+
+[node name="Head" type="MeshInstance3D" parent="BodyPivot" unique_id=780678846]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.82, 0)
+mesh = SubResource("HeadMesh")
+
+[node name="LeftArm" type="Node3D" parent="BodyPivot" unique_id=301441186]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4, 1.52, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="BodyPivot/LeftArm" unique_id=1458847256]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+mesh = SubResource("ArmMesh")
+
+[node name="Elbow" type="Node3D" parent="BodyPivot/LeftArm" unique_id=2100939563]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="BodyPivot/LeftArm/Elbow" unique_id=2123182140]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+mesh = SubResource("ArmMesh")
+
+[node name="Wrist" type="Node3D" parent="BodyPivot/LeftArm/Elbow"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.48, 0)
+
+[node name="Palm" type="MeshInstance3D" parent="BodyPivot/LeftArm/Elbow/Wrist"]
+scale = Vector3(0.78, 1.08, 0.46)
+mesh = SubResource("PalmMesh")
+
+[node name="ContactAnchor" type="Marker3D" parent="BodyPivot/LeftArm/Elbow/Wrist"]
+
+[node name="RightArm" type="Node3D" parent="BodyPivot" unique_id=86061653]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 1.52, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="BodyPivot/RightArm" unique_id=601384264]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+mesh = SubResource("ArmMesh")
+
+[node name="Elbow" type="Node3D" parent="BodyPivot/RightArm" unique_id=1964443518]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="BodyPivot/RightArm/Elbow" unique_id=338448703]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+mesh = SubResource("ArmMesh")
+
+[node name="Wrist" type="Node3D" parent="BodyPivot/RightArm/Elbow"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.48, 0)
+
+[node name="Palm" type="MeshInstance3D" parent="BodyPivot/RightArm/Elbow/Wrist"]
+scale = Vector3(0.78, 1.08, 0.46)
+mesh = SubResource("PalmMesh")
+
+[node name="ContactAnchor" type="Marker3D" parent="BodyPivot/RightArm/Elbow/Wrist"]
+
+[node name="LeftLeg" type="Node3D" parent="BodyPivot" unique_id=798809948]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.16, 0.48, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="BodyPivot/LeftLeg" unique_id=1025995559]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.08, 0)
+mesh = SubResource("LegMesh")
+
+[node name="Knee" type="Node3D" parent="BodyPivot/LeftLeg" unique_id=1014671585]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.22, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="BodyPivot/LeftLeg/Knee" unique_id=2035083213]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("LegMesh")
+
+[node name="Shoe" type="MeshInstance3D" parent="BodyPivot/LeftLeg/Knee" unique_id=238022776]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, -0.2, -0.06)
+mesh = SubResource("ShoeMesh")
+
+[node name="RightLeg" type="Node3D" parent="BodyPivot" unique_id=851282012]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.16, 0.48, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="BodyPivot/RightLeg" unique_id=898178486]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.08, 0)
+mesh = SubResource("LegMesh")
+
+[node name="Knee" type="Node3D" parent="BodyPivot/RightLeg" unique_id=1886139828]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.22, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="BodyPivot/RightLeg/Knee" unique_id=2120221789]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("LegMesh")
+
+[node name="Shoe" type="MeshInstance3D" parent="BodyPivot/RightLeg/Knee" unique_id=1200393249]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, -0.2, -0.06)
+mesh = SubResource("ShoeMesh")
+
+[node name="IdentityLabel" type="Label3D" parent="." unique_id=243405716]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.28, 0)
+pixel_size = 0.006
+billboard = 1
+no_depth_test = true
+text = "Player"
+font_size = 30
+outline_size = 4

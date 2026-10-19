@@ -1,0 +1,166 @@
+[
+  {
+    "source": "scenes/components/player_actor_3d.tscn",
+    "sha256": "a74bef1f426246d15646a1879322866f6603343acdfd78b1c61078a7ee07b0ae"
+  },
+  {
+    "source": "scenes/components/high_contrast_surface_mark_renderer_3d.gd",
+    "sha256": "d3f838be72e4554fbe68cf70d766c66c1f8dacebe15825ab0080c85dc044f566"
+  },
+  {
+    "source": "scenes/components/surface_mark_renderer_3d.gd",
+    "sha256": "d1cc7c46ddbe513a3e4062a8ff6eeb0cc606524b2180603663bdfab539bb17f9"
+  },
+  {
+    "source": "scripts/data/body_type_models.gd",
+    "sha256": "581ee166e0c4e26da04fd75d764815be8bcec812ba54276e48f0f08c3642d225"
+  },
+  {
+    "source": "scenes/components/signature_surge_3d.tscn",
+    "sha256": "82e22e9e1f642862bcab6184de6e49daa7bd19aaf23d8fa83ebd2e1146476a6b"
+  },
+  {
+    "source": "assets/vfx/aura_soft.svg",
+    "sha256": "a26443f9d3a34b4d24fda647ac638ad1e587f7c0e6ae98d838294477b764c752"
+  },
+  {
+    "source": "scenes/components/signature_surge_3d.gd",
+    "sha256": "9be59e12b90d9859de43032bae1010dbf7ab84d0486145bc014fd5b00bc74688"
+  },
+  {
+    "source": "scenes/components/player_actor_3d.gd",
+    "sha256": "4822bd3278f80e6dd13a7305a30d73a5dacd9ee4eac08b5b028d9f133b6fe076"
+  },
+  {
+    "source": "scripts/data/core_voli_performance.gd",
+    "sha256": "c2362da4c64c5dae61f7a769cd4dc2fc1037f409dce212be1a44d6168a32a0ee"
+  },
+  {
+    "source": "scripts/data/idle_biomechanics.gd",
+    "sha256": "d0d25449505a23f1743ef797f0c7dfdf1930f3ade65955620d90a2a57fb5cfce"
+  },
+  {
+    "source": "scripts/data/contact_arrival_biomechanics.gd",
+    "sha256": "404c29dfd9f3566137cc8b85f2cd897e953c8d11e06d17b9406b9158e0cfe0b2"
+  },
+  {
+    "source": "scripts/data/defense_action_biomechanics.gd",
+    "sha256": "14e87ba303e53af6a85de5600d45d48efac7080ca1114b04e0c26f976e194f2d"
+  },
+  {
+    "source": "scripts/data/attack_action_biomechanics.gd",
+    "sha256": "aff3df015958d0eaf8c01327a2bf7c865cfdc2106080cc80c9d0fc1dbcbcec4d"
+  },
+  {
+    "source": "scripts/data/attack_performance_biomechanics.gd",
+    "sha256": "265dca83026a7323fa01f1c155f12e27e43da69999d48254343fa65fad1aa9bd"
+  },
+  {
+    "source": "scripts/data/spike_biomechanics.gd",
+    "sha256": "80696927d7edaf00e548d862c2c7b7bf42904a31ccf4341299d99760ddeb8f41"
+  },
+  {
+    "source": "scripts/data/approach_biomechanics.gd",
+    "sha256": "f32d0f46238ab1a9ac1ed9955a95a79b9cb757e6b5a3a715c9fa3a33db72c6bc"
+  },
+  {
+    "source": "scripts/data/set_biomechanics.gd",
+    "sha256": "bdef4b11d7ebcc7e4ac66da36c928bd87795b30b3f508705193aec1a4589c902"
+  },
+  {
+    "source": "scripts/data/serve_action_biomechanics.gd",
+    "sha256": "3df6fbebd72a2d1e57943af8d4482b3ff24ee24f6126d5df3d9ed3413167fb85"
+  },
+  {
+    "source": "scripts/data/serve_biomechanics.gd",
+    "sha256": "956b41a338610c396d90ec9a51bc0d5fd2814bf219bb4c560858092e56d09877"
+  },
+  {
+    "source": "scripts/data/landing_biomechanics.gd",
+    "sha256": "49cd2f8f485830953668dc3483cb8c6f7f590f575c5be519d5b3c2d126209e8c"
+  },
+  {
+    "source": "scripts/data/block_biomechanics.gd",
+    "sha256": "8378a949736a1c6b8b6537711d0c4b91cd033eaf399cdacd3e823ea9ef69baad"
+  },
+  {
+    "source": "scripts/simulation/rally_kinematics.gd",
+    "sha256": "002f4840b213fa0928566d9c546cb062441e7d0c15e8d6ce6325c53ae244c5fc"
+  },
+  {
+    "source": "scripts/simulation/ball_flight_model.gd",
+    "sha256": "069a556315ed52f3a3f1513ebec63f0345a69e0f26de3ee4ed62af746e0d052a"
+  },
+  {
+    "source": "scripts/data/gait_biomechanics.gd",
+    "sha256": "4fc787ca5ff993955f203145cb9cf2c9e0e1766373c5f7ef791adb6cef9d8a64"
+  },
+  {
+    "source": "scripts/data/stance_transition.gd",
+    "sha256": "67426cb404f617de31b98a6467da2b275a66a6f5d46ceda76c79688c170a742a"
+  },
+  {
+    "source": "scripts/data/face_expressions.gd",
+    "sha256": "35cb38e49eb40776f95d7da4458871d6f4b387c398aa827e9a94cf93d74b8823"
+  },
+  {
+    "source": "scripts/models/rally_event.gd",
+    "sha256": "47731822cda280f865de80132078f5753f16e082b2a019d221e66bb88cdeec7a"
+  },
+  {
+    "source": "scripts/data/regional_kits.gd",
+    "sha256": "495cb91876f01fc53884f305e3b1192ec8bd7849ccdd7831298c483b4d7b6797"
+  },
+  {
+    "source": "scripts/data/ui_palette.gd",
+    "sha256": "422254a21de29b20e0504df745670c658a038c26e2e7419550d1d11af6fee83d"
+  },
+  {
+    "source": "scripts/data/ready_stance.gd",
+    "sha256": "8fe49f5f53ffccd3d0009d2b783a57af11e1810aef448e5868de3c4355612798"
+  },
+  {
+    "source": "scenes/components/cognition_billboard_3d.gd",
+    "sha256": "2d8619fbec236b1edb518131751604dc2b219343941eb20462a933830e2fb2b5"
+  },
+  {
+    "source": "scripts/data/cogniticon_marks.gd",
+    "sha256": "1f88087ae5c30d7d49d43709a83224f79550f1b5c1ccca509cd5463f6bd44814"
+  },
+  {
+    "source": "scripts/data/cogniticon_motion.gd",
+    "sha256": "8544eee1c2f53ef148ff24ca1683c2e29f2f2b600d081cffa85f303b847394ce"
+  },
+  {
+    "source": "scripts/systems/cognition_badge.gd",
+    "sha256": "caf29053a1217def263e629fccde5b2f35f023fee3f734476462ef2adc6a2f15"
+  },
+  {
+    "source": "scripts/models/player_cognition_cue.gd",
+    "sha256": "ebf9a8610a550d18a89723269c5610dea23a13607836c8b22df061c4d1ec551d"
+  },
+  {
+    "source": "scripts/data/court_constants.gd",
+    "sha256": "5ece41dc2ef688d1861fa007cc170ad242044d2778d790a1d38e78877e5f4c66"
+  },
+  {
+    "source": "scripts/models/rotation_lineup.gd",
+    "sha256": "a3b54f4bcf80fd134d9cf1d4904b2cd231057d8d79f982464b6922c53f28b4aa"
+  },
+  {
+    "source": "scripts/models/volleyball_player.gd",
+    "sha256": "c73bf34605475a2da7413cac700b19d59911198f4672efca8b65def1971751d0"
+  },
+  {
+    "source": "scripts/models/system_fit_profile.gd",
+    "sha256": "e1eb52fdc424e0b66f76f503e19ba96c6c079221a621ae2183eb70a0370d0b05"
+  },
+  {
+    "source": "scripts/domain/role_profiles.gd",
+    "sha256": "fb5a37c8da39d4811de641a956fe3d1db04fa70f60f73b7d6b23c27a3a0ecf98"
+  },
+  {
+    "source": "scripts/domain/attribute_registry.gd",
+    "sha256": "860edc6b944959c345f79a54699b5992f8c876c5cbde4ad4ddff1ee9d6b54da8"
+  }
+]

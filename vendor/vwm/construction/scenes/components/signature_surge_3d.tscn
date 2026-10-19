@@ -1,0 +1,90 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://vendor/vwm/construction/scenes/components/signature_surge_3d.gd" id="1_surge"]
+[ext_resource type="Texture2D" path="res://vendor/vwm/construction/assets/vfx/aura_soft.svg" id="2_aura"]
+
+[sub_resource type="StandardMaterial3D" id="AuraMaterial"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+albedo_color = Color(1, 0.84, 0.2, 0.32)
+albedo_texture = ExtResource("2_aura")
+emission_enabled = true
+emission = Color(1, 0.54, 0.08, 1)
+emission_texture = ExtResource("2_aura")
+emission_energy_multiplier = 2.1
+billboard_mode = 1
+billboard_keep_scale = true
+
+[sub_resource type="StandardMaterial3D" id="TendrilMaterial"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+cull_mode = 2
+albedo_color = Color(1, 0.84, 0.2, 0.30)
+albedo_texture = ExtResource("2_aura")
+emission_enabled = true
+emission = Color(1, 0.54, 0.08, 1)
+emission_texture = ExtResource("2_aura")
+emission_energy_multiplier = 2.2
+
+[sub_resource type="QuadMesh" id="AuraMesh"]
+material = SubResource("AuraMaterial")
+size = Vector2(1, 1)
+
+[sub_resource type="QuadMesh" id="TendrilMesh"]
+material = SubResource("TendrilMaterial")
+size = Vector2(1, 1)
+
+[node name="SignatureSurge3D" type="Node3D"]
+script = ExtResource("1_surge")
+
+[node name="Core" type="MeshInstance3D" parent="."]
+position = Vector3(0, 1.0, 0.04)
+cast_shadow = 0
+mesh = SubResource("AuraMesh")
+
+[node name="Rings" type="Node3D" parent="."]
+
+[node name="Ring0" type="MeshInstance3D" parent="Rings"]
+cast_shadow = 0
+mesh = SubResource("AuraMesh")
+
+[node name="Ring1" type="MeshInstance3D" parent="Rings"]
+cast_shadow = 0
+mesh = SubResource("AuraMesh")
+
+[node name="Ring2" type="MeshInstance3D" parent="Rings"]
+cast_shadow = 0
+mesh = SubResource("AuraMesh")
+
+[node name="Streams" type="Node3D" parent="."]
+
+[node name="Stream0" type="MeshInstance3D" parent="Streams"]
+cast_shadow = 0
+mesh = SubResource("TendrilMesh")
+
+[node name="Stream1" type="MeshInstance3D" parent="Streams"]
+cast_shadow = 0
+mesh = SubResource("TendrilMesh")
+
+[node name="Stream2" type="MeshInstance3D" parent="Streams"]
+cast_shadow = 0
+mesh = SubResource("TendrilMesh")
+
+[node name="Stream3" type="MeshInstance3D" parent="Streams"]
+cast_shadow = 0
+mesh = SubResource("TendrilMesh")
+
+[node name="Stream4" type="MeshInstance3D" parent="Streams"]
+cast_shadow = 0
+mesh = SubResource("TendrilMesh")
+
+[node name="Stream5" type="MeshInstance3D" parent="Streams"]
+cast_shadow = 0
+mesh = SubResource("TendrilMesh")
+
+[node name="Burst" type="MeshInstance3D" parent="."]
+position = Vector3(0, 1.7, 0.08)
+cast_shadow = 0
+mesh = SubResource("AuraMesh")

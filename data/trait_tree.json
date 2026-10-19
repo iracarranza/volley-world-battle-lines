@@ -1,0 +1,429 @@
+{
+	"nodes": [
+		{
+			"attribute": "power",
+			"cost": 0,
+			"id": "power_power_serve",
+			"kind": "trait",
+			"name": "Power Serve",
+			"needs": {
+				"power": 68.0
+			},
+			"parent": "",
+			"pos": [
+				210.0,
+				0.0
+			],
+			"text": "+12 Serve Velocity.",
+			"exclusive": "power_start",
+			"effects": {
+				"serve_velocity": 12
+			}
+		},
+		{
+			"attribute": "speed",
+			"cost": 0,
+			"id": "speed_quick_step",
+			"kind": "trait",
+			"name": "Quick Step",
+			"needs": {
+				"speed": 66.0
+			},
+			"parent": "",
+			"pos": [
+				210.0,
+				0.0
+			],
+			"text": "Active: double-tap a direction while an action is charged for one burst of movement. Cooldown 5s exploring, 8s in a rally."
+		},
+		{
+			"attribute": "speed",
+			"cost": 0,
+			"id": "speed_dump",
+			"kind": "planned",
+			"name": "Dump",
+			"needs": {
+				"speed": 73.0
+			},
+			"parent": "speed_quick_step",
+			"pos": [
+				110.0,
+				110.0
+			],
+			"text": "Planned: quick jump-set dump."
+		},
+		{
+			"attribute": "accuracy",
+			"cost": 0,
+			"id": "accuracy_shoot_set",
+			"kind": "trait",
+			"name": "Shoot Set",
+			"needs": {
+				"accuracy": 72.0
+			},
+			"parent": "",
+			"pos": [
+				0.0,
+				0.0
+			],
+			"text": "Faster, flatter set for an immediate attack"
+		},
+		{
+			"attribute": "accuracy",
+			"cost": 0,
+			"id": "accuracy_back_set",
+			"kind": "planned",
+			"name": "Back Set",
+			"needs": {
+				"accuracy": 73.0
+			},
+			"parent": "accuracy_shoot_set",
+			"pos": [
+				0.0,
+				110.0
+			],
+			"text": "Planned: concealed set behind the setter."
+		},
+		{
+			"attribute": "endurance",
+			"cost": 0,
+			"id": "endurance_rolling_receive",
+			"kind": "trait",
+			"name": "Rolling Receive",
+			"needs": {
+				"endurance": 68.0
+			},
+			"parent": "",
+			"pos": [
+				0.0,
+				0.0
+			],
+			"text": "Dive receive that rolls out, cheaper recovery"
+		},
+		{
+			"attribute": "endurance",
+			"cost": 0,
+			"id": "endurance_pancake",
+			"kind": "planned",
+			"name": "Pancake",
+			"needs": {
+				"endurance": 73.0
+			},
+			"parent": "endurance_rolling_receive",
+			"pos": [
+				0.0,
+				110.0
+			],
+			"text": "Planned: floor-sliding save."
+		},
+		{
+			"attribute": "power",
+			"cost": 0,
+			"id": "new_trait",
+			"kind": "trait",
+			"name": "Big Hitter",
+			"needs": {
+				"power": 68.0
+			},
+			"parent": "",
+			"pos": [
+				630.0,
+				0.0
+			],
+			"text": "+10 Spike Velocity.",
+			"exclusive": "power_start",
+			"effects": {
+				"spike_velocity": 10
+			}
+		},
+		{
+			"attribute": "endurance",
+			"cost": 0,
+			"id": "new_trait_2",
+			"kind": "trait",
+			"name": "Second Wind",
+			"needs": {
+				"endurance": 68.0
+			},
+			"parent": "",
+			"pos": [
+				160.0,
+				0.0
+			],
+			"text": "Passive: When you become Winded, gain 23% of your maximum Stamina back. (CD: 30s)",
+			"effects": {
+				"second_wind": 23
+			}
+		},
+		{
+			"attribute": "power",
+			"cost": 0,
+			"id": "new_trait_3",
+			"kind": "trait",
+			"name": "Flow Hitter",
+			"needs": {
+				"power": 72.0
+			},
+			"parent": "new_trait",
+			"pos": [
+				540.0,
+				110.0
+			],
+			"text": "Flow: Your next attack consumes all Flow and gains +20 Spike Velocity.",
+			"effects": {
+				"flow_attack_velocity": 20
+			}
+		},
+		{
+			"attribute": "power",
+			"cost": 0,
+			"id": "new_trait_4",
+			"kind": "trait",
+			"name": "Transition Hitter",
+			"needs": {
+				"power": 71.0,
+				"speed": 68.0
+			},
+			"parent": "new_trait",
+			"pos": [
+				720.0,
+				110.0
+			],
+			"text": "+6 Platform Quality.",
+			"effects": {
+				"platform_quality": 6
+			}
+		},
+		{
+			"attribute": "power",
+			"cost": 0,
+			"id": "new_trait_5",
+			"kind": "trait",
+			"name": "Topspin Serve",
+			"needs": {
+				"accuracy": 68.0,
+				"power": 71.0
+			},
+			"parent": "power_power_serve",
+			"pos": [
+				120.0,
+				110.0
+			],
+			"text": "+6 Serve Velocity. Your serves drop more sharply.",
+			"effects": {
+				"serve_velocity": 6
+			}
+		},
+		{
+			"attribute": "power",
+			"cost": 0,
+			"id": "new_trait_6",
+			"kind": "trait",
+			"name": "Com-Pepp-Itor",
+			"needs": {
+				"power": 72.0
+			},
+			"parent": "power_power_serve",
+			"pos": [
+				300.0,
+				110.0
+			],
+			"text": "+5 HP stolen upon a successful Pepper."
+		},
+		{
+			"attribute": "power",
+			"cost": 0,
+			"id": "new_trait_7",
+			"kind": "trait",
+			"name": "Revenger",
+			"needs": {
+				"endurance": 76.0,
+				"power": 82.0
+			},
+			"parent": "",
+			"pos": [
+				590.0,
+				430.0
+			],
+			"text": "Upon Receiving an Attack, if that Receive lowered your Flow, your next Jump gains +10 Jump Power and your next Attack gains +15 Spike Velocity.",
+			"effects": {
+				"revenge_jump_power": 10,
+				"revenge_spike_velocity": 15
+			}
+		},
+		{
+			"attribute": "power",
+			"cost": 0,
+			"id": "new_trait_8",
+			"kind": "trait",
+			"name": "Pepper Patroller",
+			"needs": {
+				"power": 75.0,
+				"speed": 72.0
+			},
+			"parent": "new_trait_6",
+			"pos": [
+				300.0,
+				220.0
+			],
+			"text": "Temporarily gain +10 Acceleration after a successful Pepper."
+		},
+		{
+			"attribute": "power",
+			"cost": 0,
+			"id": "new_trait_9",
+			"kind": "trait",
+			"name": "Jump Topspin",
+			"needs": {
+				"accuracy": 70.0,
+				"power": 72.0
+			},
+			"parent": "new_trait_5",
+			"pos": [
+				120.0,
+				220.0
+			],
+			"text": "+6 Serve Velocity. Your Serve Toss goes higher and farther, and you can perform a Spike Approach after a Serve Toss to complete the Serve while midair.",
+			"effects": {
+				"serve_velocity": 6
+			}
+		},
+		{
+			"attribute": "power",
+			"cost": 0,
+			"id": "new_trait_10",
+			"kind": "trait",
+			"name": "Back Attacker",
+			"needs": {
+				"power": 71.0,
+				"speed": 71.0
+			},
+			"parent": "new_trait_4",
+			"pos": [
+				720.0,
+				220.0
+			],
+			"text": "+4 Platform Quality, and up to +8 Spike Velocity when approaching further from the net.",
+			"effects": {
+				"platform_quality": 4,
+				"back_attack_velocity": 8
+			}
+		},
+		{
+			"attribute": "power",
+			"cost": 0,
+			"id": "new_trait_11",
+			"kind": "trait",
+			"name": "Never Stay Down",
+			"needs": {
+				"endurance": 76.0,
+				"power": 87.0,
+				"speed": 71.0
+			},
+			"parent": "",
+			"pos": [
+				780.0,
+				520.0
+			],
+			"text": "Your Jumps always reach their maximum height even at diminished Stamina, until 15% Stamina remains.",
+			"effects": {
+				"jump_stamina_threshold": 15
+			}
+		},
+		{
+			"id": "endurance_charge_tolerance",
+			"name": "Charge Tolerance",
+			"attribute": "endurance",
+			"kind": "trait",
+			"needs": {
+				"endurance": 68
+			},
+			"parent": "",
+			"cost": 0,
+			"pos": [
+				320,
+				0
+			],
+			"text": "Charge mismatches develop severity 10% more slowly; does not create a charge match.",
+			"effects": {
+				"charge_tolerance": 10
+			}
+		},
+		{
+			"id": "accuracy_platform_quality",
+			"name": "Platform Quality",
+			"attribute": "accuracy",
+			"kind": "trait",
+			"needs": {
+				"accuracy": 68
+			},
+			"parent": "",
+			"cost": 0,
+			"pos": [
+				210,
+				0
+			],
+			"text": "+6 Platform Quality: more overlap between receiving quality zones, without changing charge.",
+			"effects": {
+				"platform_quality": 6
+			}
+		},
+		{
+			"id": "endurance_fast_recovery",
+			"name": "Fast Recovery",
+			"attribute": "endurance",
+			"kind": "trait",
+			"needs": {
+				"endurance": 70
+			},
+			"parent": "",
+			"cost": 0,
+			"pos": [
+				0,
+				240
+			],
+			"text": "12% faster recovery from Knee, Fall, Blown Away and Dive.",
+			"effects": {
+				"recovery": 12
+			}
+		},
+		{
+			"id": "endurance_stamina_recovery",
+			"name": "Stamina Recovery",
+			"attribute": "endurance",
+			"kind": "trait",
+			"needs": {
+				"endurance": 70
+			},
+			"parent": "",
+			"cost": 0,
+			"pos": [
+				180,
+				240
+			],
+			"text": "15% faster Stamina regeneration; fatigue status durations are unchanged.",
+			"effects": {
+				"stamina_recovery": 15
+			}
+		},
+		{
+			"id": "endurance_exertion_efficiency",
+			"name": "Exertion Efficiency",
+			"attribute": "endurance",
+			"kind": "trait",
+			"needs": {
+				"endurance": 70
+			},
+			"parent": "",
+			"cost": 0,
+			"pos": [
+				360,
+				240
+			],
+			"text": "12% lower ordinary action Stamina expenditure.",
+			"effects": {
+				"exertion_efficiency": 12
+			}
+		}
+	]
+}

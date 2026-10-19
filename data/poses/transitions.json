@@ -1,0 +1,102 @@
+{
+	"default_ease": "min_jerk",
+	"default_ms": 160,
+	"pairs": {
+		"air:2>air:2:hit": {
+			"ease": "min_jerk",
+			"ms": 70
+		},
+		"dive>locomotion": {
+			"ease": "min_jerk",
+			"ms": 200
+		},
+		"dive>receive:planted": {
+			"ease": "min_jerk",
+			"ms": 200
+		},
+		"dive_contact_right>planted_receive": {
+			"ease": "min_jerk",
+			"ms": 320
+		},
+		"dive_load_right>dive_contact_right": {
+			"ease": "min_jerk",
+			"ms": 140
+		},
+		"dive_recover_gather_fwd>dive_recover_rise": {
+			"ease": "min_jerk",
+			"ms": 120
+		},
+		"dive_recover_land_fwd>dive_recover_slide_fwd": {
+			"ease": "min_jerk",
+			"ms": 120
+		},
+		"dive_recover_push_fwd>dive_recover_gather_fwd": {
+			"ease": "min_jerk",
+			"ms": 140
+		},
+		"dive_recover_rise>planted_receive": {
+			"ease": "min_jerk",
+			"ms": 120
+		},
+		"dive_recover_slide_fwd>dive_recover_push_fwd": {
+			"ease": "min_jerk",
+			"ms": 130
+		},
+		"locomotion>dive": {
+			"ease": "min_jerk",
+			"ms": 120
+		},
+		"locomotion>set": {
+			"ease": "min_jerk",
+			"ms": 140
+		},
+		"planted_receive>dive_load_right": {
+			"ease": "min_jerk",
+			"ms": 150
+		},
+		"planted_receive>ready_stance": {
+			"ease": "min_jerk",
+			"ms": 220
+		},
+		"planted_receive>set_gather": {
+			"ease": "min_jerk",
+			"ms": 190
+		},
+		"ready_stance>planted_receive": {
+			"ease": "min_jerk",
+			"ms": 180
+		},
+		"ready_stance>set_gather": {
+			"ease": "min_jerk",
+			"ms": 200
+		},
+		"receive:planted>dive": {
+			"ease": "min_jerk",
+			"ms": 100
+		},
+		"receive:planted>set": {
+			"ease": "min_jerk",
+			"ms": 150
+		},
+		"set>locomotion": {
+			"ease": "min_jerk",
+			"ms": 220
+		},
+		"set>receive:planted": {
+			"ease": "min_jerk",
+			"ms": 180
+		},
+		"set_contact>set_extend": {
+			"ease": "min_jerk",
+			"ms": 130
+		},
+		"set_extend>ready_stance": {
+			"ease": "min_jerk",
+			"ms": 260
+		},
+		"set_gather>set_contact": {
+			"ease": "min_jerk",
+			"ms": 120
+		}
+	}
+}

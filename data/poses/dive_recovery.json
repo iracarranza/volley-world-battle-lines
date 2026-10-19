@@ -1,0 +1,93 @@
+{
+	"impact_ms": 70,
+	"lock_until": "rise",
+	"slide_metres": {
+		"forward": 1.1,
+		"lateral": 0.7,
+		"floor": 0.35
+	},
+	"stages": [
+		{
+			"name": "land",
+			"fwd": "dive_recover_land_fwd",
+			"side": "dive_recover_land_side",
+			"hold_ms": 0,
+			"root": {
+				"pitch_fwd": -1.3,
+				"pitch_back": 1.05,
+				"pitch_side": -0.3,
+				"roll_side": -1.25
+			},
+			"phase": "dive"
+		},
+		{
+			"name": "slide",
+			"fwd": "dive_recover_slide_fwd",
+			"side": "dive_recover_slide_side",
+			"hold_ms": 0,
+			"root": {
+				"pitch_fwd": -1.4,
+				"pitch_back": 1.15,
+				"pitch_side": -0.36,
+				"roll_side": -1.3
+			},
+			"phase": "dive"
+		},
+		{
+			"name": "push",
+			"fwd": "dive_recover_push_fwd",
+			"side": "dive_recover_push_side",
+			"hold_ms": 0,
+			"phase": "recovery",
+			"root": {
+				"pitch_fwd": -1.15,
+				"pitch_back": 0.95,
+				"pitch_side": -0.38,
+				"roll_side": -0.9
+			}
+		},
+		{
+			"name": "gather",
+			"fwd": "dive_recover_gather_fwd",
+			"side": "dive_recover_gather_side",
+			"hold_ms": 0,
+			"root": {
+				"pitch_fwd": -0.95,
+				"pitch_back": 0.7,
+				"pitch_side": -0.4,
+				"roll_side": -0.6
+			},
+			"phase": "recovery"
+		},
+		{
+			"name": "rise",
+			"fwd": "dive_recover_rise",
+			"side": "dive_recover_rise",
+			"hold_ms": 0,
+			"root": {
+				"pitch_fwd": -0.28,
+				"pitch_back": 0.18,
+				"pitch_side": -0.1,
+				"roll_side": -0.12
+			},
+			"phase": "recovery"
+		},
+		{
+			"name": "stand",
+			"fwd": "planted_receive",
+			"side": "planted_receive",
+			"hold_ms": 0,
+			"root": {
+				"pitch_fwd": 0.0,
+				"pitch_back": 0.0,
+				"pitch_side": 0.0,
+				"roll_side": 0.0
+			},
+			"phase": "recovery"
+		}
+	],
+	"phases": {
+		"dive": "dive_floor",
+		"recovery": "dive_recover"
+	}
+}
