@@ -16,6 +16,7 @@ func run() -> void:
 	lab.aim = lab.player.position + Vector3(0, 0, -9)
 	lab.motion.approach_direction = Vector3.BACK
 	lab.motion.approach_action = 0
+	lab.motion.approach_bound = true
 	lab.selected = 0
 	lab.motion.jumped = false
 	var yaw_at := func(charge: float) -> float:

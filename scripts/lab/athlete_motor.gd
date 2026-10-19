@@ -12,6 +12,9 @@ const QUICK_STEP_COOLDOWN_EXPLORE := 5.0
 const QUICK_STEP_COOLDOWN_RALLY := 8.0
 const DOUBLE_TAP_WINDOW := 0.28
 const QUICK_STEP_TIME := 0.18
+const SPLIT_HEIGHT := 0.065
+const SPLIT_SPEED := 0.55
+const RECEIVE_ACCELERATION := 1.15
 
 var lab: LabSession
 var attack_energy_conversion := true
@@ -76,12 +79,24 @@ func tick(dt: float, motion_scale: float) -> void:
 	if contact_locked:
 		lab.player.velocity.x = 0.0
 		lab.player.velocity.z = 0.0
-	elif generic_jump and jump_charge >= 0 and not jumped:
-		jump_charge = minf(1.0, jump_charge + dt / 0.8)
+	elif (generic_jump or approach_action in [1,3]) and jump_charge >= 0 and not jumped:
+		jump_charge = minf(1.0, jump_charge + dt * (1.0 if generic_jump else lab.athlete.explosiveness_rate()) / 0.8)
 		approach_direction = move
-		approach_phase_name = "TRAVEL JUMP / CHARGING"
-		lab.player.velocity.x = move_toward(lab.player.velocity.x, desired.x * 0.45, dt * acceleration)
-		lab.player.velocity.z = move_toward(lab.player.velocity.z, desired.z * 0.45, dt * acceleration)
+		approach_phase_name = "TRAVEL JUMP / CHARGING" if generic_jump else ("JUMP SET / LOADING" if approach_action == 1 else "BLOCK JUMP / LOADING")
+		lab.player.velocity.x = move_toward(lab.player.velocity.x, desired.x * (0.45 if generic_jump else 0.85), dt * acceleration)
+		lab.player.velocity.z = move_toward(lab.player.velocity.z, desired.z * (0.45 if generic_jump else 0.85), dt * acceleration)
+	elif jump_charge >= 0 and not jumped and approach_action == 0:
+		jump_charge = minf(1.0, jump_charge + dt * lab.athlete.explosiveness_rate() / Approach.DURATION)
+		approach_phase_name = "RECEIVE / SPLIT STEP" if approach_bound else "RECEIVE / MOVE · RELEASE TO DIVE"
+		if approach_bound:
+			lab.player.velocity.y -= jump_gravity * dt
+		else:
+			approach_direction = move
+			var receive_acceleration := acceleration * RECEIVE_ACCELERATION * lab.athlete.stride_speed_rate()
+			lab.player.velocity.x = move_toward(lab.player.velocity.x,desired.x,dt*receive_acceleration)
+			lab.player.velocity.z = move_toward(lab.player.velocity.z,desired.z,dt*receive_acceleration)
+			if not lab.player.is_on_floor():
+				lab.player.velocity.y -= jump_gravity * dt
 	elif jump_charge >= 0 and not jumped:
 		jump_charge = minf(1.0, jump_charge + dt * lab.athlete.explosiveness_rate() / Approach.DURATION)
 		if move.length_squared() > 0.01 and not approach_bound:
@@ -152,7 +167,7 @@ func tick(dt: float, motion_scale: float) -> void:
 	lab.athlete.recover(dt, move.length() < 0.1 and lab.player.is_on_floor() and jump_charge < 0)
 	if jump_charge >= 0:
 		lab.athlete.spend(dt * 3.0)
-		if jump_charge >= (1.0 if generic_jump else Approach.LAUNCH_START):
+		if (generic_jump or approach_action != 0) and jump_charge >= (1.0 if generic_jump or approach_action in [1,3] else Approach.LAUNCH_START):
 			takeoff()
 	if lab.charging:
 		lab.charge = minf(1.0, lab.charge + dt / 0.85)
@@ -242,7 +257,23 @@ func begin_approach() -> void:
 	approach_release_pending = false
 	var input_direction := Vector3(float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A)), 0, float(Input.is_physical_key_pressed(KEY_S)) - float(Input.is_physical_key_pressed(KEY_W)))
 	approach_direction = lab.camera_rig.movement_direction(input_direction)
-	approach_phase_name = Approach.STEP_NAMES[0]
+	approach_phase_name = Approach.STEP_NAMES[0] if approach_action == 2 else ("RECEIVE / SPLIT STEP" if approach_action == 0 else "DIRECT JUMP / LOADING")
+	if approach_action == 0 and lab.player.is_on_floor():
+		approach_bound = true
+		approach_bound_started = true
+		lab.player.velocity = approach_direction * lab.athlete.speed() * SPLIT_SPEED + Vector3.UP * sqrt(2.0*GRAVITY*pow(lab.athlete.explosiveness_rate(),2)*SPLIT_HEIGHT)
+		lab.athlete.spend(1.5)
+
+func cancel_receive_preparation() -> void:
+	if jumped or jump_charge < 0 or approach_action != 0:
+		return
+	jump_charge = -1.0
+	approach_action = -1
+	approach_release_pending = false
+	approach_phase_name = ""
+	# Let an already airborne split step land normally, without turning it into a dive.
+	lab.player.velocity.x = 0.0
+	lab.player.velocity.z = 0.0
 
 func takeoff() -> void:
 	if generic_jump:
@@ -251,7 +282,7 @@ func takeoff() -> void:
 	var action := approach_action if approach_action >= 0 else (lab.locked_action if lab.armed else lab.selected)
 	if not lab.player.is_on_floor() and not (approach_bound and action == 0):
 		if approach_bound:
-			# A Set/Block/Spike release during the bound buffers its plant.
+			# An Attack release during its bound buffers the plant.
 			approach_release_pending = true
 			approach_release_progress = jump_charge
 			return
@@ -264,7 +295,7 @@ func takeoff() -> void:
 	var progress := clampf(jump_charge, 0, 1)
 	airborne_action = approach_action if approach_action >= 0 else (lab.locked_action if lab.armed else lab.selected)
 	var base_jump := lab.athlete.leap(1.0, 1.0)
-	var jump_factor := Approach.jump_factor(airborne_action, progress)
+	var jump_factor := lerpf(0.60,0.88,progress) if airborne_action in [1,3] else Approach.jump_factor(airborne_action, progress)
 	var run_quality := clampf(approach_distance / (lab.athlete.stride() * 2.0), 0.0, 1.0)
 	if airborne_action == 2:
 		jump_factor = lerpf(0.60, jump_factor, run_quality)
@@ -312,9 +343,16 @@ func takeoff() -> void:
 		lab.animation.spike_contacted = false
 		lab.animation.spike_swing_yaw = 0.0
 	else:
-		# Jump Set and Block Jump retain their existing lateral carry.
-		lab.player.velocity.x *= 0.38
-		lab.player.velocity.z *= 0.38
+		# Release input controls carry; these jumps never use the attack plant.
+		var input_direction := Vector3(float(Input.is_physical_key_pressed(KEY_D))-float(Input.is_physical_key_pressed(KEY_A)),0,float(Input.is_physical_key_pressed(KEY_S))-float(Input.is_physical_key_pressed(KEY_W)))
+		var direction := lab.camera_rig.movement_direction(input_direction)
+		var retention := 0.85 if direction.length_squared() > 0.01 else 0.15
+		var carry := Vector3(lab.player.velocity.x,0,lab.player.velocity.z)*retention
+		if direction.length_squared() > 0.01:
+			var flight_time := lab.athlete.jump_flight_time(last_jump_height,GRAVITY)
+			carry += direction * lerpf(1.5,5.5,progress)/flight_time * 0.25
+		lab.player.velocity.x = carry.x
+		lab.player.velocity.z = carry.z
 		if airborne_action == 1:
 			lab.animation.set_flight_time = 2.0 * lab.player.velocity.y / GRAVITY
 	# Explosiveness changes ascent time without changing the resolved jump height.

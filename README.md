@@ -121,3 +121,5 @@ existing rosters remain accessible. The title art uses Volley World: Battle Line
 Start with [architecture and change guide](docs/architecture.md). Current docs are
 indexed in [docs/README.md](docs/README.md). Older handoffs are design history and
 may describe superseded mechanics; they are not runtime specifications.
+
+[Action-specific jump controls and tuning](docs/action-jumps.md) describe Receive split steps, direct Set/Block jumps, and the retained Attack approach.

@@ -2,8 +2,9 @@ extends RefCounted
 ## One vocabulary for runtime effects, editor units and ordered contact evidence.
 const STAGES := ["geometry", "timing", "potency", "handling", "pressure_control", "redirection", "intent_transfer", "consequences"]
 const LABELS := ["Contact Geometry", "Contact Timing", "Action Potency", "Incoming Handling", "Pressure Control", "Redirection", "Intent Transfer", "Contact Consequences"]
-const EFFECT_KEYS := ["spike_velocity", "serve_velocity", "platform_quality", "charge_tolerance", "flow_attack_velocity", "second_wind", "revenge_jump_power", "revenge_spike_velocity", "back_attack_velocity", "jump_stamina_threshold", "recovery", "stamina_recovery", "exertion_efficiency", "receive_control", "receive_absorption", "receive_redirection"]
+const EFFECT_KEYS := ["stride_speed", "spike_velocity", "serve_velocity", "platform_quality", "charge_tolerance", "flow_attack_velocity", "second_wind", "revenge_jump_power", "revenge_spike_velocity", "back_attack_velocity", "jump_stamina_threshold", "recovery", "stamina_recovery", "exertion_efficiency", "receive_control", "receive_absorption", "receive_redirection"]
 const EFFECTS := {
+	"stride_speed": ["Stride Speed", "%", "consequences", [], "Increases movement acceleration after the Receive split step; reserved for a future trait."],
 	"spike_velocity": ["Spike Velocity", " pp", "potency", [2], "Adds effective attack charge after Swing Power."],
 	"serve_velocity": ["Serve Velocity", " pp", "potency", [4], "Adds effective serve charge."],
 	"platform_quality": ["Platform Quality", " pts", "geometry", [0], "Improves receiving zone overlap; never changes matching or outer reach."],

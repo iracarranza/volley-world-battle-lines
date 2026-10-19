@@ -300,6 +300,8 @@ func ground_contact_locked() -> bool:
 func _confirm_action(window: float = -1.0) -> void:
 	if _check_bench():
 		return
+	if locked_action == 0:
+		motion.cancel_receive_preparation()
 	# The click is what starts the strike. Until then the spiker only loads.
 	if motion.jumped and motion.airborne_action == 2 and locked_action == 2 and animation.spike_swing_time < 0.0:
 		animation.spike_swing_time = 0.0
@@ -974,7 +976,7 @@ func _update_preview(draw_trajectory: bool = true) -> void:
 	var approach_points: Array[Vector3] = []
 	for marker in approach_footprints:
 		marker.hide()
-	if motion.jump_charge >= 0 and not motion.generic_jump and motion.approach_direction.length_squared() > 0.01:
+	if motion.jump_charge >= 0 and not motion.generic_jump and motion.approach_action == 2 and motion.approach_direction.length_squared() > 0.01:
 		var ground := Vector3(player.position.x, 0.06, player.position.z)
 		approach_points.append(ground)
 		for step in range(Approach.step_index(motion.jump_charge), 4):

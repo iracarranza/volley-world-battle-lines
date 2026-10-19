@@ -78,11 +78,12 @@ func update() -> void:
 	lab.body.rotation.y += dive_applied_yaw
 	pivot_dive_turn()
 	var speed := Vector2(lab.player.velocity.x, lab.player.velocity.z).length()
-	var receive_ready := not lab.motion.jumped and lab.motion.jump_charge < 0 and ((lab.armed and lab.locked_action == 0) or (lab.charging and lab.selected == 0))
+	var receive_mobile := lab.motion.approach_action == 0 and lab.motion.jump_charge >= 0 and not lab.motion.approach_bound
+	var receive_ready := not lab.motion.jumped and (lab.motion.jump_charge < 0 or receive_mobile) and ((lab.armed and lab.locked_action == 0) or (lab.charging and lab.selected == 0))
 	var travel_heading := wrapf(atan2(-lab.player.velocity.x, -lab.player.velocity.z) - lab.camera_rig.facing_yaw, -PI, PI) if speed > 0.1 else 0.0
 	var follow_receive := receive_pose_remaining > 0 and not lab.motion.jumped
 	var receive_weight := 1.0 if receive_ready else smoothstep(0, 0.18, receive_pose_remaining)
-	var gait := Pose.base(lab.body, lab.motion.gait_cycle, speed if not lab.motion.jumped and lab.motion.jump_charge < 0 else 0.0, travel_heading, receive_ready or follow_receive, receive_weight)
+	var gait := Pose.base(lab.body, lab.motion.gait_cycle, speed if not lab.motion.jumped and (lab.motion.jump_charge < 0 or receive_mobile) else 0.0, travel_heading, receive_ready or follow_receive, receive_weight)
 	lab.body.get_node("Torso").rotation.y = 0
 	lab.body.get_node("Head").rotation.y = 0
 	for i in range(2):
@@ -101,12 +102,12 @@ func update() -> void:
 		lab.arms[dominant].rotation.z = 0.35 if lab.dominant_hand == "Left" else -0.35
 		lab.arms[1 - dominant].rotation.x = -1.3
 	lab.body.position.y = 0.0
-	if lab.motion.generic_jump and lab.motion.jump_charge >= 0:
+	if (lab.motion.generic_jump or lab.motion.approach_action in [1,3]) and lab.motion.jump_charge >= 0:
 		lab.body.position.y = -0.22 * lab.motion.jump_charge
 		for leg in lab.legs:
 			leg.rotation.x = 0.35 * lab.motion.jump_charge
 			leg.get_node("Knee").rotation.x = -0.8 * lab.motion.jump_charge
-	elif lab.motion.jump_charge >= 0 and lab.motion.approach_action != 0:
+	elif lab.motion.jump_charge >= 0 and lab.motion.approach_action == 2:
 		# A dive charges as its crouching step (DiveStage prep), not as a jump approach.
 		var step := Approach.step_index(lab.motion.jump_charge)
 		var phase := Approach.step_phase(lab.motion.jump_charge)
@@ -145,14 +146,19 @@ func update() -> void:
 			receive_posture = ReceivePlatform.posture(shape, receive_pose_contact, speed)
 		ReceivePose.apply(lab.body, receive_posture, receive_pose_contact, 1.0 if receive_ready or lab.motion.jumped else receive_weight)
 	var diving_now := lab.motion.jumped and lab.motion.airborne_action == 0
-	var preparing_dive := not lab.motion.jumped and lab.motion.jump_charge >= 0 and lab.motion.approach_action == 0
-	if (diving_now or preparing_dive) and roll_lock <= 0:
+	var preparing_dive := not lab.motion.jumped and lab.motion.jump_charge >= 0 and lab.motion.approach_action == 0 and lab.motion.approach_bound
+	if (diving_now or (preparing_dive and lab.motion.approach_bound)) and roll_lock <= 0:
 		var dive_dir := dive_world_direction if diving_now else (lab.motion.approach_direction if lab.motion.approach_direction.length_squared() > 0.01 else Vector3(-sin(lab.camera_rig.facing_yaw), 0, -cos(lab.camera_rig.facing_yaw)))
 		var dive_phase := DiveStage.phase_for(lab.motion.jump_charge, dive_air_time, dive_flight_time, diving_now)
 		var dive_stage := DiveStage.resolve(dive_phase, DiveStage.local_direction(dive_dir, lab.body.rotation.y), dive_pivot_foot())
 		dive_stage["turn_spine"] = dive_turn_spine
 		dive_stage["turn_neck"] = dive_turn_neck
 		dive_applied_yaw += DiveStage.apply(lab.body, dive_stage)
+		if preparing_dive:
+			# A compact version of the attack's opening bound, before mobile receiving.
+			lab.body.position.y = 0.0
+			lab.legs[Approach.LEAD_FOOT].rotation.x = -0.45
+			lab.legs[1-Approach.LEAD_FOOT].rotation.x = 0.30
 	if lab.motion.jumped and lab.motion.airborne_action == 2 and roll_lock <= 0.0:
 		var swing_yaw := spike_swing_yaw
 		if not spike_contacted and lab.ball_active:
@@ -251,7 +257,7 @@ func dive_input_locked() -> bool:
 # How far the hips have turned toward a backward dive at this moment, in radians. The upper body turns ahead of
 # them (dive_turn_spine, dive_turn_neck in degrees), so the torso leads and the hips and feet follow.
 func dive_turn_offset() -> float:
-	var prepping := not lab.motion.jumped and lab.motion.jump_charge >= 0.0 and lab.motion.approach_action == 0
+	var prepping := not lab.motion.jumped and lab.motion.jump_charge >= 0.0 and lab.motion.approach_action == 0 and lab.motion.approach_bound
 	var airborne := lab.motion.jumped and lab.motion.airborne_action == 0
 	dive_turn_spine = 0.0
 	dive_turn_neck = 0.0
