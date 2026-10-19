@@ -32,6 +32,7 @@ var camera_badge: Label
 var ball_edge_indicator: Label
 var facing_compass: Control
 var help_panel: PanelContainer
+var moc_menu: RefCounted
 var moc_button: Button
 var debug_button: Button
 
@@ -303,8 +304,10 @@ func build() -> void:
 	debug_button = button("BOXES: ON [K]", toggle_debug_volumes)
 	toolbar.add_child(debug_button)
 	moc_button = button("MoC: CURRENT [O]", toggle_moc_mode)
-	moc_button.tooltip_text = "Compare current world slowdown with a short contact hold followed by full-speed flight."
+	moc_button.tooltip_text = "Cycle Current, Tuned and Off; open MoC Settings to tune local slowdown."
 	toolbar.add_child(moc_button)
+	moc_menu = preload("res://scripts/lab/moc_menu.gd").new(self)
+	toolbar.add_child(button("MoC SETTINGS", moc_menu.toggle))
 	toolbar.add_child(button("HIDE HUD [F8]", func(): ui.visible = false))
 	facing_compass = preload("res://scripts/facing_indicator.gd").new()
 	facing_compass.lab = lab
@@ -327,6 +330,7 @@ func build() -> void:
 func toggle_moc_mode() -> void:
 	lab.moc.set_mode((lab.moc.mode + 1) % 3)
 	moc_button.text = ["MoC: CURRENT [O]", "MoC: TUNED [O]", "MoC: OFF [O]"][lab.moc.mode]
+	moc_menu.sync_mode()
 	lab._message("MoC / " + lab.moc.mode_name())
 
 func toggle_debug_volumes() -> void:

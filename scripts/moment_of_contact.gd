@@ -19,6 +19,10 @@ var enabled := true:
 		enabled = value
 		if not value:
 			clear()
+var tuned_speed := TUNED_SLOW_SCALE
+var tuned_duration := TUNED_DURATION
+var affect_ball := true
+var affect_actor := true
 var acting_actor := ""
 var active := false
 var last_event: Dictionary = {}
@@ -62,19 +66,27 @@ static func tuned_parts(event: Dictionary) -> Dictionary:
 	var duration := TUNED_DURATION if int(event.get("action", -1)) == 2 else 0.0
 	return {"contact":duration,"velocity":0.0,"sweet":0.0,"extension":0.0,"total":duration}
 
-func simulation_scale() -> float:
+func _effect_scale() -> float:
 	if active and _now() >= _end_usec:
 		_expire(_now())
-	return (TUNED_SLOW_SCALE if mode == Mode.TUNED_SLOWDOWN else SLOW_SCALE) if active else 1.0
+	return (tuned_speed if mode == Mode.TUNED_SLOWDOWN else SLOW_SCALE) if active else 1.0
+
+func simulation_scale() -> float:
+	var scale := _effect_scale()
+	return scale if affect_ball else 1.0
 
 func actor_scale(actor_id: String) -> float:
-	return simulation_scale() if actor_id == acting_actor else 1.0
+	var scale := _effect_scale()
+	return scale if affect_actor and actor_id == acting_actor else 1.0
 
 func begin(event: Dictionary) -> void:
 	var incoming := Vector3(event.get("incoming_velocity", Vector3.ZERO))
 	var outgoing := Vector3(event.get("outgoing_velocity", Vector3.ZERO))
 	var legacy_duration := duration_for(int(event.action), incoming, outgoing, bool(event.get("sweet", false)))
 	var parts := tuned_parts(event)
+	if int(event.action) == 2:
+		parts.contact = tuned_duration
+		parts.total = tuned_duration
 	var duration: float = 0.0 if mode == Mode.NONE else (legacy_duration if mode == Mode.CURRENT_SLOWDOWN else parts.total)
 	if not bool(event.get("physical_hit", false)):
 		return
@@ -110,7 +122,7 @@ func begin(event: Dictionary) -> void:
 		_expire(now)
 	if mode == Mode.TUNED_SLOWDOWN:
 		_chain_start_usec = now
-		_end_usec = now + int(TUNED_DURATION * 1000000)
+		_end_usec = now + int(tuned_duration * 1000000)
 		acting_actor = str(event.get("actor", "player"))
 		active = true
 		return

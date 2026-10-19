@@ -6,6 +6,12 @@ Only ball integration and the acting athlete use the local scale. Other athletes
 drill timers, camera, UI and VFX remain at normal speed. `Engine.time_scale` is
 never changed. Input is not buffered. No contact holds the ball or freezes poses.
 
+The toolbar’s **MoC SETTINGS** menu selects Current, Tuned or Off, tunes Tuned
+speed (1–100%) and duration (0–1000 ms), and independently toggles slowdown
+for the ball and acting athlete in either enabled mode. Defaults are 10% / 200 ms
+for Tuned, with both targets enabled. Tuning changes clear an active effect;
+settings survive lab resets within the session.
+
 Sets emit contact events and visual impacts but have zero MoC and clear any prior
 slowdown. Off also retains events/VFX without slowdown.
 
