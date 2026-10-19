@@ -25,8 +25,8 @@ static func resolve(request: RefCounted, assessment: Dictionary, controlled: Vec
 	var over := str(match_result.get("status", "")) == "overcharged"
 	# A short confirmation age means late preparation; an old input means early.
 	var age: float = request.confirmation_age
-	var late := 1.0 - smoothstep(0.0, Execution.SWEET_DELAY, age)
-	var early := smoothstep(Execution.SWEET_DELAY + Execution.RECEIVE_SWEET_SECONDS, Execution.CONTACT_SECONDS, age)
+	var late := 1.0 - smoothstep(0.0, Execution.sweet_start(0), age)
+	var early := smoothstep(Execution.sweet_end(0), Execution.CONTACT_SECONDS, age)
 	var impact := clampf(incoming.length() / REFERENCE_IMPACT_SPEED, 0, 1.5)
 	var control_bonus := clampf(request.athlete.trait_effect("receive_control") / 100.0, 0, MAX_TRAIT_FACTOR)
 	var absorption := clampf(request.athlete.trait_effect("receive_absorption") / 100.0, 0, MAX_TRAIT_FACTOR)

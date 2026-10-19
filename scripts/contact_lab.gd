@@ -333,8 +333,8 @@ func _update_hurtbox_visual(dt: float) -> void:
 		hurtbox_root.rotation.y = _contact_yaw()
 		hurtbox_root.position = player.position + (definition.center as Vector3).rotated(Vector3.UP, _contact_yaw())
 	var age := confirm_duration - maxf(confirm_window, 0)
-	sweet_visual_expired = age > Execution.SWEET_DELAY + Execution.sweet_seconds(hurtbox_action)
-	var phase := "sweet" if Execution.sweet_active(hurtbox_action, age) else ("windup" if age < Execution.SWEET_DELAY else "rescue")
+	sweet_visual_expired = age > Execution.sweet_end(hurtbox_action)
+	var phase := "sweet" if Execution.sweet_active(hurtbox_action, age) else ("windup" if age < Execution.sweet_start(hurtbox_action) else "rescue")
 	if phase != sweet_visual_phase:
 		for child in hurtbox_view.active.get_children():
 			if child is MeshInstance3D:

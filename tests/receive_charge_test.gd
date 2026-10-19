@@ -29,15 +29,18 @@ func run() -> void:
 	check(not Charge.match_charge(Charge.shot("set", 0.6, "test"), 0).required, "Scope is serves and attacks")
 	var spatial := {"hit": true, "quality": 1.0, "zone": "SWEET SPOT"}
 	for action in range(4):
-		check(not Execution.assess(spatial, 0.199, false, action).sweet, "Sweetspot delayed")
-		check(Execution.assess(spatial, 0.2, false, action).sweet, "Sweetspot starts at 200ms")
-		check(Execution.assess(spatial, 0.2 + Execution.sweet_seconds(action), false, action).sweet, "Window includes end")
-		check(not Execution.assess(spatial, 0.201 + Execution.sweet_seconds(action), false, action).sweet, "Window expires")
+		var start := 0.12 if action == 0 else 0.155
+		var end := 0.44 if action == 0 else 0.335
+		check(is_equal_approx(Execution.sweet_start(action), start) and is_equal_approx(Execution.sweet_end(action), end), "Doubled window expands equally before and after its former bounds")
+		check(not Execution.assess(spatial, start - 0.001, false, action).sweet, "Windup precedes new sweet start")
+		check(Execution.assess(spatial, start, false, action).sweet, "New start is inclusive")
+		check(Execution.assess(spatial, end, false, action).sweet, "New end is inclusive")
+		check(not Execution.assess(spatial, end + 0.001, false, action).sweet, "Precision ends after new boundary")
 	var clean := Execution.assess(spatial, 0.22, false, 0)
 	var under := Charge.assess(clean, shot, 0.4)
 	var over := Charge.assess(clean, shot, 0.9)
 	check(not under.sweet and not over.sweet, "Timing cannot erase charge mismatch")
-	check(not Charge.assess(Execution.assess(spatial, 0.4, false, 0), shot, 0.65).sweet, "Match cannot upgrade late timing")
+	check(not Charge.assess(Execution.assess(spatial, 0.46, false, 0), shot, 0.65).sweet, "Match cannot upgrade late timing")
 	var controlled := Vector3(0, 7, -8)
 	var incoming := Vector3(0, -3, 20)
 	check(flight(controlled, incoming, Charge.assess(clean, shot, 0.65)) == controlled, "Match preserves controlled pass")

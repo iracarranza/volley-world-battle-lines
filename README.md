@@ -65,8 +65,8 @@ movement input remains available for directional influence.
 All actors share contact geometry, timing, charge matching, directional influence
 and execution rules. Geometry differs by action: a forward receiving platform,
 an overhead set sector and central column, a dominant-arm spike sector, and two
-block columns. Sweet timing starts 0.2 s after confirmation and lasts 0.16 s for
-Receive, 0.09 s for the other contacts. Later contacts can remain ordinary or rescue
+block columns. Sweet timing spans 0.12–0.44 s after confirmation for Receive (0.32 s),
+and 0.155–0.335 s for Set, Attack and Block (0.18 s). Later contacts can remain ordinary or rescue
 contacts according to their timing and placement.
 
 Receive Conditioning now resolves low, glancing and uncontrolled contacts through

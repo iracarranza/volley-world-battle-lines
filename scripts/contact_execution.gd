@@ -1,17 +1,27 @@
 extends RefCounted
 
-# Confirmation has a 200 ms windup, a short precision window, then contact forgiveness.
+# Precision windows are doubled around their original midpoints.
+# The nominal 200 ms preparation lead remains the bot/preview reference.
 const SWEET_DELAY := 0.20
-const SWEET_SECONDS := 0.09
+const SWEET_SECONDS := 0.18
+const SWEET_CENTER := 0.245
 const CONTACT_SECONDS := 0.55
 const SPIKE_RESCUE_SECONDS := 0.42
-const RECEIVE_SWEET_SECONDS := 0.16
+const RECEIVE_SWEET_SECONDS := 0.32
+const RECEIVE_SWEET_CENTER := 0.28
 
 static func sweet_seconds(action: int) -> float:
 	return RECEIVE_SWEET_SECONDS if action == 0 else SWEET_SECONDS
 
+static func sweet_start(action: int) -> float:
+	var midpoint := RECEIVE_SWEET_CENTER if action == 0 else SWEET_CENTER
+	return midpoint - sweet_seconds(action) * 0.5
+
+static func sweet_end(action: int) -> float:
+	return sweet_start(action) + sweet_seconds(action)
+
 static func sweet_active(action: int, age: float) -> bool:
-	return age >= SWEET_DELAY - 0.000001 and age <= SWEET_DELAY + sweet_seconds(action) + 0.000001
+	return age >= sweet_start(action) - 0.000001 and age <= sweet_end(action) + 0.000001
 
 static func assess(spatial: Dictionary, age: float, remembered: bool = false, action: int = -1) -> Dictionary:
 	var result := spatial.duplicate(true)
@@ -25,14 +35,14 @@ static func assess(spatial: Dictionary, age: float, remembered: bool = false, ac
 		var very_far := float(result.get("reach_ratio", 0)) >= 1.80 or float(result.get("depth_ratio", 0)) >= 0.95
 		result["rescue"] = remembered or age >= SPIKE_RESCUE_SECONDS or very_far
 		result["forgiving_spike"] = not sweet and not result.rescue
-		result["spike_power_factor"] = lerpf(1.0, 0.78, smoothstep(SWEET_DELAY + SWEET_SECONDS, SPIKE_RESCUE_SECONDS, age))
+		result["spike_power_factor"] = lerpf(1.0, 0.78, smoothstep(sweet_end(action), SPIKE_RESCUE_SECONDS, age))
 		if result.forgiving_spike:
 			if bool(result.get("rescue_only", false)):
 				var stretch := smoothstep(1.0, 1.80, float(result.get("reach_ratio", 1)))
 				result["strength"] = maxf(float(result.get("strength", 0.48)), lerpf(0.90, 0.68, stretch))
 			result["strength"] = minf(float(result.get("strength", 0.95)), 0.98)
-			if age > SWEET_DELAY + SWEET_SECONDS or bool(result.get("rescue_only", false)):
-				result["zone"] = "LATE SPIKE" if age > SWEET_DELAY + SWEET_SECONDS else "STRETCHED SPIKE"
+			if age > sweet_end(action) or bool(result.get("rescue_only", false)):
+				result["zone"] = "LATE SPIKE" if age > sweet_end(action) else "STRETCHED SPIKE"
 				result["quality"] = minf(float(result.get("quality", 0.7)), 0.80)
 	if not live:
 		result.merge({"hit": false, "quality": 0.0, "zone": "EXPIRED"}, true)

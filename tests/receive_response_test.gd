@@ -62,7 +62,7 @@ func run() -> void:
 	var left := resolve(sample(0.7, -0.75, 24, 0.1, 0.02))
 	var right := resolve(sample(0.7, 0.75, 24, 0.1, 0.02))
 	check(absf(left.velocity.x + right.velocity.x) < 0.0001 and absf(left.velocity.z - right.velocity.z) < 0.0001, "Mirrored intersections produce mirrored responses with the same seed")
-	var early := resolve(sample(0.6, 0.7, 24, 0.1, 0.52))
+	var early := resolve(sample(0.6, 0.7, 24, 0.1, 0.54))
 	var late := resolve(sample(0.6, 0.7, 24, 0.1, 0.02))
 	check(early.assessment.receive_response.early > 0.9 and late.assessment.receive_response.late > 0.9, "Preparation labels follow input lead rather than reversing early and late")
 	check(early.velocity.distance_to(late.velocity) > 0.2, "Early and late preparation have different mechanical failures")

@@ -34,7 +34,9 @@ hurtbox. Low contacts absorb strongly; upper contacts retain more tangential
 motion. Early preparation loses follow-through/cushioning away from the low-catch
 exception. Late preparation increases placement-sensitive normal/direction error.
 A short confirmation age is late preparation; an age beyond the sweet window is
-early preparation. The 200 ms sweet lead and existing sweet windows are unchanged.
+early preparation. The nominal bot/preview lead remains 200 ms. Sweet windows are doubled around
+their original midpoints: Receive 120–440 ms (320 ms total), and Set/Attack/Block
+155–335 ms (180 ms total). Early/late response curves follow these actual bounds.
 
 Variation is deterministic from the recorded response seed. It is bounded and
 biased by contact location and incoming pace. Mirrored contacts with the same

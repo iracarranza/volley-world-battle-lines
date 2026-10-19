@@ -72,7 +72,7 @@ func run() -> void:
 	check(Geometry.contains(set_shape, Vector3(0.2, lab.athlete.build.height * 0.78, 0)), "Shoulder-height sets connect")
 	check(Geometry.evaluate(set_shape, Vector3(0, lab.athlete.build.height * 0.78, 0)).zone != "SWEET SPOT", "Low set extension is not sweet")
 	for action in [0, 2]:
-		for age in [0.22, 0.46]:
+		for age in [Execution.sweet_start(action) + 0.001, Execution.sweet_end(action) - 0.001, 0.46]:
 			lab._reset()
 			lab.locked_action = action
 			lab.selected = action
@@ -86,7 +86,7 @@ func run() -> void:
 			lab._confirm_action()
 			lab.confirm_window = lab.confirm_duration - age
 			lab._update_hurtbox_visual(0)
-			check(lab.sweet_visual_expired == (age > Execution.SWEET_DELAY + Execution.sweet_seconds(action)), "Debug sweet state follows live window")
+			check(lab.sweet_visual_expired == (age > Execution.sweet_end(action)), "Debug sweet state follows live window")
 			lab._contact()
 			check(lab.last_contact_result.rescue == (not Execution.sweet_active(action, age) and (action != 2 or age >= Execution.SPIKE_RESCUE_SECONDS)), "Actual contact records temporal rescue")
 			if action == 0 and not Execution.sweet_active(0, age):

@@ -18,7 +18,7 @@ func run() -> void:
 		var output := Execution.velocity(2, Vector3(2, -3, -24) * float(assessment.strength), Vector3.ZERO, Vector3.FORWARD, assessment, 65)
 		check(output.length() <= previous_speed + 0.001, "Spike strength decreases gradually with timing")
 		previous_speed = output.length()
-		if age > 0.29 and age < 0.42:
+		if age > Execution.sweet_end(2) and age < 0.42:
 			check(not assessment.sweet and not assessment.rescue and output.length() > 17, "Moderate mistiming remains a driven spike")
 		if age >= 0.42:
 			check(assessment.rescue and output.length() < 5, "Very late contact becomes rescue push")

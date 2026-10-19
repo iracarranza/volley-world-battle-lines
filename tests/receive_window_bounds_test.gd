@@ -48,9 +48,9 @@ func run() -> void:
 	lab._update_hurtbox_visual(0)
 	var result: Dictionary = lab._contact_assessment(0)
 	check(result.sweet and not result.rescue and not lab.sweet_visual_expired, "Receive at 340 ms remains sweet with matching debug display")
-	lab.confirm_window = lab.confirm_duration - 0.38
-	check(lab._contact_assessment(0).rescue, "Receive becomes rescue after 360 ms")
-	check(Execution.assess({"hit": true, "zone": "SWEET SPOT", "quality": 1.0}, 0.34, false, 2).forgiving_spike, "Attack retains its 90 ms sweet window before forgiving contact")
+	lab.confirm_window = lab.confirm_duration - 0.45
+	check(lab._contact_assessment(0).rescue, "Receive becomes rescue after 440 ms")
+	check(Execution.assess({"hit": true, "zone": "SWEET SPOT", "quality": 1.0}, 0.34, false, 2).forgiving_spike, "Attack becomes forgiving after its widened 180 ms sweet window")
 	print("RECEIVE WINDOW / DRILL BOUNDS: %d / %d passed" % [checks - failures, checks])
 	lab.queue_free()
 	await process_frame
