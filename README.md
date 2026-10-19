@@ -88,7 +88,7 @@ entering a rally/Pepper while Exhausted benches them for 5 s. Flow rewards conta
 quality, clears on fatigue, holds for 14 s after contact, then decays exponentially.
 See [attribute runtime](docs/attribute-runtime.md) for implemented stat/trait effects.
 
-MoC is local **60% speed**, never a pause: only the ball and contacting athlete
+MoC uses local slowdown (**Current: 60%; Tuned: 15%**), never a pause: only the ball and contacting athlete
 slow down. Sets cancel existing MoC and launch at full speed. Off retains impact
 visuals. Tuned applies only to spikes, for 0.4 real seconds after contact; preparation
 runs at normal speed. [Current MoC tuning](docs/moc-comparison.md) describes duration and scope.

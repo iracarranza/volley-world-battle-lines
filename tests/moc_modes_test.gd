@@ -36,7 +36,7 @@ func run() -> void:
 	var point: Vector3 = lab.ball.position
 	clock.begin(event("hold",2))
 	clock._end_usec = Time.get_ticks_usec()+500000 # Keep deterministic assertions within one held interval.
-	check(clock.simulation_scale() > 0.0 and Engine.time_scale == 1.0 and clock.simulation_scale() == 0.60, "Tuned mode slows rather than pauses")
+	check(clock.simulation_scale() > 0.0 and Engine.time_scale == 1.0 and clock.simulation_scale() == 0.15, "Tuned mode slows rather than pauses")
 	var simulation_time: float = lab.elapsed
 	lab._physics_process(0.004)
 	lab._tick_ball(0.004)
@@ -109,7 +109,7 @@ func run() -> void:
 		if action != 2:
 			check(lab.ball.position != contact_point and not clock.active, "Actual Set launches without MoC")
 		else:
-			check(lab.ball.position != contact_point and Engine.time_scale == 1.0 and clock.simulation_scale() == 0.60, "Actual contact continues moving at 60% speed")
+			check(lab.ball.position != contact_point and Engine.time_scale == 1.0 and clock.simulation_scale() == 0.15, "Actual spike continues moving at 15% speed")
 		clock.clear()
 	lab._reset()
 	print("MOC MODES: %d / %d passed" % [checks-failures,checks])

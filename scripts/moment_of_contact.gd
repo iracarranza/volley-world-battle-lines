@@ -9,6 +9,7 @@ var mode := Mode.CURRENT_SLOWDOWN
 const TUNED_DURATION := 0.4
 const DURATION_EXTENSION := 0.100
 const SLOW_SCALE := 0.60
+const TUNED_SLOW_SCALE := 0.15
 const SWEET_BONUS := 0.040
 const CHAIN_BASE_LIMIT := 0.18
 const CHAIN_LIMIT := CHAIN_BASE_LIMIT + DURATION_EXTENSION
@@ -64,7 +65,7 @@ static func tuned_parts(event: Dictionary) -> Dictionary:
 func simulation_scale() -> float:
 	if active and _now() >= _end_usec:
 		_expire(_now())
-	return SLOW_SCALE if active else 1.0
+	return (TUNED_SLOW_SCALE if mode == Mode.TUNED_SLOWDOWN else SLOW_SCALE) if active else 1.0
 
 func actor_scale(actor_id: String) -> float:
 	return simulation_scale() if actor_id == acting_actor else 1.0

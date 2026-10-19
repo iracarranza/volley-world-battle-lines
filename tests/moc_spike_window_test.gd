@@ -12,10 +12,10 @@ func _initialize() -> void:
 	check(not clock.active,"Confirmation without physical contact does not start MoC")
 	spike.physical_hit = true
 	clock.begin(spike)
-	check(clock.actor_scale("player") == 0.6 and clock.simulation_scale() == 0.6 and clock.actor_scale("other") == 1 and Engine.time_scale == 1,"Only ball and acting athlete slow on contact")
+	check(clock.actor_scale("player") == 0.15 and clock.simulation_scale() == 0.15 and clock.actor_scale("other") == 1 and Engine.time_scale == 1,"Only ball and acting athlete slow on contact")
 	time.usec += 399999
 	clock.begin(spike)
-	check(clock.simulation_scale() == 0.6,"Duplicate contact does not interrupt the 400ms window")
+	check(clock.simulation_scale() == 0.15,"Duplicate contact does not interrupt the 400ms window")
 	time.usec += 1
 	check(clock.simulation_scale() == 1 and clock.actor_scale("player") == 1,"Exactly 400ms restores normal motion without extending for duplicate events")
 	for action in [0,1,3,4]:
