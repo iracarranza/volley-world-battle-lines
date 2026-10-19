@@ -1,7 +1,7 @@
 # Current Moment of Contact behavior
 
 `O` and the toolbar cycle Current Slowdown → Tuned Slowdown → Off. Reset preserves
-the selection; a new lab starts in Current. Current runs at 60% speed; Tuned runs at 15% speed.
+the selection; a new lab starts in Current. Current runs at 60% speed; Tuned runs at 10% speed.
 Only ball integration and the acting athlete use the local scale. Other athletes,
 drill timers, camera, UI and VFX remain at normal speed. `Engine.time_scale` is
 never changed. Input is not buffered. No contact holds the ball or freezes poses.
@@ -15,7 +15,7 @@ for a nonzero effect. A contact chain is capped at 280 ms, followed by 80 ms of
 normal-speed recovery. Exchanges below the impact threshold receive no effect.
 
 Tuned applies only to spikes (Attack contacts). Preparation remains at normal speed;
-actual physical contact starts a fixed 400 ms real-time window at 15% speed for
+actual physical contact starts a fixed 200 ms real-time window at 10% speed for
 both the outgoing ball and the acting athlete, including follow-through. There is
 no pause or global time change. A subsequent non-spike contact ends the effect
 immediately. A distinct spike restarts the window; duplicate events cannot extend

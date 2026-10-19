@@ -22,7 +22,7 @@ func run() -> void:
 	check(clock.mode == Clock.Mode.TUNED_SLOWDOWN and not clock.active and Engine.time_scale == 1 and lab.hud.moc_button.text.contains("TUNED"), "Toggle safely restores clock and selects new mode")
 	for action in range(5):
 		var parts := Clock.tuned_parts(event("parts",action))
-		check(is_equal_approx(parts.total,0.4 if action == 2 else 0.0), "Only spikes get a fixed 400ms observation window")
+		check(is_equal_approx(parts.total,0.2 if action == 2 else 0.0), "Only spikes get a fixed 200ms observation window")
 		for sweet in [false,true]:
 			check(is_equal_approx(Clock.tuned_parts(event("quality",action,sweet,true)).total,parts.total), "Timing quality does not change the observation window")
 	var soft := event("soft",1,false)
@@ -36,7 +36,7 @@ func run() -> void:
 	var point: Vector3 = lab.ball.position
 	clock.begin(event("hold",2))
 	clock._end_usec = Time.get_ticks_usec()+500000 # Keep deterministic assertions within one held interval.
-	check(clock.simulation_scale() > 0.0 and Engine.time_scale == 1.0 and clock.simulation_scale() == 0.15, "Tuned mode slows rather than pauses")
+	check(clock.simulation_scale() > 0.0 and Engine.time_scale == 1.0 and clock.simulation_scale() == 0.10, "Tuned mode slows rather than pauses")
 	var simulation_time: float = lab.elapsed
 	lab._physics_process(0.004)
 	lab._tick_ball(0.004)
@@ -109,7 +109,7 @@ func run() -> void:
 		if action != 2:
 			check(lab.ball.position != contact_point and not clock.active, "Actual Set launches without MoC")
 		else:
-			check(lab.ball.position != contact_point and Engine.time_scale == 1.0 and clock.simulation_scale() == 0.15, "Actual spike continues moving at 15% speed")
+			check(lab.ball.position != contact_point and Engine.time_scale == 1.0 and clock.simulation_scale() == 0.10, "Actual spike continues moving at 10% speed")
 		clock.clear()
 	lab._reset()
 	print("MOC MODES: %d / %d passed" % [checks-failures,checks])

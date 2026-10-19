@@ -8,7 +8,7 @@ func run() -> void:
 	for mode in [Clock.Mode.CURRENT_SLOWDOWN, Clock.Mode.TUNED_SLOWDOWN]:
 		clock.set_mode(mode)
 		clock.begin({"action":2,"physical_hit":true,"sweet":true,"incoming_velocity":Vector3(0,-12,0),"outgoing_velocity":Vector3(0,0,-24)})
-		check(clock.active and Engine.time_scale == 1.0 and clock.simulation_scale() == (0.15 if mode == Clock.Mode.TUNED_SLOWDOWN else 0.60),"Each mode uses its requested local speed")
+		check(clock.active and Engine.time_scale == 1.0 and clock.simulation_scale() == (0.10 if mode == Clock.Mode.TUNED_SLOWDOWN else 0.60),"Each mode uses its requested local speed")
 		check(clock.simulation_scale() > 0.0,"Neither mode freezes physics, poses, or inputs")
 		var simulated := 0.0
 		var start := Time.get_ticks_usec()
@@ -44,7 +44,7 @@ func run() -> void:
 				lab._physics_process(1.0/60)
 				check(lab.ball.position != prior,"Ball advances on every contact frame, action %d mode %d" % [action,mode])
 			var slowed := action != 1 if mode == Clock.Mode.CURRENT_SLOWDOWN else action == 2
-			var expected := (0.15 if mode == Clock.Mode.TUNED_SLOWDOWN else 0.6) if slowed else 1.0
+			var expected := (0.10 if mode == Clock.Mode.TUNED_SLOWDOWN else 0.6) if slowed else 1.0
 			check(is_equal_approx(lab.elapsed-before_time,4.0/60),"World clock stays at normal speed")
 			check(is_equal_approx(before.z-lab.ball.position.z,10*4.0/60*expected),"Outgoing ball travels continuously at exact requested speed")
 			check(lab.moc.actor_scale("unrelated_bot") == 1.0,"Other athletes never slow")

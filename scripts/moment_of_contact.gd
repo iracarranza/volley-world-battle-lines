@@ -6,10 +6,10 @@ signal impact_ended
 # Contact-triggered local simulation clocks; preparation always runs at full speed.
 enum Mode { CURRENT_SLOWDOWN, TUNED_SLOWDOWN, NONE }
 var mode := Mode.CURRENT_SLOWDOWN
-const TUNED_DURATION := 0.4
+const TUNED_DURATION := 0.2
 const DURATION_EXTENSION := 0.100
 const SLOW_SCALE := 0.60
-const TUNED_SLOW_SCALE := 0.15
+const TUNED_SLOW_SCALE := 0.10
 const SWEET_BONUS := 0.040
 const CHAIN_BASE_LIMIT := 0.18
 const CHAIN_LIMIT := CHAIN_BASE_LIMIT + DURATION_EXTENSION

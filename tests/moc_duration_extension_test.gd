@@ -21,9 +21,9 @@ func run() -> void:
 			for sweet in [false,true]:
 				clock.clear()
 				var e := event("duration-%d-%d-%s" % [mode,action,sweet],action,sweet)
-				var expected := (0.0 if action == 1 else (0.28 if sweet else 0.24)) if mode == Clock.Mode.CURRENT_SLOWDOWN else (0.4 if action == 2 else 0.0)
+				var expected := (0.0 if action == 1 else (0.28 if sweet else 0.24)) if mode == Clock.Mode.CURRENT_SLOWDOWN else (0.2 if action == 2 else 0.0)
 				var measured: float = Clock.duration_for(action,e.incoming_velocity,e.outgoing_velocity,sweet) if mode == Clock.Mode.CURRENT_SLOWDOWN else Clock.tuned_parts(e).total
-				check(absf(measured-expected) < 0.000001,"Current durations are preserved; Tuned is spike-only 400ms")
+				check(absf(measured-expected) < 0.000001,"Current durations are preserved; Tuned is spike-only 200ms")
 				var visual_count: int = lab.impact_visual.emitted
 				clock.begin(e)
 				check(absf(clock.last_event.duration_seconds-expected) < 0.000001,"Runtime event exposes expected duration")
@@ -76,7 +76,7 @@ func run() -> void:
 		bots._plan(1,lab.ball.position,0.01)
 		check(bots.tick(0.02) and clock.last_event.action == 1 and not clock.active,"Actual bot Set also has no MoC")
 		bots.settings[1].enabled = false
-	check(Clock.tuned_parts({"action":2,"physical_hit":true,"incoming_velocity":Vector3.ZERO,"outgoing_velocity":Vector3.UP}).total == 0.4,"Even soft spikes use the full observation window")
+	check(Clock.tuned_parts({"action":2,"physical_hit":true,"incoming_velocity":Vector3.ZERO,"outgoing_velocity":Vector3.UP}).total == 0.2,"Even soft spikes use the full observation window")
 	print("MOC DURATION EXTENSION: %d / %d passed" % [checks-failures,checks])
 	lab.queue_free()
 	await process_frame
