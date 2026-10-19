@@ -101,12 +101,14 @@ func build() -> void:
 	floor_body.add_child(shape)
 	lab.add_child(floor_body)
 	var net_body := StaticBody3D.new()
-	var net_shape := CollisionShape3D.new()
-	var net_box := BoxShape3D.new()
-	net_box.size = Vector3(9.5, 2.43, 0.08)
-	net_shape.shape = net_box
-	net_shape.position.y = 1.215
-	net_body.add_child(net_shape)
+	lab.net_body = net_body
+	for band in [[9.0,lab.NetResponse.BOTTOM,lab.NetResponse.TAPE_BOTTOM],[9.5,lab.NetResponse.TAPE_BOTTOM,lab.NetResponse.TOP]]:
+		var net_shape := CollisionShape3D.new()
+		var net_box := BoxShape3D.new()
+		net_box.size = Vector3(float(band[0]),float(band[2])-float(band[1]),0.08)
+		net_shape.shape = net_box
+		net_shape.position.y = (float(band[1])+float(band[2]))*0.5
+		net_body.add_child(net_shape)
 	lab.add_child(net_body)
 	lab.ball = sphere(lab, 0.105, Vector3.ZERO, GOLD)
 	lab.shadow = ring(0.19, Color("0d2536"))

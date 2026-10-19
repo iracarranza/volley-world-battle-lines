@@ -19,6 +19,9 @@ const DirectionalInfluence := preload("res://scripts/directional_influence.gd")
 var directional_input := DirectionalInfluence.new()
 var last_directional_influence: Dictionary = {}
 const MoC := preload("res://scripts/moment_of_contact.gd")
+const NetResponse := preload("res://scripts/net_response.gd")
+var net_response := NetResponse.new()
+var net_body: StaticBody3D
 var moc: Node
 var committed_intent: Dictionary = {}
 var last_contact_result: Dictionary = {}
@@ -523,7 +526,10 @@ func _physics_process(dt: float) -> void:
 	if is_benched():
 		_tick_benched(world_dt)
 		return
+	var previous_player_position := player.position
 	motion.tick(dt, motion_scale)
+	if ball_active and not station.running() and not drills.running() and not pepper.active() and NetResponse.body_touches(previous_player_position,player.position):
+		_finish("NET FAULT / Athlete touched the net")
 	camera_rig.update_aim()
 	animation.update()
 	station.tick(world_dt)
@@ -532,6 +538,12 @@ func _physics_process(dt: float) -> void:
 	if ball_active:
 		_tick_ball(world_dt)
 		_remember_contacts(0.0)
+		if ball_active and not station.running() and not drills.running() and not pepper.active():
+			for slot in range(training_bots.actors.size()):
+				var actor: Node3D = training_bots.actors[slot]
+				if actor.visible and NetResponse.body_touches(actor.position,actor.position,0.27,training_bots.physique.build.height):
+					_finish("NET FAULT / %s bot touched the net" % ("Home" if slot < 4 else "Away"))
+					break
 	elif auto_feed and not station.in_zone() and not station.running() and not drills.in_zone() and not drills.running():
 		feed_timer -= world_dt
 		if feed_timer <= 0:
@@ -604,6 +616,7 @@ func _feed() -> void:
 	if station.in_zone():
 		_message("Serve Receive station / use I to start, stop or retry the sequence.")
 		return
+	net_response.clear()
 	var target := Vector3(clampf(player.position.x + sin(attempts * 1.7) * 0.7, -3.5, 3.5), 0.95, clampf(player.position.z, 2, 8))
 	if debug_feed_locked:
 		target = debug_feed_target
@@ -720,6 +733,8 @@ func _impact_event(actor_id: String, action: int, incoming: Vector3, assessment:
 	return event
 
 func _publish_impact(event: Dictionary) -> void:
+	net_response.clear()
+	net_response.clear_side = signf(ball.position.z)
 	if event.action == Action.RECEIVE:
 		receive_resolved.emit(event)
 	contact_flow.record(event)
@@ -887,22 +902,26 @@ func _tick_ball(dt: float) -> void:
 			return
 	if _try_swept_player_block(previous, dt):
 		return
-	if previous.z * ball.position.z < 0 and absf(ball.position.x) <= 4.6:
-		var ratio := previous.z / (previous.z - ball.position.z)
-		var crossing := previous.lerp(ball.position, ratio)
-		if crossing.y < 2.43 + 0.105:
-			_finish("Net fault. Get under the ball or use a higher launch.")
+	var net_result := net_response.step(previous,ball.position,ball_velocity,dt,float(ball_shot.get("charge",0)))
+	ball.position = net_result.position
+	ball_velocity = net_result.velocity
+	if previous.z*ball.position.z < 0 and not net_response.pocket and net_result.contact == "":
+		var crossing := previous.lerp(ball.position,previous.z/(previous.z-ball.position.z))
+		if absf(crossing.x) <= 4.5 and crossing.y < NetResponse.BOTTOM-NetResponse.RADIUS:
+			_finish("UNDER-NET FAULT / Ball crossed beneath the webbing")
 			return
+	if net_result.crossed and absf(ball.position.x) <= 4.6:
 		if not pepper.active():
 			side_contacts[side_index(ball.position.z)] = 0
 			contacts = 0
 		if training_bots.active_action < 0:
 			training_bots.replan()
+
 	if not station.running() and not drills.running() and not serve.tossing() and not pepper.active() and (serve.state != serve.State.FLIGHT or serve.main_court) and training_bots.tick(world_dt):
 		return
 	if (serve.state != serve.State.IDLE or pepper.active()) and not station.running() and not drills.running():
 		var query := PhysicsRayQueryParameters3D.create(previous, ball.position)
-		query.exclude = [player.get_rid()]
+		query.exclude = [player.get_rid(),net_body.get_rid()]
 		var solid := get_world_3d().direct_space_state.intersect_ray(query)
 		if not solid.is_empty():
 			ball.position = solid.position + solid.normal * Geometry.BALL_RADIUS
@@ -937,6 +956,7 @@ func _tick_ball(dt: float) -> void:
 	_draw_line(trail, trail_points)
 
 func _finish(message: String) -> void:
+	net_response.clear()
 	action_endlag = 0.0
 	confirm_window = 0.0
 	committed_intent = {}
@@ -999,6 +1019,7 @@ func _update_preview(draw_trajectory: bool = true) -> void:
 	landing_marker.visible = ball_active
 
 func _reset() -> void:
+	net_response.clear()
 	if is_instance_valid(impact_visual):
 		impact_visual.clear()
 	if is_instance_valid(contact_flow):
