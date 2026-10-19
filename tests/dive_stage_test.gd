@@ -1,23 +1,16 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Stage := preload("res://scripts/dive_stage.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func pose_at(lab: Node3D, air_time: float, direction: Vector3) -> Dictionary:
-	lab.jumped = true
-	lab.airborne_action = 0
-	lab.jump_charge = -1
-	lab.dive_world_direction = direction
-	lab.dive_flight_time = 0.5
-	lab.dive_air_time = air_time
+	lab.motion.jumped = true
+	lab.motion.airborne_action = 0
+	lab.motion.jump_charge = -1
+	lab.animation.dive_world_direction = direction
+	lab.animation.dive_flight_time = 0.5
+	lab.animation.dive_air_time = air_time
 	lab.body.rotation.y = 0.0
-	lab._update_pose()
+	lab.animation.update()
 	return {"pitch": lab.body.rotation.x, "left": lab.legs[0].rotation, "right": lab.legs[1].rotation,
 		"lknee": lab.legs[0].get_node("Knee").rotation.x, "rknee": lab.legs[1].get_node("Knee").rotation.x}
 func run() -> void:
@@ -88,14 +81,14 @@ func run() -> void:
 	var roll_once: float = lab.body.rotation.z
 	for i in range(120):
 		pose_at(lab, 0.5, Vector3.RIGHT)
-	check(absf(wrapf(lab.body.rotation.y - lab.dive_applied_yaw - yaw_start, -PI, PI)) < 0.001 and absf(lab.body.rotation.z - roll_once) < 0.001, "repeated dive frames do not accumulate rotation")
-	lab.jumped = false
-	lab.airborne_action = -1
-	lab.dive_air_time = 0.0
-	lab._update_pose()
-	check(absf(lab.body.rotation.z) < 0.0001 and absf(lab.body.rotation.x) < 0.0001 and absf(lab.dive_applied_yaw) < 0.0001, "body returns level after landing")
+	check(absf(wrapf(lab.body.rotation.y - lab.animation.dive_applied_yaw - yaw_start, -PI, PI)) < 0.001 and absf(lab.body.rotation.z - roll_once) < 0.001, "repeated dive frames do not accumulate rotation")
+	lab.motion.jumped = false
+	lab.motion.airborne_action = -1
+	lab.animation.dive_air_time = 0.0
+	lab.animation.update()
+	check(absf(lab.body.rotation.z) < 0.0001 and absf(lab.body.rotation.x) < 0.0001 and absf(lab.animation.dive_applied_yaw) < 0.0001, "body returns level after landing")
 	var yaw_after: float = lab.body.rotation.y
-	lab._update_pose()
+	lab.animation.update()
 	check(is_equal_approx(lab.body.rotation.y, yaw_after), "no yaw drift once on the ground")
 	print("DIVE STAGE CHECKS: %d passed / %d total" % [checks - failures, checks])
 	quit(1 if failures > 0 else 0)

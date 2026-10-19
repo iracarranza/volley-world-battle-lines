@@ -1,11 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 func key(code: int, down: bool) -> void:
 	var input := InputEventKey.new()
 	input.keycode = code
@@ -23,18 +16,18 @@ func approach(lab: Node3D, rating: float) -> Dictionary:
 	key(KEY_W,true)
 	await process_frame
 	lab.selected = 2
-	lab._begin_approach()
+	lab.motion.begin_approach()
 	var frames := 0
 	var steps := []
-	while lab.jump_charge >= 0 and frames < 160:
-		var step: int = lab.Approach.step_index(lab.jump_charge)
+	while lab.motion.jump_charge >= 0 and frames < 160:
+		var step: int = lab.Approach.step_index(lab.motion.jump_charge)
 		if not steps.has(step): steps.append(step)
 		lab._physics_process(1.0/60)
 		frames += 1
 		await physics_frame
 	key(KEY_W,false)
 	await process_frame
-	return {"frames":frames,"steps":steps,"distance":lab.approach_distance,"height":lab.last_jump_height}
+	return {"frames":frames,"steps":steps,"distance":lab.motion.approach_distance,"height":lab.motion.last_jump_height}
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:

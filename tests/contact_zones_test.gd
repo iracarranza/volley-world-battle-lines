@@ -1,12 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-
-func check(condition: bool, message: String) -> void:
-	checks += 1
-	if not condition:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 
 func _initialize() -> void:
 	call_deferred("run")
@@ -18,7 +10,7 @@ func run() -> void:
 	lab.set_process(false)
 	lab.auto_feed = false
 	await physics_frame
-	lab.view_pitch = 0.27 # Parallel to floor preserves calibrated arcs.
+	lab.camera_rig.view_pitch = 0.27 # Parallel to floor preserves calibrated arcs.
 	var a = lab.athlete
 	for build in a.BUILDS:
 		a.build = build.duplicate()
@@ -67,7 +59,7 @@ func run() -> void:
 		lab.locked_charge = 0.6
 		lab.ball_active = true
 		lab.aim = Vector3(0, 0, -6)
-		lab.facing_yaw = 0
+		lab.camera_rig.facing_yaw = 0
 		var point: Vector3 = sector.center + lab.Geometry.sector_point(sector, sample.r, sample.angle, 0)
 		lab.ball.position = lab.player.position + point
 		check(lab._can_contact(), "Ball inside every named spike zone must be hittable")
@@ -118,12 +110,12 @@ func run() -> void:
 	lab._contact()
 	check(lab.selected == 0 and lab.station.streak == 1, "Serve Receive drill must keep Receive selected despite successful contact")
 	lab._reset()
-	lab.jumped = true
-	lab.airborne_action = 0
+	lab.motion.jumped = true
+	lab.motion.airborne_action = 0
 	lab.locked_action = 0
 	lab._confirm_action()
 	var dive_size: Vector3 = lab._hurtbox_definition(0).size
-	lab.jumped = false
+	lab.motion.jumped = false
 	check(lab._hurtbox_definition(0).size.is_equal_approx(dive_size), "Confirmed dive geometry must remain identical to the displayed volume through its landing follow-through")
 	lab.confirm_window = 0
 	check(lab._hurtbox_definition(0).size.y > dive_size.y, "Next grounded receive must use grounded geometry after the dive window ends")

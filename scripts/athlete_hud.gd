@@ -162,7 +162,10 @@ func update_values() -> void:
 	role_label.text = lab.position_role + "  /  " + lab.body_type.to_upper()
 	level_label.text = str(lab.athlete_level)
 	var xp: int = lab.station.earned_xp + lab.drills.earned_xp
-	xp_fraction = clampf(float(xp) / 100.0, 0, 1)
+	var next_xp := clampf(float(xp) / 100.0, 0, 1)
+	if next_xp != xp_fraction:
+		xp_fraction = next_xp
+		queue_redraw()
 	xp_label.text = "%d LAB XP" % xp
 	flow_bar.value = lab.athlete.flow
 	flow_value.text = "FLOW   %d / 100" % roundi(lab.athlete.flow)
@@ -173,7 +176,6 @@ func update_values() -> void:
 	if lab.athlete.exhausted or lab.athlete.winded:
 		sta_value.text += "   ·   " + lab.athlete.fatigue_text()
 	hp_value.text = "HP   %d / 100" % roundi(lab.athlete.hp)
-	queue_redraw()
 
 func _draw() -> void:
 	var center := Vector2(100, size.y - 108)

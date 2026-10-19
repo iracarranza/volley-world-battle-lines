@@ -1,15 +1,8 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Visual := preload("res://scripts/voli_visual.gd")
 const Pose := preload("res://scripts/athlete_pose.gd")
 const Receive := preload("res://scripts/receive_pose.gd")
 const Library := preload("res://scripts/pose_library.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func _rig() -> Node3D:

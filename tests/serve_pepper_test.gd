@@ -1,19 +1,12 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 func _initialize() -> void:
 	call_deferred("run")
 func toss_trial(lab: Node3D, wait_time: float) -> Dictionary:
 	lab._reset()
-	lab.view_pitch = 0.27
-	lab._update_aim()
-	lab._update_pose()
-	lab._update_camera(2)
+	lab.camera_rig.view_pitch = 0.27
+	lab.camera_rig.update_aim()
+	lab.animation.update()
+	lab.camera_rig.update(2)
 	lab._serve()
 	for frame in range(roundi(wait_time * 120)):
 		lab._tick_ball(1.0 / 120)
@@ -44,7 +37,7 @@ func run() -> void:
 	for frame in range(18):
 		lab._tick_ball(1.0 / 120)
 	lab.player.position.x += 4
-	lab._update_pose()
+	lab.animation.update()
 	lab._serve()
 	for frame in range(35):
 		lab._tick_ball(1.0 / 120)
@@ -57,24 +50,24 @@ func run() -> void:
 	lab.locked_action = 1
 	lab.armed = true
 	lab._confirm_action()
-	lab._toggle_debug_volumes()
+	lab.hud.toggle_debug_volumes()
 	check(not lab.hurtbox_root.visible and not lab.body_collision_view.visible and not lab.reach_ring.visible, "Debug toggle hides player volumes")
 	check(not lab.training_bots.contact_boxes[0].visible, "Debug toggle hides bot volumes")
-	lab._toggle_debug_volumes()
+	lab.hud.toggle_debug_volumes()
 	check(lab.hurtbox_root.visible and lab.training_bots.contact_boxes[0].visible, "Debug toggle restores volumes without losing confirmation")
 	lab._reset()
-	lab._update_camera(2)
-	check(absf(lab.camera.position.distance_to(lab.camera_anchor) - lab.ATHLETE_CAMERA_DISTANCE) < 0.01, "Athlete View uses shorter fixed distance")
+	lab.camera_rig.update(2)
+	check(absf(lab.camera.position.distance_to(lab.camera_rig.camera_anchor) - lab.ATHLETE_CAMERA_DISTANCE) < 0.01, "Athlete View uses shorter fixed distance")
 	var position: Vector3 = lab.camera.position
 	lab.ball_active = true
 	lab.ball.position = lab.player.position + Vector3(0, 12, -2)
-	lab._set_camera_mode(lab.ViewMode.BALL)
-	lab._update_camera(2)
+	lab.camera_rig.set_mode(lab.ViewMode.BALL)
+	lab.camera_rig.update(2)
 	check(lab.camera.is_position_in_frustum(lab.ball.position), "Ball View frames high ball automatically")
 	lab.ball.position.x += 10
-	lab._rotate_view(Vector2(0, -50))
-	lab._update_camera(2)
-	check(absf(lab.camera.unproject_position(lab.ball_frame_pivot).x - lab.get_viewport().get_visible_rect().size.x * 0.5) < 0.1, "Ball View retains athlete at bottom center")
+	lab.camera_rig.rotate_view(Vector2(0, -50))
+	lab.camera_rig.update(2)
+	check(absf(lab.camera.unproject_position(lab.camera_rig.ball_frame_pivot).x - lab.get_viewport().get_visible_rect().size.x * 0.5) < 0.1, "Ball View retains athlete at bottom center")
 	check(lab.pepper.actors.size() == 3 and lab.pepper.actors[0].position.y == 3.5, "Three opponents include box level 3")
 	for index in range(3):
 		lab._reset()
@@ -97,13 +90,13 @@ func run() -> void:
 		lab._reset()
 		var spot: Vector3 = lab.pepper.SPOTS[index]
 		lab.player.position = Vector3(spot.x, 0.03, spot.z + 9)
-		lab.camera_mode = lab.ViewMode.ATHLETE
-		lab.view_yaw = 0
-		lab.facing_yaw = 0
-		lab.view_pitch = 1.0 if index == 0 else -0.12
-		lab._update_aim()
-		lab._update_pose()
-		lab._update_camera(2)
+		lab.camera_rig.camera_mode = lab.ViewMode.ATHLETE
+		lab.camera_rig.view_yaw = 0
+		lab.camera_rig.facing_yaw = 0
+		lab.camera_rig.view_pitch = 1.0 if index == 0 else -0.12
+		lab.camera_rig.update_aim()
+		lab.animation.update()
+		lab.camera_rig.update(2)
 		lab._serve()
 		for frame in range(18):
 			lab._tick_ball(1.0 / 120)

@@ -1,12 +1,4 @@
-extends SceneTree
-var failures := 0
-var checks := 0
-
-func check(condition: bool, message: String) -> void:
-	checks += 1
-	if not condition:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 
 func _initialize() -> void:
 	call_deferred("run")
@@ -54,7 +46,7 @@ func run() -> void:
 	lab.ball.position.y += 2
 	check(not lab._can_contact(), "Ball above reach must not be contactable")
 	lab._reset()
-	lab.view_pitch = 0.52 # Deliberate loft clears the net from a grounded driven attack.
+	lab.camera_rig.view_pitch = 0.52 # Deliberate loft clears the net from a grounded driven attack.
 	lab.court_half_width = 4.5
 	lab.court_half_depth = 9.0
 	lab.aim = Vector3(0, 0, -6)
@@ -88,9 +80,9 @@ func run() -> void:
 	for i in range(8):
 		lab._physics_process(1.0 / 60.0)
 		await physics_frame
-	lab.jump_charge = 0.8
-	lab._takeoff()
-	check(lab.jumped and lab.player.velocity.y > 0, "Charged jump must launch athlete")
+	lab.motion.jump_charge = 0.8
+	lab.motion.takeoff()
+	check(lab.motion.jumped and lab.player.velocity.y > 0, "Charged jump must launch athlete")
 	check(a.stamina < 100, "Jump must consume stamina")
 	lab._reset()
 	lab.selected = 0
@@ -111,8 +103,8 @@ func run() -> void:
 	check(not lab.armed, "Grounded right click must cancel the armed action")
 	check(a.contact_cost(2, 3).y == 0 and a.contact_cost(2, 1).y == 0, "Ordinary repeated contacts never spend HP")
 	lab._reset()
-	lab.camera_mode = lab.ViewMode.ATHLETE
-	lab._update_camera(1.0)
+	lab.camera_rig.camera_mode = lab.ViewMode.ATHLETE
+	lab.camera_rig.update(1.0)
 	check(absf(lab.camera.position.x - lab.player.position.x) < 0.02, "Athlete View must follow horizontally")
 	lab._reset()
 	lab.ball_active = true
@@ -122,98 +114,98 @@ func run() -> void:
 	lab._tick_ball(0.03)
 	check(lab.returns == 0 and lab.feedback.begins_with("OUT"), "Ball outside the sideline must not score")
 	lab._reset()
-	lab.camera_mode = lab.ViewMode.ATHLETE
-	lab.view_yaw = 0.0
-	lab._update_camera(2.0)
+	lab.camera_rig.camera_mode = lab.ViewMode.ATHLETE
+	lab.camera_rig.view_yaw = 0.0
+	lab.camera_rig.update(2.0)
 	var old_camera: Vector3 = lab.camera.position
 	lab.player.position.x += 2.0
-	lab._update_camera(2.0)
+	lab.camera_rig.update(2.0)
 	check(absf(lab.camera.position.x - old_camera.x - 2.0) < 0.01, "Athlete View must translate with athlete movement")
 	var before_orbit: Vector3 = lab.camera.position
-	lab._rotate_view(Vector2(180, -50))
-	lab._update_aim()
+	lab.camera_rig.rotate_view(Vector2(180, -50))
+	lab.camera_rig.update_aim()
 	check(absf(lab.aim.x - lab.player.position.x) > 1.0, "Mouse look in Athlete View must steer grounded facing")
-	lab._update_camera(2.0)
+	lab.camera_rig.update(2.0)
 	check(lab.camera.position.distance_to(before_orbit) > 0.5, "Athlete camera must orbit with view yaw")
 	lab.ball_active = true
 	lab.ball.position = Vector3(2, 5, 3)
-	lab._set_camera_mode(lab.ViewMode.BALL)
-	lab._update_aim()
-	check(is_equal_approx(lab.facing_yaw, lab.view_yaw), "Entering Ball View preserves athlete facing")
-	lab._update_camera(2.0)
+	lab.camera_rig.set_mode(lab.ViewMode.BALL)
+	lab.camera_rig.update_aim()
+	check(is_equal_approx(lab.camera_rig.facing_yaw, lab.camera_rig.view_yaw), "Entering Ball View preserves athlete facing")
+	lab.camera_rig.update(2.0)
 	var first_ball_rotation: Quaternion = lab.camera.quaternion
 	var first_ball_camera: Vector3 = lab.camera.position
 	lab.ball.position = Vector3(-3, 7, 1)
-	lab._update_camera(2.0)
-	check(lab.camera.unproject_position(lab.ball_frame_pivot).distance_to(lab.get_viewport().get_visible_rect().size * Vector2(0.5, lab.ball_frame_screen_y)) < 0.1, "Ball View frames athlete at bottom center")
+	lab.camera_rig.update(2.0)
+	check(lab.camera.unproject_position(lab.camera_rig.ball_frame_pivot).distance_to(lab.get_viewport().get_visible_rect().size * Vector2(0.5, lab.camera_rig.ball_frame_screen_y)) < 0.1, "Ball View frames athlete at bottom center")
 	check(first_ball_rotation.angle_to(lab.camera.quaternion) > 0.05, "Ball View must rotate to track ball movement")
-	lab._update_aim()
-	var facing_before: float = lab.facing_yaw
-	lab._rotate_view(Vector2(150, 20))
-	lab._update_aim()
-	check(absf(lab.facing_yaw - facing_before + 150 * lab.LOOK_SENSITIVITY) < 0.0001, "Ball View mouse turns athlete independently")
-	lab.jumped = true
-	lab.airborne_aim = Vector3.FORWARD
-	lab._set_camera_mode(lab.ViewMode.ATHLETE)
-	lab._rotate_view(Vector2(800, 0))
-	lab._update_aim()
+	lab.camera_rig.update_aim()
+	var facing_before: float = lab.camera_rig.facing_yaw
+	lab.camera_rig.rotate_view(Vector2(150, 20))
+	lab.camera_rig.update_aim()
+	check(absf(lab.camera_rig.facing_yaw - facing_before + 150 * lab.LOOK_SENSITIVITY) < 0.0001, "Ball View mouse turns athlete independently")
+	lab.motion.jumped = true
+	lab.motion.airborne_aim = Vector3.FORWARD
+	lab.camera_rig.set_mode(lab.ViewMode.ATHLETE)
+	lab.camera_rig.rotate_view(Vector2(800, 0))
+	lab.camera_rig.update_aim()
 	check((lab.aim - Vector3(lab.player.position.x, 0, lab.player.position.z)).normalized().is_equal_approx(Vector3.FORWARD), "Airborne look must preserve committed attack direction")
-	check(absf(lab.view_yaw) <= 0.651, "Airborne Athlete View must limit looking independently of body aim")
-	lab.jumped = false
-	lab.view_yaw = PI * 0.5
-	lab._update_camera(2.0)
-	var forward_move: Vector3 = lab._movement_direction(Vector3.FORWARD)
+	check(absf(lab.camera_rig.view_yaw) <= 0.651, "Airborne Athlete View must limit looking independently of body aim")
+	lab.motion.jumped = false
+	lab.camera_rig.view_yaw = PI * 0.5
+	lab.camera_rig.update(2.0)
+	var forward_move: Vector3 = lab.camera_rig.movement_direction(Vector3.FORWARD)
 	check(forward_move.x < -0.9 and absf(forward_move.y) < 0.001, "Forward movement must follow camera heading without vertical drift")
 	lab.ball_active = false
-	lab._set_camera_mode(lab.ViewMode.BALL)
-	lab._update_camera(2.0)
+	lab.camera_rig.set_mode(lab.ViewMode.BALL)
+	lab.camera_rig.update(2.0)
 	var inactive_position: Vector3 = lab.camera.position
 	lab.ball.position = Vector3(30, 20, 30)
-	lab._update_camera(2.0)
+	lab.camera_rig.update(2.0)
 	check(lab.camera.position.distance_to(inactive_position) < 0.01, "Inactive ball must not pull camera to stale off-court position")
 	lab._reset()
-	lab._set_camera_mode(lab.ViewMode.ATHLETE)
-	lab._update_camera(2.0)
+	lab.camera_rig.set_mode(lab.ViewMode.ATHLETE)
+	lab.camera_rig.update(2.0)
 	var grounded_camera_y: float = lab.camera.position.y
 	lab.player.position.y += 0.8
-	lab._update_camera(2.0)
+	lab.camera_rig.update(2.0)
 	check(absf(lab.camera.position.y - grounded_camera_y - 0.8) < 0.001, "Athlete camera must follow the full jump elevation")
 	var airborne_camera_y: float = lab.camera.position.y
 	lab.player.position.y += 1.0
-	lab._update_camera(1.0 / 60.0)
+	lab.camera_rig.update(1.0 / 60.0)
 	check(lab.camera.position.y > airborne_camera_y and lab.camera.position.y < airborne_camera_y + 1.0, "Vertical follow must move smoothly toward rising athlete")
 	lab.player.position.y = 8.0
-	lab._update_camera(2.0)
-	check(absf(lab.camera_anchor.y - (8.0 + float(a.build.height) * 0.55)) < 0.001, "Raised box landing must retain full world elevation in camera anchor")
+	lab.camera_rig.update(2.0)
+	check(absf(lab.camera_rig.camera_anchor.y - (8.0 + float(a.build.height) * 0.55)) < 0.001, "Raised box landing must retain full world elevation in camera anchor")
 	var raised_camera_y: float = lab.camera.position.y
-	lab._update_camera(2.0)
+	lab.camera_rig.update(2.0)
 	check(absf(lab.camera.position.y - raised_camera_y) < 0.001, "Camera must remain stable while standing on elevated platform")
 	lab.player.position.y = 0.03
-	lab._update_camera(2.0)
+	lab.camera_rig.update(2.0)
 	check(absf(lab.camera.position.y - grounded_camera_y) < 0.001, "Descending back to ground must restore original camera height")
 	lab._reset()
-	lab._update_camera(2.0)
-	lab._rotate_view(Vector2(100, 0))
-	check(absf(lab.facing_yaw + 100.0 * lab.LOOK_SENSITIVITY) < 0.00001, "Facing must apply exact mouse delta immediately")
-	lab._update_camera(1.0 / 144.0)
+	lab.camera_rig.update(2.0)
+	lab.camera_rig.rotate_view(Vector2(100, 0))
+	check(absf(lab.camera_rig.facing_yaw + 100.0 * lab.LOOK_SENSITIVITY) < 0.00001, "Facing must apply exact mouse delta immediately")
+	lab.camera_rig.update(1.0 / 144.0)
 	var camera_forward: Vector3 = -lab.camera.global_basis.z
 	camera_forward.y = 0
 	var aim_forward: Vector3 = lab.aim - Vector3(lab.player.position.x, 0, lab.player.position.z)
 	check(camera_forward.normalized().dot(aim_forward.normalized()) > 0.9999, "Camera heading and athlete facing must agree without orbit lag")
-	lab._rotate_view(Vector2(-100, 0))
-	check(absf(lab.facing_yaw) < 0.00001, "Equal opposite mouse motion must return precisely to original facing")
-	lab._rotate_view(Vector2(0, 80))
-	check(absf(lab.facing_yaw) < 0.00001, "Vertical mouse look must not introduce yaw drift")
+	lab.camera_rig.rotate_view(Vector2(-100, 0))
+	check(absf(lab.camera_rig.facing_yaw) < 0.00001, "Equal opposite mouse motion must return precisely to original facing")
+	lab.camera_rig.rotate_view(Vector2(0, 80))
+	check(absf(lab.camera_rig.facing_yaw) < 0.00001, "Vertical mouse look must not introduce yaw drift")
 	lab._reset()
-	lab.camera_mode = lab.ViewMode.ATHLETE
-	lab._update_camera(2.0)
+	lab.camera_rig.camera_mode = lab.ViewMode.ATHLETE
+	lab.camera_rig.update(2.0)
 	var initial_orbit_position: Vector3 = lab.camera.position
 	for pitch in [-0.5, 0.0, 0.25, 0.60]:
-		lab.view_pitch = pitch
-		lab._update_camera(2.0)
-		var centered: Vector2 = lab.camera.unproject_position(lab.camera_anchor)
+		lab.camera_rig.view_pitch = pitch
+		lab.camera_rig.update(2.0)
+		var centered: Vector2 = lab.camera.unproject_position(lab.camera_rig.camera_anchor)
 		var screen_center: Vector2 = lab.get_viewport().get_visible_rect().size * 0.5
-		if pitch <= 0.27 + asin((lab.camera_anchor.y - 0.4) / lab.ATHLETE_CAMERA_DISTANCE):
+		if pitch <= 0.27 + asin((lab.camera_rig.camera_anchor.y - 0.4) / lab.ATHLETE_CAMERA_DISTANCE):
 			check(centered.distance_to(screen_center) < 0.1, "Athlete pivot stays centered until the camera reaches floor for pitch %s" % pitch)
 		else:
 			check(absf(lab.camera.position.y - 0.4) < 0.01, "Beyond floor limit camera tilts from fixed ground clearance")
@@ -321,18 +313,18 @@ func run() -> void:
 	check(lab.side_contacts[0] == 3, "Player may fill third contact after bot setter")
 	check(bot.active_action == -1, "Setter cannot steal a fourth touch")
 	lab._reset()
-	lab.camera_mode = lab.ViewMode.BALL
+	lab.camera_rig.camera_mode = lab.ViewMode.BALL
 	lab.ball_active = true
 	lab.ball.position = lab.player.position + Vector3(3, 2, 1)
-	lab._update_aim()
-	lab._update_pose()
-	check(absf(wrapf(lab.body.rotation.y - lab.facing_yaw, -PI, PI)) < 0.0001 and lab.facing_yaw == 0, "Ball View preserves deliberate facing despite ball behind athlete")
-	lab.jumped = true
-	lab.airborne_aim = Vector3.FORWARD
+	lab.camera_rig.update_aim()
+	lab.animation.update()
+	check(absf(wrapf(lab.body.rotation.y - lab.camera_rig.facing_yaw, -PI, PI)) < 0.0001 and lab.camera_rig.facing_yaw == 0, "Ball View preserves deliberate facing despite ball behind athlete")
+	lab.motion.jumped = true
+	lab.motion.airborne_aim = Vector3.FORWARD
 	lab.ball.position = lab.player.position + Vector3(-3, 3, -2)
-	lab._update_aim()
-	lab._update_pose()
-	check(absf(wrapf(lab.body.rotation.y - lab.facing_yaw, -PI, PI)) < 0.0001 and lab.facing_yaw == 0, "Ball View airborne facing is not overwritten by ball tracking")
+	lab.camera_rig.update_aim()
+	lab.animation.update()
+	check(absf(wrapf(lab.body.rotation.y - lab.camera_rig.facing_yaw, -PI, PI)) < 0.0001 and lab.camera_rig.facing_yaw == 0, "Ball View airborne facing is not overwritten by ball tracking")
 	check((lab.aim - Vector3(lab.player.position.x, 0, lab.player.position.z)).normalized().is_equal_approx(Vector3.FORWARD), "Airborne ball-facing must preserve committed shot aim")
 	lab._reset()
 	lab.ball_active = true

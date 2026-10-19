@@ -1,11 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
@@ -27,8 +20,8 @@ func run() -> void:
 	lab.selected = 0
 	lab.armed = true
 	lab.locked_charge = 0.90
-	lab.facing_yaw = 0
-	lab.view_pitch = 0.27
+	lab.camera_rig.facing_yaw = 0
+	lab.camera_rig.view_pitch = 0.27
 	lab.aim = spot
 	lab.ball.position = lab.player.position + lab._raw_hurtbox_definition(0).center
 	lab.ball_velocity = Vector3(0, -5, 10)
@@ -62,7 +55,7 @@ func run() -> void:
 	check(pepper.stage == 1 and pepper.planned, "Low shoulder-height set is planned instead of silently falling back to Receive")
 	for pitch in [-0.12, 0.0, 0.27]:
 		lab._reset()
-		lab.view_pitch = pitch
+		lab.camera_rig.view_pitch = pitch
 		lab.aim = Vector3(0, 0, -12)
 		var origin := Vector3(0, 2.1, 0)
 		var ground: Vector3 = lab._shot_velocity(origin, 1, 1.0)
@@ -70,7 +63,7 @@ func run() -> void:
 		var t: float = (ground.y + sqrt(ground.y * ground.y + 2 * lab.GRAVITY * (origin.y - receive_height))) / lab.GRAVITY
 		var range_at_hands := Vector2(ground.x, ground.z).length() * t
 		check(range_at_hands > pepper.RADIUS * 2, "Full ground set reaches partner hands across two circle radii even at low aim")
-		lab.jumped = true
+		lab.motion.jumped = true
 		var jump: Vector3 = lab._shot_velocity(origin, 1, 1.0)
 		check(ground.y < jump.y, "Ground sets trade height for travel without lowering jump sets")
 	print("PEPPER MOVE / SETS: %d / %d passed" % [checks - failures, checks])

@@ -1,12 +1,5 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Athlete = preload("res://scripts/athlete.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
@@ -60,12 +53,12 @@ func run() -> void:
 	lab.set_physics_process(false)
 	await physics_frame
 	lab.athlete.spend(100)
-	lab.athlete_hud.update_values()
-	check(lab.athlete_hud.sta_value.text.contains("WINDED"), "HUD shows Winded countdown")
+	lab.hud.athlete_hud.update_values()
+	check(lab.hud.athlete_hud.sta_value.text.contains("WINDED"), "HUD shows Winded countdown")
 	lab.athlete.recover(1,true)
 	lab.athlete.spend(100)
-	lab.athlete_hud.update_values()
-	check(lab.athlete_hud.sta_value.text.contains("EXHAUSTED"), "HUD shows Exhaustion countdown")
+	lab.hud.athlete_hud.update_values()
+	check(lab.hud.athlete_hud.sta_value.text.contains("EXHAUSTED"), "HUD shows Exhaustion countdown")
 	lab._reset()
 	check(lab.athlete.stamina == 100 and not lab.athlete.winded and not lab.athlete.exhausted and lab.athlete.exhaustion_remaining == 0 and lab.athlete.winded_remaining == 0, "Lab reset clears statuses and restores stamina")
 	print("FATIGUE STATUS: %d / %d passed" % [checks-failures,checks])

@@ -1,12 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-
-func check(condition: bool, message: String) -> void:
-	checks += 1
-	if not condition:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 
 func _initialize() -> void:
 	call_deferred("run")
@@ -70,51 +62,51 @@ func run() -> void:
 	key.pressed = true
 	Input.parse_input_event(key)
 	lab.selected = 2
-	lab._begin_approach()
+	lab.motion.begin_approach()
 	var bound_seen := false
 	var peak := 0.0
 	var second_step_grounded := false
 	for frame in range(60):
 		lab._physics_process(1.0 / 60.0)
 		await physics_frame
-		if lab.approach_bound:
+		if lab.motion.approach_bound:
 			bound_seen = true
 			peak = maxf(peak, lab.player.position.y)
-		if lab.jump_charge >= 0.5 and lab.jump_charge < 0.72 and lab.player.is_on_floor():
+		if lab.motion.jump_charge >= 0.5 and lab.motion.jump_charge < 0.72 and lab.player.is_on_floor():
 			second_step_grounded = true
-		if lab.jumped:
+		if lab.motion.jumped:
 			break
 	check(bound_seen and peak > 0.12, "First step must have a real ballistic bound rather than cosmetic bob")
 	check(second_step_grounded, "Bound must land before the short second step")
 	lab._reset()
 	await settle(lab)
 	lab.selected = 1
-	lab._begin_approach()
+	lab.motion.begin_approach()
 	for frame in range(20):
 		lab._physics_process(1.0 / 60.0)
 		await physics_frame
-		if lab.approach_bound:
+		if lab.motion.approach_bound:
 			break
-	lab._takeoff()
-	check(lab.approach_release_pending and not lab.jumped, "Jump Set released mid-bound must buffer until the next plant")
+	lab.motion.takeoff()
+	check(lab.motion.approach_release_pending and not lab.motion.jumped, "Jump Set released mid-bound must buffer until the next plant")
 	for frame in range(50):
 		lab._physics_process(1.0 / 60.0)
 		await physics_frame
-		if lab.jumped:
+		if lab.motion.jumped:
 			break
-	check(lab.jumped and lab.airborne_action == 1 and lab.player.velocity.y > 0, "Buffered Jump Set must launch on landing")
+	check(lab.motion.jumped and lab.motion.airborne_action == 1 and lab.player.velocity.y > 0, "Buffered Jump Set must launch on landing")
 	lab._reset()
 	await settle(lab)
 	lab.selected = 0
-	lab._begin_approach()
+	lab.motion.begin_approach()
 	for frame in range(20):
 		lab._physics_process(1.0 / 60.0)
 		await physics_frame
-		if lab.jump_charge >= 0.16:
+		if lab.motion.jump_charge >= 0.16:
 			break
-	check(lab.approach_bound, "Timed first-step Receive should occur during the bound")
-	lab._takeoff()
-	check(lab.jumped and not lab.approach_bound and lab.confirm_window > 0, "Receive must convert a live bound directly to a confirmed dive")
+	check(lab.motion.approach_bound, "Timed first-step Receive should occur during the bound")
+	lab.motion.takeoff()
+	check(lab.motion.jumped and not lab.motion.approach_bound and lab.confirm_window > 0, "Receive must convert a live bound directly to a confirmed dive")
 	key.pressed = false
 	Input.parse_input_event(key)
 	print("CREATOR / BOUND CHECKS: %d passed / %d total" % [checks - failures, checks])

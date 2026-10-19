@@ -1,8 +1,4 @@
-extends SceneTree
-var checks := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	assert(ok, message)
+extends "res://tests/support/test_case.gd"
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
@@ -13,9 +9,9 @@ func run() -> void:
 	lab.set_process(false)
 	await process_frame
 	var bots = lab.training_bots
-	check(not lab.bot_panel.visible, "Bot menu starts hidden")
-	lab._toggle_bot_menu()
-	check(lab.bot_panel.visible, "Bot menu opens")
+	check(not lab.hud.bot_panel.visible, "Bot menu starts hidden")
+	lab.hud.toggle_bot_menu()
+	check(lab.hud.bot_panel.visible, "Bot menu opens")
 	bots.toggle(1)
 	lab.ball_active = true
 	lab.ball.position = Vector3(0, 5, 5)
@@ -55,4 +51,4 @@ func run() -> void:
 	print("BOT SETTINGS: %d checks passed" % checks)
 	lab.queue_free()
 	await process_frame
-	quit()
+	quit(1 if failures else 0)

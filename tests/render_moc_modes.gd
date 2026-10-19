@@ -7,13 +7,13 @@ func run() -> void:
 	root.add_child(lab)
 	lab.set_process(false)
 	lab.set_physics_process(false)
-	for mode in [lab.MoC.Mode.CURRENT_SLOWDOWN,lab.MoC.Mode.IMPACT_HOLD]:
+	for mode in [lab.MoC.Mode.CURRENT_SLOWDOWN,lab.MoC.Mode.TUNED_SLOWDOWN]:
 		if lab.moc.mode != mode:
-			lab._toggle_moc_mode()
-		lab._update_aim()
-		lab._update_pose()
-		lab._update_camera(2)
-		lab._update_ui()
+			lab.hud.toggle_moc_mode()
+		lab.camera_rig.update_aim()
+		lab.animation.update()
+		lab.camera_rig.update(2)
+		lab.hud.update()
 		for frame in range(3):
 			await process_frame
 		await RenderingServer.frame_post_draw

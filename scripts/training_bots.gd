@@ -1,4 +1,6 @@
 extends Node3D
+const ContactRequest := preload("res://scripts/contact/contact_request.gd")
+const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
 
 # Camera-test helpers with independent contact assignments and tracking/static modes.
 # Real ball physics continues between all contacts.
@@ -86,7 +88,7 @@ func setup(owner_lab: Node3D) -> void:
 			var wire := MeshInstance3D.new()
 			wire.mesh = Geometry.SetHurtbox.mesh(shape, true)
 			contact_box.add_child(wire)
-			wire.material_override = lab.debug_material(Color.WHITE, 1.0)
+			wire.material_override = lab.world_builder.debug_material(Color.WHITE, 1.0)
 			wire.material_override.vertex_color_use_as_albedo = true
 		elif shape.get("receive_platform", false):
 			contact_box.mesh = Geometry.ReceivePlatform.mesh(shape)
@@ -102,7 +104,7 @@ func setup(owner_lab: Node3D) -> void:
 			var mesh := BoxMesh.new()
 			mesh.size = shape.size
 			contact_box.mesh = mesh
-		var material: StandardMaterial3D = lab.debug_material(COLORS[action], 0.18)
+		var material: StandardMaterial3D = lab.world_builder.debug_material(COLORS[action], 0.18)
 		if action in [0, 1, 2, 3]:
 			material.vertex_color_use_as_albedo = true
 			material.albedo_color = Color.WHITE
@@ -502,50 +504,43 @@ func tick(dt: float) -> bool:
 	var incoming: Vector3 = lab.ball_velocity
 	var incoming_shot: Dictionary = lab.ball_shot
 	var local_contact: Vector3 = (lab.ball.position - actors[slot].position).rotated(Vector3.UP, -actors[slot].rotation.y)
-	var execution := Execution.assess(Geometry.evaluate(shapes[slot], local_contact), float(prepared.confirmation_age), false, action)
+	var request := ContactRequest.new()
+	request.action = action
+	request.athlete = physique
+	request.actor_id = "training_bot_%d" % slot
+	request.shape = shapes[slot]
+	request.local_point = local_contact
+	request.origin = lab.ball.position
+	request.incoming = incoming
+	request.incoming_shot = incoming_shot
+	request.charge = float(prepared.locked_charge)
+	request.confirmation_age = float(prepared.confirmation_age)
+	request.facing = Vector3.FORWARD.rotated(Vector3.UP, actors[slot].rotation.y)
+	request.intent_direction = request.facing
+	request.movement_speed = move_speeds[slot] if moves[slot] else 0.0
+	request.gravity = lab.GRAVITY
+	request.flow = lab.contact_flow.amount(request.actor_id)
+	request.keep_attack_intent = true
+	request.apply_set_spread = true
+	request.spread_phase = total_contacts * 1.7 + 0.8
+	request.aiming_accuracy = aiming_accuracy[slot]
+	request.aim_random = aim_random
+	request.receive_heading = setter_direction(slot, lab.ball.position) if action == 0 else Vector3.ZERO
+	var execution := ContactResolver.assess(request)
 	if action == 0:
-		execution = ReceiveCharge.assess(execution, lab.ball_shot, float(prepared.locked_charge)*physique.low_stamina_factor(),physique.cushioning_bonus(),physique.trait_effect("charge_tolerance"))
-		execution = ReceiveOutcome.assess(execution,shapes[slot],local_contact,move_speeds[slot] if moves[slot] else 0.0,Vector3.ZERO,actors[slot].rotation.y)
 		last_receive_match = execution.charge_match
-	if action == 1:
-		execution = physique.stabilize_set(execution)
 	last_preparation = preparation.evidence(slot)
 	_launch(action)
 	if action != 2:
 		lab.ball_velocity *= physique.low_stamina_factor()
 	if action != 0:
 		lab.ball_velocity *= Preparation.output_factor(lab.contact_flow.attack_charge(float(prepared.locked_charge),"training_bot_%d"%slot,lab.ball.position) if action == 2 else float(prepared.locked_charge))
-	var ideal: Vector3 = lab.ball_velocity
-	if action == 1:
-		var local: Vector3 = (lab.ball.position - actors[slot].position).rotated(Vector3.UP, -actors[slot].rotation.y)
-		var assessment := physique.stabilize_set(Geometry.evaluate(shapes[slot], local))
-		var deviation := (1.0 - float(assessment.quality)) * (1.0 - physique.ball_control() / 120.0)
-		lab.ball_velocity = lab.ball_velocity.rotated(Vector3.UP, deviation * sin(total_contacts * 1.7 + 0.8) * 0.5)
-	if action == 0 and execution.hit:
-		lab.ball_velocity = Geometry.ReceivePlatform.redirect(lab.ball_velocity, lab.ball.position, actors[slot].rotation.y, incoming, execution, lab.GRAVITY)
-	elif action == 2:
-		lab.ball_velocity *= float(execution.get("strength", 0.48))
-	var forward := Vector3.FORWARD.rotated(Vector3.UP, actors[slot].rotation.y)
-	if action == 2:
-		last_aim = BotAim.apply(lab.ball.position, lab.ball_velocity, aiming_accuracy[slot], lab.GRAVITY, aim_random)
-		lab.ball_velocity = last_aim.velocity
-		var direction_result := SpikeDirection.resolve(lab.ball_velocity, execution, Vector3.ZERO, forward, true)
-		lab.ball_velocity = direction_result.velocity
-		if motion.plans.has(slot):
-			motion.plans[slot]["swing_yaw"] = direction_result.shot_yaw_radians
-	lab.ball_velocity = Execution.velocity(action, lab.ball_velocity, incoming, forward, execution, physique.timing(), ideal,physique.ball_control(),lab.contact_flow.amount("training_bot_%d"%slot),physique.low_stamina_factor())
-	if action == 0:
-		var toward_setter := setter_direction(slot, lab.ball.position)
-		if toward_setter.length_squared() > 0:
-			var horizontal_speed := Vector2(lab.ball_velocity.x, lab.ball_velocity.z).length()
-			lab.ball_velocity.x = toward_setter.x * horizontal_speed
-			lab.ball_velocity.z = toward_setter.z * horizontal_speed
-	if action != 2:
-		var keep_setter_heading := action == 0 and setter_direction(slot, lab.ball.position).length_squared() > 0
-		last_aim = BotAim.apply(lab.ball.position, lab.ball_velocity, aiming_accuracy[slot], lab.GRAVITY, aim_random, keep_setter_heading)
-		lab.ball_velocity = last_aim.velocity
-	if action == 0:
-		lab.ball_velocity = ReceiveCharge.velocity(ReceiveOutcome.velocity(lab.ball_velocity,execution), incoming, forward, execution)
+	request.base_velocity = lab.ball_velocity
+	var result := ContactResolver.resolve(request, execution)
+	lab.ball_velocity = result.velocity
+	last_aim = result.aiming
+	if action == 2 and motion.plans.has(slot):
+		motion.plans[slot]["swing_yaw"] = result.influence.shot_yaw_radians
 	lab.ball_shot = ReceiveCharge.shot(["receive", "set", "attack", "block"][action], lab.contact_flow.attack_charge(float(prepared.locked_charge),"training_bot_%d"%slot,lab.ball.position) if action == 2 else float(prepared.locked_charge), "training_bot_%d" % slot)
 	if action == 2 and execution.hit:
 		lab.contact_flow.consume_attack("training_bot_%d"%slot)

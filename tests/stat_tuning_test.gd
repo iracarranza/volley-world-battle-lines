@@ -1,14 +1,7 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Stats := preload("res://scripts/stat_tuning.gd")
 const Athlete := preload("res://scripts/athlete.gd")
 const Charge := preload("res://scripts/receive_charge.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func athlete(name: String, value: float) -> RefCounted:
 	var a := Athlete.new()
 	a.build = Athlete.BUILDS[0].duplicate(true)
@@ -72,9 +65,9 @@ func run() -> void:
 		lab._reset()
 		lab.athlete.build.statistics = {"explosiveness":rating}
 		lab.selected = 2
-		lab._begin_approach()
+		lab.motion.begin_approach()
 		lab._physics_process(0.1)
-		check(is_equal_approx(lab.jump_charge,0.1*Stats.pace(rating)/lab.Approach.DURATION),"Actual approach clock uses tier pace")
+		check(is_equal_approx(lab.motion.jump_charge,0.1*Stats.pace(rating)/lab.Approach.DURATION),"Actual approach clock uses tier pace")
 	lab._reset()
 	lab.athlete.build.statistics = {"explosiveness":99}
 	var normal_shot: Vector3 = lab._shot_velocity(Vector3(0,3,4),2,0.8)
@@ -87,8 +80,8 @@ func run() -> void:
 	check(is_equal_approx(lab.action_endlag,0.2-0.05*1.4),"Actual endlag runs faster with Transition Speed")
 	lab.athlete.build.statistics = {"capacity":99}
 	lab._reset()
-	lab.athlete_hud.update_values()
-	check(lab.athlete.stamina == 150 and lab.athlete_hud.sta_bar.max_value == 150,"Reset and HUD respect capacity")
+	lab.hud.athlete_hud.update_values()
+	check(lab.athlete.stamina == 150 and lab.hud.athlete_hud.sta_bar.max_value == 150,"Reset and HUD respect capacity")
 	check(athlete("acceleration",99).acceleration() > base.acceleration(),"Acceleration raises velocity convergence rate")
 	check(athlete("lateral_speed",99).strafe_factor() > base.strafe_factor() and base.strafe_factor() < 1,"Lateral Speed reduces real strafe penalty")
 	lab.queue_free()

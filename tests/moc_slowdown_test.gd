@@ -1,22 +1,15 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Clock := preload("res://scripts/moment_of_contact.gd")
-var failures := 0
-var checks := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
 	var clock := Clock.new()
 	root.add_child(clock)
-	for mode in [Clock.Mode.CURRENT_SLOWDOWN, Clock.Mode.IMPACT_HOLD]:
+	for mode in [Clock.Mode.CURRENT_SLOWDOWN, Clock.Mode.TUNED_SLOWDOWN]:
 		clock.set_mode(mode)
 		clock.begin({"action":2,"physical_hit":true,"sweet":true,"incoming_velocity":Vector3(0,-12,0),"outgoing_velocity":Vector3(0,0,-24)})
 		check(clock.active and Engine.time_scale == 1.0 and clock.simulation_scale() == 0.60,"Both modes use 60% speed simulation")
-		check(not clock.holding(),"Neither mode freezes physics, poses, or inputs")
+		check(clock.simulation_scale() > 0.0,"Neither mode freezes physics, poses, or inputs")
 		var simulated := 0.0
 		var start := Time.get_ticks_usec()
 		while Time.get_ticks_usec() - start < 70000:
@@ -36,7 +29,7 @@ func run() -> void:
 	lab.set_physics_process(false)
 	lab.auto_feed = false
 	await physics_frame
-	for mode in [Clock.Mode.CURRENT_SLOWDOWN, Clock.Mode.IMPACT_HOLD]:
+	for mode in [Clock.Mode.CURRENT_SLOWDOWN, Clock.Mode.TUNED_SLOWDOWN]:
 		for action in range(5):
 			lab._reset()
 			lab.moc.set_mode(mode)
@@ -65,9 +58,9 @@ func run() -> void:
 	bots.tick_motion(0.1)
 	check(is_equal_approx(bots.motion.plans[0].elapsed,0.1),"Unrelated bot motion progresses at full speed")
 	check(is_equal_approx(bots.motion.plans[2].elapsed,0.06),"Acting bot motion progresses at 60% speed")
-	lab._toggle_moc_mode()
-	lab._toggle_moc_mode()
-	check(lab.moc.mode == Clock.Mode.NONE and lab.moc_button.text.contains("OFF"),"Toolbar cycles to No MoC")
+	lab.hud.toggle_moc_mode()
+	lab.hud.toggle_moc_mode()
+	check(lab.moc.mode == Clock.Mode.NONE and lab.hud.moc_button.text.contains("OFF"),"Toolbar cycles to No MoC")
 	lab.moc.begin({"action":2,"actor":"player","physical_hit":true,"sweet":true,"incoming_velocity":Vector3(0,-12,0),"outgoing_velocity":Vector3(0,0,-24)})
 	check(not lab.moc.active and lab.moc.simulation_scale() == 1 and lab.moc.actor_scale("player") == 1,"No MoC bypasses all contact slowdown")
 	check(lab.moc.last_event.duration_seconds == 0,"No MoC reports zero duration while retaining impact visuals")

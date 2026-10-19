@@ -1,12 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-
-func check(condition: bool, message: String) -> void:
-	checks += 1
-	if not condition:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 
 func _initialize() -> void:
 	call_deferred("run")
@@ -71,9 +63,9 @@ func run() -> void:
 			# actual receive contact integration, rather than bypassing its rules.
 			if lab.ball_active and lab.ball_velocity.y < 0 and lab.ball.position.y < 1.4 and lab.ball.position.y > 0.7:
 				lab.player.position = Vector3(lab.ball.position.x, 0, lab.ball.position.z + 0.45)
-				lab.facing_yaw = 0
-				lab.view_yaw = 0
-				lab._update_aim()
+				lab.camera_rig.facing_yaw = 0
+				lab.camera_rig.view_yaw = 0
+				lab.camera_rig.update_aim()
 				lab.armed = true
 				lab._confirm_action()
 				if lab._can_contact():
@@ -103,21 +95,21 @@ func run() -> void:
 	check(full_spike > standing_spike * 1.8, "Standing charge cannot earn a completed running-approach bonus")
 	lab._reset()
 	await settle(lab)
-	lab.approach_direction = Vector3.RIGHT
+	lab.motion.approach_direction = Vector3.RIGHT
 	lab.selected = 0
-	lab.approach_action = 0
-	lab.jump_charge = 0.16
-	lab._takeoff()
+	lab.motion.approach_action = 0
+	lab.motion.jump_charge = 0.16
+	lab.motion.takeoff()
 	var timed_speed: float = Vector2(lab.player.velocity.x, lab.player.velocity.z).length()
-	check(lab.jumped and lab.confirm_window > 0 and lab.hurtbox_root.visible, "Move + Space release must dive and confirm Receive without a click")
+	check(lab.motion.jumped and lab.confirm_window > 0 and lab.hurtbox_root.visible, "Move + Space release must dive and confirm Receive without a click")
 	check(lab.player.velocity.x > 0 and absf(lab.player.velocity.z) < 0.001, "Dive must follow movement direction instead of camera aim")
 	lab._reset()
 	await settle(lab)
-	lab.approach_direction = Vector3.RIGHT
+	lab.motion.approach_direction = Vector3.RIGHT
 	lab.selected = 0
-	lab.approach_action = 0
-	lab.jump_charge = 0.8
-	lab._takeoff()
+	lab.motion.approach_action = 0
+	lab.motion.jump_charge = 0.8
+	lab.motion.takeoff()
 	var late_speed: float = Vector2(lab.player.velocity.x, lab.player.velocity.z).length()
 	check(timed_speed > late_speed * 1.5, "Correct first-step release must create a substantially faster/farther dive")
 	lab._reset()
@@ -137,18 +129,18 @@ func run() -> void:
 	lab._update_hurtbox_visual(2.0)
 	check(not lab.hurtbox_root.visible, "Hurtbox overlay must expire after confirmation and brief linger")
 	lab._reset()
-	lab.camera_mode = lab.ViewMode.ATHLETE
+	lab.camera_rig.camera_mode = lab.ViewMode.ATHLETE
 	await settle(lab)
 	lab.selected = 2
 	key.pressed = true
 	Input.parse_input_event(key)
-	lab._begin_approach()
+	lab.motion.begin_approach()
 	var travel: Array[float] = [0.0, 0.0, 0.0]
 	var ticks: Array[int] = [0, 0, 0]
 	for frame in range(100):
-		if lab.jump_charge < 0:
+		if lab.motion.jump_charge < 0:
 			break
-		var step: int = mini(lab.Approach.step_index(lab.jump_charge), 2)
+		var step: int = mini(lab.Approach.step_index(lab.motion.jump_charge), 2)
 		var before: Vector3 = lab.player.position
 		lab._physics_process(1.0 / 60.0)
 		travel[step] += Vector2(lab.player.position.x - before.x, lab.player.position.z - before.z).length()
@@ -159,13 +151,13 @@ func run() -> void:
 	check(travel[0] > travel[1] * 1.7 and travel[0] > travel[2] * 2.0, "Actual first-step root travel must be much longer than both short steps")
 	check(travel[1] > travel[2] * 1.1, "Second and third steps must have different actual travel distances")
 	check(ticks[0] > ticks[1] * 1.7 and ticks[1] > ticks[2], "Actual step rhythm must be long, quick, then sharper")
-	check(lab.jumped and lab.player.velocity.y > 0 and lab.approach_phase_name == lab.Approach.STEP_NAMES[3], "The fourth phase must launch upward instead of adding a forward stride")
+	check(lab.motion.jumped and lab.player.velocity.y > 0 and lab.motion.approach_phase_name == lab.Approach.STEP_NAMES[3], "The fourth phase must launch upward instead of adding a forward stride")
 	lab._reset()
-	lab._update_aim()
-	lab.jump_charge = 0.89
-	lab.approach_action = 2
-	lab.approach_direction = Vector3.FORWARD
-	lab._update_pose()
+	lab.camera_rig.update_aim()
+	lab.motion.jump_charge = 0.89
+	lab.motion.approach_action = 2
+	lab.motion.approach_direction = Vector3.FORWARD
+	lab.animation.update()
 	check(lab.Approach.lead_foot(0) == 1 and lab.Approach.lead_foot(2) == 1, "Right-foot lead must remain fixed until handedness is implemented")
 	check(lab.legs[1].position.x < 0.09 and lab.legs[1].rotation.y > 0.15, "Third right foot must close inward and turn to square the plant")
 	check(lab.approach_footprints.size() == 4, "Projection must include three ground strides and an upward-launch marker")
@@ -188,19 +180,19 @@ func jump_height(lab: Node3D, action: int, progress: float, distance: float) -> 
 	lab._reset()
 	await settle(lab)
 	lab.selected = action
-	lab.approach_action = action
-	lab.approach_distance = distance
-	lab.jump_charge = progress
-	lab._takeoff()
-	return lab.last_jump_height
+	lab.motion.approach_action = action
+	lab.motion.approach_distance = distance
+	lab.motion.jump_charge = progress
+	lab.motion.takeoff()
+	return lab.motion.last_jump_height
 
 func launch_velocity(lab: Node3D, action: int, velocity: Vector3) -> Vector3:
 	lab._reset()
 	await settle(lab)
 	lab.selected = action
-	lab.approach_action = action
-	lab.approach_distance = 2.0
-	lab.jump_charge = 0.9
+	lab.motion.approach_action = action
+	lab.motion.approach_distance = 2.0
+	lab.motion.jump_charge = 0.9
 	lab.player.velocity = velocity
-	lab._takeoff()
+	lab.motion.takeoff()
 	return lab.player.velocity

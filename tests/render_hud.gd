@@ -20,9 +20,9 @@ func capture() -> void:
 	lab.locked_action = 2
 	lab.locked_charge = 0.4 if "--half" in OS.get_cmdline_user_args() else 1.0
 	lab.armed = true
-	lab._update_pose()
-	lab._update_camera(2)
-	lab._update_ui()
+	lab.animation.update()
+	lab.camera_rig.update(2)
+	lab.hud.update()
 	for frame in range(5):
 		await process_frame
 	await RenderingServer.frame_post_draw

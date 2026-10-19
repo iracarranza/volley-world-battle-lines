@@ -61,37 +61,37 @@ func setup(owner_lab: Node3D) -> void:
 	spike_root = Node3D.new()
 	spike_root.position = spike_anchor
 	add_child(spike_root)
-	lab.box(box_root, Vector3(20, 0.03, 28), Vector3(-34, -0.015, 5), Color("34423d"))
+	lab.world_builder.box(box_root, Vector3(20, 0.03, 28), Vector3(-34, -0.015, 5), Color("34423d"))
 	attack_group = Node3D.new()
 	box_root.add_child(attack_group)
 	_build_attack_decks()
-	lab.world_label("BOX JUMP / ONE-WAY TOWER", Vector3(-36, 0.15, 17) + box_anchor, 34, lab.GOLD)
-	lab.world_label("I START / LAND ON 1–4 IN ORDER / EVERY LAYER IS AN ATTACK JUMP", BOX_START + box_anchor, 24, lab.GOLD)
-	lab.world_label("CHARGE ATTACK / RUN THE DECK / HOLD SPACE LONGER FOR EACH LAYER, RELEASE TO JUMP", Vector3(TOWER_X, 0.15, 9.2) + box_anchor, 20, Color("ffb46e"))
-	lab.box(spike_root, Vector3(SPIKE_WIDTH, 0.03, 25), Vector3(-16, -0.015, 5), Color("493b3c"))
-	lab.world_label("SPIKE TRAINER / 3 JUMP HITS", Vector3(-16, 0.15, 16) + spike_anchor, 34, Color("ffb46e"))
-	lab.world_label("I START / JUMP + ATTACK INTO GOLD TARGET", SPIKE_START + Vector3(0, 0.1, 3) + spike_anchor, 24, Color("ffb46e"))
+	lab.world_builder.world_label("BOX JUMP / ONE-WAY TOWER", Vector3(-36, 0.15, 17) + box_anchor, 34, lab.GOLD)
+	lab.world_builder.world_label("I START / LAND ON 1–4 IN ORDER / EVERY LAYER IS AN ATTACK JUMP", BOX_START + box_anchor, 24, lab.GOLD)
+	lab.world_builder.world_label("CHARGE ATTACK / RUN THE DECK / HOLD SPACE LONGER FOR EACH LAYER, RELEASE TO JUMP", Vector3(TOWER_X, 0.15, 9.2) + box_anchor, 20, Color("ffb46e"))
+	lab.world_builder.box(spike_root, Vector3(SPIKE_WIDTH, 0.03, 25), Vector3(-16, -0.015, 5), Color("493b3c"))
+	lab.world_builder.world_label("SPIKE TRAINER / 3 JUMP HITS", Vector3(-16, 0.15, 16) + spike_anchor, 34, Color("ffb46e"))
+	lab.world_builder.world_label("I START / JUMP + ATTACK INTO GOLD TARGET", SPIKE_START + Vector3(0, 0.1, 3) + spike_anchor, 24, Color("ffb46e"))
 	# A floor runway with start/plant stripes and the long-short-inward rhythm.
-	lab.box(spike_root, Vector3(1.5, 0.015, RUNWAY_START.z - RUNWAY_END.z), (RUNWAY_START + RUNWAY_END) * 0.5, Color("765842"))
+	lab.world_builder.box(spike_root, Vector3(1.5, 0.015, RUNWAY_START.z - RUNWAY_END.z), (RUNWAY_START + RUNWAY_END) * 0.5, Color("765842"))
 	for z in [RUNWAY_START.z, RUNWAY_END.z]:
-		lab.box(spike_root, Vector3(1.8, 0.02, 0.10), Vector3(-16, 0.05, z), lab.GOLD)
+		lab.world_builder.box(spike_root, Vector3(1.8, 0.02, 0.10), Vector3(-16, 0.05, z), lab.GOLD)
 	for step in range(3):
 		var z: float = lerpf(RUNWAY_START.z, RUNWAY_END.z, [0.58, 0.82, 1.0][step])
 		var x: float = -16.0 + [0.18, -0.18, 0.055][step]
-		lab.box(spike_root, Vector3(0.18, 0.025, 0.34), Vector3(x, 0.06, z), lab.GOLD)
-	lab.world_label("APPROACH START / FACE BALL", RUNWAY_START + Vector3(0, 0.1, 0.5) + spike_anchor, 21, lab.GOLD)
-	lab.world_label("PLANT / JUMP", RUNWAY_END + Vector3(0, 0.1, -0.3) + spike_anchor, 20, lab.GOLD)
-	spike_goal = lab.ring(GOAL_RADIUS, lab.GOLD)
+		lab.world_builder.box(spike_root, Vector3(0.18, 0.025, 0.34), Vector3(x, 0.06, z), lab.GOLD)
+	lab.world_builder.world_label("APPROACH START / FACE BALL", RUNWAY_START + Vector3(0, 0.1, 0.5) + spike_anchor, 21, lab.GOLD)
+	lab.world_builder.world_label("PLANT / JUMP", RUNWAY_END + Vector3(0, 0.1, -0.3) + spike_anchor, 20, lab.GOLD)
+	spike_goal = lab.world_builder.ring(GOAL_RADIUS, lab.GOLD)
 	spike_goal.position = SPIKE_GOAL + Vector3.UP * 0.02 + spike_anchor
 	for x in range(-29, -6, 2):
-		lab.box(box_root if x < -22 else spike_root, Vector3(0.6, 0.025, 0.14), Vector3(x, 0.025, 14), lab.GOLD)
-	lab.world_label("← SPIKE TRAINER / BOX JUMP", Vector3(-7, 0.1, 13) + spike_anchor, 25, lab.GOLD)
+		lab.world_builder.box(box_root if x < -22 else spike_root, Vector3(0.6, 0.025, 0.14), Vector3(x, 0.025, 14), lab.GOLD)
+	lab.world_builder.world_label("← SPIKE TRAINER / BOX JUMP", Vector3(-7, 0.1, 13) + spike_anchor, 25, lab.GOLD)
 
 # A slab you can pass up through and land on. The footprint is solid only while the feet are on or above the top,
 # decided each physics frame in update_one_way().
 func _add_deck(parent: Node3D, top: Vector3, footprint: Vector2, tint: Color) -> Dictionary:
 	var thickness := 0.3
-	var visual: MeshInstance3D = lab.box(parent, Vector3(footprint.x, thickness, footprint.y), Vector3(top.x, top.y - thickness * 0.5, top.z), tint)
+	var visual: MeshInstance3D = lab.world_builder.box(parent, Vector3(footprint.x, thickness, footprint.y), Vector3(top.x, top.y - thickness * 0.5, top.z), tint)
 	var body := StaticBody3D.new()
 	var collision := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
@@ -163,7 +163,7 @@ func _build_attack_decks() -> void:
 		var charge: float = lab.athlete.charge_for_factor(float(LAYER_FACTORS[k]))
 		layer_charges.append(charge)
 		attack_one_way.append(_add_deck(attack_group, top, DECK_SIZE, Color("a8623a").lightened(k * 0.06)))
-		var mark: MeshInstance3D = lab.ring(0.6, Color("ffb46e"))
+		var mark: MeshInstance3D = lab.world_builder.ring(0.6, Color("ffb46e"))
 		mark.position = top + Vector3.UP * 0.035 + box_anchor
 		attack_markers.append(mark)
 		var label := Label3D.new()
@@ -226,9 +226,9 @@ func clear_preparation() -> void:
 	lab.armed = false
 	lab.charging = false
 	lab.confirm_window = 0
-	lab.jump_charge = -1
-	lab.approach_bound = false
-	lab.approach_release_pending = false
+	lab.motion.jump_charge = -1
+	lab.motion.approach_bound = false
+	lab.motion.approach_release_pending = false
 
 func start_box() -> void:
 	if not in_box_zone():
@@ -271,7 +271,7 @@ func load_spike() -> void:
 
 func tick(dt: float) -> void:
 	# In the tower an attack jump is cleared by how long Space was held, not by the speed it happened to be released at.
-	lab.attack_energy_conversion = not in_box_zone()
+	lab.motion.attack_energy_conversion = not in_box_zone()
 	if box_state == State.ACTIVE:
 		if not in_box_zone():
 			box_state = State.FAILED
@@ -312,7 +312,7 @@ func tick(dt: float) -> void:
 func on_contact(action: int) -> void:
 	if spike_state != State.ACTIVE:
 		return
-	if action != 2 or not lab.jumped or lab.airborne_action != 2:
+	if action != 2 or not lab.motion.jumped or lab.motion.airborne_action != 2:
 		fail_spike("A jumping Attack is required / I to retry")
 		return
 	spike_state = State.RETURNING

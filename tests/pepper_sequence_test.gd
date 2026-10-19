@@ -1,11 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
@@ -46,10 +39,10 @@ func run() -> void:
 			lab.locked_action = 0
 			lab._contact()
 			check(lab._contact_event_serial == old_count, "Accurate Receive cannot be answered with another Receive")
-			lab.facing_yaw = 0
+			lab.camera_rig.facing_yaw = 0
 			lab.locked_action = 1
 			lab.locked_charge = 0.55
-			lab.view_pitch = 0.27
+			lab.camera_rig.view_pitch = 0.27
 			lab.armed = true
 			var shape: Dictionary = lab._hurtbox_definition(1)
 			lab.ball.position = lab.player.position + Vector3(shape.center) + Vector3.UP * shape.radius * 0.55
@@ -72,14 +65,14 @@ func run() -> void:
 	lab.ball_velocity = Vector3.DOWN * 2
 	check(pepper.required_player_action() == 0, "Delivery dropping below overhead reach becomes recovery Receive")
 	lab._reset()
-	lab._update_camera(2)
-	lab._set_camera_mode(lab.ViewMode.BALL)
+	lab.camera_rig.update(2)
+	lab.camera_rig.set_mode(lab.ViewMode.BALL)
 	lab.ball_active = true
 	for offset in [Vector3(4, 3, -8), Vector3(-8, 5, -12), Vector3(0, 20, 0)]:
 		lab.ball.position = lab.player.position + offset
-		lab._update_camera(2)
+		lab.camera_rig.update(2)
 		check(lab.camera.is_position_in_frustum(lab.ball.position), "Ball View frames ball")
-		check(lab.camera.unproject_position(lab.ball_frame_pivot).distance_to(Vector2(720, 900 * lab.ball_frame_screen_y)) < 0.1, "Camera frames athlete at bottom center")
+		check(lab.camera.unproject_position(lab.camera_rig.ball_frame_pivot).distance_to(Vector2(720, 900 * lab.camera_rig.ball_frame_screen_y)) < 0.1, "Camera frames athlete at bottom center")
 		if offset.y < 10:
 			check(lab.camera.is_position_in_frustum(lab.ball.position), "Orbit angle keeps ordinary ball flight on screen")
 		else:

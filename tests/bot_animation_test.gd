@@ -1,15 +1,8 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const BotAnimation := preload("res://scripts/bot_animation.gd")
 const Library := preload("res://scripts/pose_library.gd")
 const SetStage := preload("res://scripts/set_stage.gd")
 const SpikeStage := preload("res://scripts/spike_stage.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:

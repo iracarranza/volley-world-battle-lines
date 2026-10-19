@@ -1,11 +1,6 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Wing := preload("res://scripts/wing_pose.gd")
 const Visual := preload("res://scripts/voli_visual.gd")
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:

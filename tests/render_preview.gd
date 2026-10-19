@@ -26,40 +26,40 @@ func capture() -> void:
 		lab.ball.position = Vector3(14.5, 2.6, 5.5)
 		lab.selected = 0
 		lab.locked_action = 0
-		lab.view_yaw = -0.30
-		lab.facing_yaw = -0.30
+		lab.camera_rig.view_yaw = -0.30
+		lab.camera_rig.facing_yaw = -0.30
 	elif "--approach" in OS.get_cmdline_user_args():
 		lab.selected = 2
 		lab.locked_action = 2
-		lab.jump_charge = 0.56
-		lab.approach_action = 2
-		lab.approach_phase_name = lab.Approach.STEP_NAMES[1]
-		lab.approach_direction = Vector3.FORWARD
-	lab.camera_mode = lab.ViewMode.BALL if "--ball" in OS.get_cmdline_user_args() else lab.ViewMode.ATHLETE
+		lab.motion.jump_charge = 0.56
+		lab.motion.approach_action = 2
+		lab.motion.approach_phase_name = lab.Approach.STEP_NAMES[1]
+		lab.motion.approach_direction = Vector3.FORWARD
+	lab.camera_rig.camera_mode = lab.ViewMode.BALL if "--ball" in OS.get_cmdline_user_args() else lab.ViewMode.ATHLETE
 	if "--spike" in OS.get_cmdline_user_args():
 		lab.selected = 2
 		lab.locked_action = 2
-	lab._update_aim()
-	lab._update_pose()
+	lab.camera_rig.update_aim()
+	lab.animation.update()
 	if "--bots" in OS.get_cmdline_user_args():
 		lab.training_bots.replan()
 	if not "--approach" in OS.get_cmdline_user_args():
 		lab._confirm_action()
-	lab._update_camera(2.0)
+	lab.camera_rig.update(2.0)
 	lab._update_preview()
-	lab._update_ui()
+	lab.hud.update()
 	if "--box" in OS.get_cmdline_user_args():
 		lab.player.position = lab.drills.BOX_START
 		lab.drills.start_box()
-		lab._update_pose()
-		lab._update_ui()
+		lab.animation.update()
+		lab.hud.update()
 		lab.camera.position = Vector3(-28, 7.5, 13)
 		lab.camera.look_at(Vector3(-36, 5.0, 4))
 	elif "--trainer" in OS.get_cmdline_user_args():
 		lab.player.position = lab.drills.SPIKE_START
 		lab.drills.start_spike()
-		lab._update_pose()
-		lab._update_ui()
+		lab.animation.update()
+		lab.hud.update()
 		lab.camera.position = Vector3(-8, 9, 19)
 		lab.camera.look_at(Vector3(-16, 1.5, 6))
 	if "--creator" in OS.get_cmdline_user_args():
@@ -69,7 +69,7 @@ func capture() -> void:
 		lab._rebuild_visual()
 	await process_frame
 	await RenderingServer.frame_post_draw
-	var filename := "contact-lab-ball" if lab.camera_mode == lab.ViewMode.BALL else "contact-lab-athlete"
+	var filename := "contact-lab-ball" if lab.camera_rig.camera_mode == lab.ViewMode.BALL else "contact-lab-athlete"
 	if "--station" in OS.get_cmdline_user_args():
 		filename = "serve-receive-station"
 	elif "--approach" in OS.get_cmdline_user_args():

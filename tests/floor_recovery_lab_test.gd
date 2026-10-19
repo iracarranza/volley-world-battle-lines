@@ -1,11 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-func check(c: bool, m: String) -> void:
-	checks += 1
-	if not c:
-		failures += 1
-		push_error(m)
+extends "res://tests/support/test_case.gd"
 func _initialize() -> void:
 	call_deferred("run")
 func event(recovery: String, x: float = 0.0, factor: float = 1.0) -> Dictionary:
@@ -15,22 +8,22 @@ func run() -> void:
 	root.add_child(lab)
 	lab.set_process(false)
 	lab.auto_feed = false
-	lab.pose_smoothing = false
+	lab.animation.pose_smoothing = false
 	await physics_frame
 	lab.player.position = Vector3(0, 0.03, 6)
 	for name in ["knee", "knocked_away", "collapse", "blown_away", "shrug"]:
-		lab.floor_recovery_time = -1.0
+		lab.animation.floor_recovery_time = -1.0
 		lab.receive_resolved.emit(event(name, 0.5))
-		check(lab.floor_recovery_time == 0.0 and lab.floor_recovery_name == name, "%s starts on the event" % name)
+		check(lab.animation.floor_recovery_time == 0.0 and lab.animation.floor_recovery_name == name, "%s starts on the event" % name)
 		var start: Vector3 = lab.player.position
 		var locked_seen := false
 		var steps := 0
-		while lab.floor_recovery_time >= 0.0 and steps < 400:
-			locked_seen = locked_seen or lab.floor_input_locked()
+		while lab.animation.floor_recovery_time >= 0.0 and steps < 400:
+			locked_seen = locked_seen or lab.animation.floor_input_locked()
 			lab._physics_process(1.0 / 60.0)
-			lab._update_pose()
+			lab.animation.update()
 			steps += 1
-		check(lab.floor_recovery_time < 0.0, "%s ends" % name)
+		check(lab.animation.floor_recovery_time < 0.0, "%s ends" % name)
 		check(locked_seen, "%s locks input at first" % name)
 		var expected: float = load("res://scripts/floor_recovery.gd").duration(name)
 		check(absf(steps / 60.0 - expected) < 0.1, "%s lasts its VWM time (%.2f vs %.2f)" % [name, steps / 60.0, expected])
@@ -43,19 +36,19 @@ func run() -> void:
 			check(moved.z > 0.1 and moved.x < -0.05, "%s steps back and away from the contact side (%.2f, %.2f)" % [name, moved.z, moved.x])
 	# Ignored cases
 	lab.receive_resolved.emit(event(""))
-	check(lab.floor_recovery_time < 0.0, "No recovery, no playback")
+	check(lab.animation.floor_recovery_time < 0.0, "No recovery, no playback")
 	var bot := event("knee")
 	bot.actor = "training_bot_1"
 	lab.receive_resolved.emit(bot)
-	check(lab.floor_recovery_time < 0.0, "Bots do not move the player")
-	lab.jumped = true
+	check(lab.animation.floor_recovery_time < 0.0, "Bots do not move the player")
+	lab.motion.jumped = true
 	lab.receive_resolved.emit(event("knee"))
-	check(lab.floor_recovery_time < 0.0, "No floor recovery in the air")
-	lab.jumped = false
+	check(lab.animation.floor_recovery_time < 0.0, "No floor recovery in the air")
+	lab.motion.jumped = false
 	lab.receive_resolved.emit(event("knee", 0.0, 0.65))
-	var fast: float = lab._floor_recovery_total()
-	lab.floor_recovery_time = -1.0
+	var fast: float = lab.animation.floor_recovery_total()
+	lab.animation.floor_recovery_time = -1.0
 	lab.receive_resolved.emit(event("knee", 0.0, 1.35))
-	check(lab._floor_recovery_total() > fast * 1.9, "Helpful DI shortens and contrary DI stretches the recovery")
+	check(lab.animation.floor_recovery_total() > fast * 1.9, "Helpful DI shortens and contrary DI stretches the recovery")
 	print("floor_recovery_lab: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)

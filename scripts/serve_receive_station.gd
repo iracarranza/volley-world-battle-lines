@@ -38,31 +38,31 @@ func setup(owner_lab: Node3D) -> void:
 	lab = owner_lab
 	origin = lab.station_origin
 	position = origin
-	lab.box(self, Vector3(WIDTH, 0.12, LENGTH), Vector3(16, -0.06, HALF), Color("304d69"))
+	lab.world_builder.box(self, Vector3(WIDTH, 0.12, LENGTH), Vector3(16, -0.06, HALF), Color("304d69"))
 	for x in [13.0, 19.0]:
-		lab.box(self, Vector3(0.06, 0.025, LENGTH), Vector3(x, 0.025, HALF), Color("91b8f2"))
+		lab.world_builder.box(self, Vector3(0.06, 0.025, LENGTH), Vector3(x, 0.025, HALF), Color("91b8f2"))
 	for z in [0.0, HALF, LENGTH]:
-		lab.box(self, Vector3(WIDTH, 0.025, 0.06), Vector3(16, 0.025, z), Color("91b8f2"))
-	lab.box(self, Vector3(WIDTH, 0.015, HALF), Vector3(16, 0.012, HALF * 0.5), Color("386b70"))
-	lab.box(self, Vector3(WIDTH * 0.5, 0.018, HALF), Vector3(17.5, 0.023, HALF * 0.5), Color("78703c"))
+		lab.world_builder.box(self, Vector3(WIDTH, 0.025, 0.06), Vector3(16, 0.025, z), Color("91b8f2"))
+	lab.world_builder.box(self, Vector3(WIDTH, 0.015, HALF), Vector3(16, 0.012, HALF * 0.5), Color("386b70"))
+	lab.world_builder.box(self, Vector3(WIDTH * 0.5, 0.018, HALF), Vector3(17.5, 0.023, HALF * 0.5), Color("78703c"))
 	for x in [16.0]:
-		lab.box(self, Vector3(0.04, 0.025, HALF), Vector3(x, 0.04, HALF * 0.5), Color("b7d6bd"))
-	lab.world_label("RECEIVE HERE / 1 PT", Vector3(14.5, 0.15, 3.25) + origin, 24, Color("9ce5d8"))
-	lab.world_label("2 PTS", Vector3(17.5, 0.15, 3.25) + origin, 28, Color("ffe28a"))
+		lab.world_builder.box(self, Vector3(0.04, 0.025, HALF), Vector3(x, 0.04, HALF * 0.5), Color("b7d6bd"))
+	lab.world_builder.world_label("RECEIVE HERE / 1 PT", Vector3(14.5, 0.15, 3.25) + origin, 24, Color("9ce5d8"))
+	lab.world_builder.world_label("2 PTS", Vector3(17.5, 0.15, 3.25) + origin, 28, Color("ffe28a"))
 	# A continuous traversable connection, no teleport or scene change.
 	for x in range(5, 13):
-		lab.box(self, Vector3(0.6, 0.025, 0.14), Vector3(x, 0.025, 6), Color("8bbdf4"))
-	lab.world_label("SERVE RECEIVE  /  8 POINTS", Vector3(16, 0.4, -0.4) + origin, 42, Color("8bbdf4"))
-	lab.world_label("SERVE RECEIVE  →", Vector3(6.5, 0.2, 5) + origin, 30, Color("8bbdf4"))
-	lab.world_label("I / START OR RETRY", START + Vector3(0, 0.2, 1.5) + origin, 27, Color("cbdfff"))
-	marker = lab.ring(1.25, Color("8bbdf4"))
+		lab.world_builder.box(self, Vector3(0.6, 0.025, 0.14), Vector3(x, 0.025, 6), Color("8bbdf4"))
+	lab.world_builder.world_label("SERVE RECEIVE  /  8 POINTS", Vector3(16, 0.4, -0.4) + origin, 42, Color("8bbdf4"))
+	lab.world_builder.world_label("SERVE RECEIVE  →", Vector3(6.5, 0.2, 5) + origin, 30, Color("8bbdf4"))
+	lab.world_builder.world_label("I / START OR RETRY", START + Vector3(0, 0.2, 1.5) + origin, 27, Color("cbdfff"))
+	marker = lab.world_builder.ring(1.25, Color("8bbdf4"))
 	marker.position = START + Vector3.UP * 0.04 + origin
 	for target in TARGETS:
-		var target_ring: MeshInstance3D = lab.ring(0.38, Color("547da4"))
+		var target_ring: MeshInstance3D = lab.world_builder.ring(0.38, Color("547da4"))
 		target_ring.position = Vector3(target.x, 0.025, target.z) + origin
-	var machine: MeshInstance3D = lab.box(self, Vector3(1.0, 1.3, 1), Vector3(16, 0.65, SERVE_BASELINE_Z), Color("607f9e"))
-	lab.box(self, Vector3(0.15, 3.6, 0.15), Vector3(15.35, 2.45, SERVE_BASELINE_Z), Color("607f9e"))
-	striker = lab.box(self, Vector3(0.65, 0.18, 0.55), Vector3(16, 4.5, SERVE_BASELINE_Z), Color("ffb46e"))
+	var machine: MeshInstance3D = lab.world_builder.box(self, Vector3(1.0, 1.3, 1), Vector3(16, 0.65, SERVE_BASELINE_Z), Color("607f9e"))
+	lab.world_builder.box(self, Vector3(0.15, 3.6, 0.15), Vector3(15.35, 2.45, SERVE_BASELINE_Z), Color("607f9e"))
+	striker = lab.world_builder.box(self, Vector3(0.65, 0.18, 0.55), Vector3(16, 4.5, SERVE_BASELINE_Z), Color("ffb46e"))
 	feeder_label = Label3D.new()
 	add_child(feeder_label)
 	feeder_label.position = machine.position + Vector3.UP * 4.7

@@ -23,9 +23,9 @@ func run() -> void:
 			lab.bench.tick(0.6)
 		else:
 			lab.bench.toggle_spectate()
-		lab._update_pose()
-		lab._update_camera(2)
-		lab._update_ui()
+		lab.animation.update()
+		lab.camera_rig.update(2)
+		lab.hud.update()
 		for frame in range(3):
 			await process_frame
 		await RenderingServer.frame_post_draw

@@ -1,15 +1,8 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Outcome := preload("res://scripts/receive_outcome.gd")
 const Platform := preload("res://scripts/receive_platform.gd")
 const Charge := preload("res://scripts/receive_charge.gd")
 const Execution := preload("res://scripts/contact_execution.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func sample(point: Vector3, charge: float = 0.65, incoming_charge: float = 0.65, input: Vector3 = Vector3.ZERO, speed: float = 0, yaw: float = 0) -> Dictionary:
 	var shape := Platform.definition(1.86,false)
 	var spatial := Platform.evaluate(shape,point-Vector3(shape.center))

@@ -10,13 +10,13 @@ func capture() -> void:
 	await physics_frame
 	var args := OS.get_cmdline_user_args()
 	lab.player.position = Vector3(8, 0.03, 14)
-	lab.view_pitch = -0.12
+	lab.camera_rig.view_pitch = -0.12
 	if "--box" in args:
 		lab.player.position = Vector3(-29, 0.03, 12)
-		lab.view_pitch = 1.0
-	lab._update_aim()
-	lab._update_pose()
-	lab._update_camera(2)
+		lab.camera_rig.view_pitch = 1.0
+	lab.camera_rig.update_aim()
+	lab.animation.update()
+	lab.camera_rig.update(2)
 	lab._serve()
 	for frame in range(18):
 		lab._tick_ball(1.0 / 120)
@@ -30,12 +30,12 @@ func capture() -> void:
 		for frame in range(6):
 			lab._tick_ball(1.0 / 120)
 	if "--ball" in args:
-		lab._set_camera_mode(lab.ViewMode.BALL)
+		lab.camera_rig.set_mode(lab.ViewMode.BALL)
 	if "--hidden" in args:
-		lab._toggle_debug_volumes()
-	lab._update_pose()
-	lab._update_camera(2)
-	lab._update_ui()
+		lab.hud.toggle_debug_volumes()
+	lab.animation.update()
+	lab.camera_rig.update(2)
+	lab.hud.update()
 	for frame in range(5):
 		await process_frame
 	await RenderingServer.frame_post_draw

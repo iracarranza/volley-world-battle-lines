@@ -1,16 +1,9 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 # Every animation that lives in data/poses must reach the lab: changing the pose data changes the body.
 const Library := preload("res://scripts/pose_library.gd")
 const Pose := preload("res://scripts/athlete_pose.gd")
 const Receive := preload("res://scripts/receive_pose.gd")
 const Visual := preload("res://scripts/voli_visual.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 # Pretend the file on disk says `channels` (a mirrored change), without touching the file.
@@ -54,36 +47,36 @@ func run() -> void:
 	game.armed = true
 	game.locked_action = 1
 	game.selected = 1
-	game._update_pose()
-	check(is_equal_approx(game._set_phase(), -0.16), "an armed set holds the gather")
+	game.animation.update()
+	check(is_equal_approx(game.animation.set_phase(), -0.16), "an armed set holds the gather")
 	var gather := Library.read_file("set_gather")
 	var rig := Library.read_rig(game.body)
 	check(absf(float(rig["shoulder_pitch:Left"]) - Library.value(gather, "shoulder_pitch", "Left")) < 1.0 and absf(float(rig["elbow:Right"]) - Library.value(gather, "elbow", "Right")) < 1.0, "the lab's set shows the set_gather pose (%.1f vs %.1f)" % [float(rig["shoulder_pitch:Left"]), Library.value(gather, "shoulder_pitch", "Left")])
 	_edit("set_gather", {"shoulder_pitch": 70.0, "elbow": 120.0})
-	game._update_pose()
+	game.animation.update()
 	var edited := Library.read_rig(game.body)
 	check(absf(float(edited["shoulder_pitch:Left"]) - 70.0) < 1.0 and absf(float(edited["elbow:Left"]) - 120.0) < 1.0, "editing set_gather changes the lab's set (%.1f, %.1f)" % [float(edited["shoulder_pitch:Left"]), float(edited["elbow:Left"])])
 	_restore("set_gather")
 	game.last_contact = game.elapsed - 0.25
 	game.last_contact_result = {"action": 1}
 	game.armed = false
-	var follow: float = game._set_phase()
+	var follow: float = game.animation.set_phase()
 	check(follow > 0.2 and follow < 0.8, "after contact the set pushes through and recovers (phase %.2f)" % follow)
 	game.last_contact = -10.0
 	game.last_contact_result = {}
-	check(game._set_phase() < -1.5, "with nothing armed there is no set pose")
+	check(game.animation.set_phase() < -1.5, "with nothing armed there is no set pose")
 	game.armed = true
 	game.locked_action = 1
-	game.jumped = true
-	game.airborne_action = 1
-	game.set_flight_time = 0.5
-	game.set_air_time = 0.25
-	game._update_pose()
+	game.motion.jumped = true
+	game.motion.airborne_action = 1
+	game.animation.set_flight_time = 0.5
+	game.animation.set_air_time = 0.25
+	game.animation.update()
 	var jump_rig := Library.read_rig(game.body)
 	var jump_contact := Library.read_file("set_jump_contact")
-	check(absf(float(jump_rig["knee:Left"]) - Library.value(jump_contact, "knee", "Left")) < 3.0 and game._pose_source(false, false, false) == "set", "a jump set at the top of the jump shows set_jump_contact and draws as the set (knee %.1f)" % float(jump_rig["knee:Left"]))
+	check(absf(float(jump_rig["knee:Left"]) - Library.value(jump_contact, "knee", "Left")) < 3.0 and game.animation.pose_source(false, false, false) == "set", "a jump set at the top of the jump shows set_jump_contact and draws as the set (knee %.1f)" % float(jump_rig["knee:Left"]))
 	game.armed = false
-	game.jumped = false
-	game.airborne_action = -1
+	game.motion.jumped = false
+	game.motion.airborne_action = -1
 	print("POSE WIRING CHECKS: %d passed / %d total" % [checks - failures, checks])
 	quit(1 if failures > 0 else 0)

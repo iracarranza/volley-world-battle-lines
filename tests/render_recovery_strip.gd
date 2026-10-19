@@ -29,7 +29,7 @@ func capture() -> void:
 	lab.set_process(false)
 	lab.set_physics_process(false)
 	lab.auto_feed = false
-	lab.pose_smoothing = false
+	lab.animation.pose_smoothing = false
 	await process_frame
 	var cam := Camera3D.new()
 	cam.fov = 45.0

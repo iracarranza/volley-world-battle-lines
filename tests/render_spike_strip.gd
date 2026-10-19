@@ -9,10 +9,10 @@ func capture() -> void:
 	lab.set_process(false)
 	lab.set_physics_process(false)
 	lab.auto_feed = false
-	lab.jumped = true
-	lab.airborne_action = 2
-	lab.jump_charge = -1
-	lab.spike_flight_time = 0.6
+	lab.motion.jumped = true
+	lab.motion.airborne_action = 2
+	lab.motion.jump_charge = -1
+	lab.animation.spike_flight_time = 0.6
 	lab.armed = true
 	lab.locked_action = 2
 	lab.locked_charge = 0.8
@@ -25,11 +25,11 @@ func capture() -> void:
 			ball_side = float(a.substr(7))
 	lab.ball_active = true
 	for i in range(8):
-		lab.spike_air_time = float(frames[i][0])
-		lab.spike_swing_time = float(frames[i][1])
-		lab.spike_hit_time = float(frames[i][2])
+		lab.animation.spike_air_time = float(frames[i][0])
+		lab.animation.spike_swing_time = float(frames[i][1])
+		lab.animation.spike_hit_time = float(frames[i][2])
 		lab.ball.position = lab.player.position + lab.body.global_basis * Vector3(ball_side, 2.3, -0.4)
-		lab._update_pose()
+		lab.animation.update()
 		lab.player.position.y = 0.9 * sin(PI * minf(float(frames[i][0]) / 0.6, 1.0))
 		lab.body.position.y = 0.0
 		lab.camera.position = lab.player.position + Vector3(-2.8, 0.9, -1.2)

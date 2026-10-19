@@ -1,11 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 func _initialize() -> void:
 	call_deferred("run")
 func exhaust(lab: Node3D) -> void:
@@ -44,13 +37,13 @@ func run() -> void:
 	lab.player.position = Vector3(0,0.03,5)
 	lab.armed = true
 	lab.charging = true
-	lab.jump_charge = 0.2
+	lab.motion.jump_charge = 0.2
 	var layer: int = lab.player.collision_layer
 	var mask: int = lab.player.collision_mask
 	lab._physics_process(0.01)
 	check(lab.is_benched() and lab.bench.remaining < 5, "Entering rally while Exhausted immediately benches")
 	check(lab.ball_active, "Benching preserves live team rally")
-	check(not lab.armed and not lab.charging and lab.jump_charge < 0 and lab.confirm_window == 0, "Bench cancels all prepared inputs")
+	check(not lab.armed and not lab.charging and lab.motion.jump_charge < 0 and lab.confirm_window == 0, "Bench cancels all prepared inputs")
 	check(lab.player.collision_layer == 0 and lab.player.collision_mask == 0, "Dragged athlete is removed from collision")
 	var paused_remaining: float = lab.bench.remaining
 	lab.paused = true
@@ -63,7 +56,7 @@ func run() -> void:
 	lab.bench.tick(0.49)
 	check(lab.player.position.y > 5 and lab.player.position.z > 10 and lab.player.position.z < 48, "Athlete travels through air toward Home Base")
 	lab.bench.tick(0.5)
-	lab._update_pose()
+	lab.animation.update()
 	check(lab.player.position.distance_to(lab.bench.HOME) < 0.001, "Return reaches home bench after one second")
 	check(absf(lab.legs[0].rotation.x - PI*0.5) < 0.001 and absf(lab.legs[0].get_node("Knee").rotation.x + PI*0.5) < 0.001, "Athlete sits with bent knees on bench")
 	check(lab.bench.teammates() == [0,1], "Only enabled Home bots can be spectated")
@@ -75,7 +68,7 @@ func run() -> void:
 	key.keycode = KEY_R
 	lab._unhandled_input(key)
 	check(lab.bench.spectator == 1, "R cycles enabled Home teammate")
-	lab._update_camera(2)
+	lab.camera_rig.update(2)
 	check(lab.camera.position.distance_to(lab.training_bots.actors[1].position) < 8, "Spectator camera follows teammate")
 	lab.training_bots.toggle(1)
 	lab.bench.refresh_ui()
@@ -85,10 +78,10 @@ func run() -> void:
 	check(lab.bench.spectator == -1 and lab.bench.watch.disabled, "No active Home bots returns view to bench")
 	key.keycode = KEY_E
 	lab._unhandled_input(key)
-	lab._begin_jump()
+	lab.motion.begin_jump()
 	var count: int = lab._contact_event_serial
 	lab._contact()
-	check(not lab.serve.tossing() and lab.jump_charge < 0 and lab._contact_event_serial == count, "Benched athlete cannot serve, jump or contact")
+	check(not lab.serve.tossing() and lab.motion.jump_charge < 0 and lab._contact_event_serial == count, "Benched athlete cannot serve, jump or contact")
 	var ball_before: Vector3 = lab.ball.position
 	lab._tick_benched(0.01)
 	check(lab.ball.position != ball_before, "Rally simulation continues while Benched")

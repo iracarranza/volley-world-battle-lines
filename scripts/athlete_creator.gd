@@ -87,8 +87,8 @@ func _build() -> void:
 	left.custom_minimum_size.x = 470
 	left.add_theme_constant_override("separation", 10)
 	columns.add_child(left)
-	left.add_child(lab.label("CREATE YOUR ATHLETE", 25, lab.TEAL))
-	left.add_child(lab.label("Position + physique + shared attribute investment", 13))
+	left.add_child(lab.hud.label("CREATE YOUR ATHLETE", 25, lab.TEAL))
+	left.add_child(lab.hud.label("Position + physique + shared attribute investment", 13))
 	var name_edit := LineEdit.new()
 	name_edit.text = draft.name
 	name_edit.placeholder_text = "Athlete name"
@@ -165,9 +165,9 @@ func _build() -> void:
 		refresh_preview()
 	)
 	row(left, "WINGSPAN", span_control)
-	budget_label = lab.label("", 16, lab.GOLD)
+	budget_label = lab.hud.label("", 16, lab.GOLD)
 	left.add_child(budget_label)
-	left.add_child(lab.label("12 starting AP  /  +1 attribute costs 1 AP", 12))
+	left.add_child(lab.hud.label("12 starting AP  /  +1 attribute costs 1 AP", 12))
 	for index in range(4):
 		var key: String = ATTRIBUTES[index]
 		var slider := HSlider.new()
@@ -176,12 +176,12 @@ func _build() -> void:
 		slider.step = 1
 		slider.value = draft[key]
 		slider.custom_minimum_size.x = 260
-		var value_label: Label = lab.label(str(int(draft[key])), 15)
+		var value_label: Label = lab.hud.label(str(int(draft[key])), 15)
 		stat_labels.append(value_label)
 		stat_sliders.append(slider)
 		var line := HBoxContainer.new()
 		line.add_theme_constant_override("separation", 14)
-		var caption: Label = lab.label(LABELS[index], 14)
+		var caption: Label = lab.hud.label(LABELS[index], 14)
 		caption.custom_minimum_size.x = 110
 		line.add_child(caption)
 		line.add_child(slider)
@@ -197,13 +197,13 @@ func _build() -> void:
 		)
 	var buttons := HBoxContainer.new()
 	left.add_child(buttons)
-	apply_button = lab.button("APPLY & PLAY", apply)
+	apply_button = lab.hud.button("APPLY & PLAY", apply)
 	buttons.add_child(apply_button)
-	buttons.add_child(lab.button("CANCEL", close))
+	buttons.add_child(lab.hud.button("CANCEL", close))
 	var right := VBoxContainer.new()
 	right.add_theme_constant_override("separation", 12)
 	columns.add_child(right)
-	right.add_child(lab.label("VOLI / LIVE PREVIEW", 16, lab.TEAL))
+	right.add_child(lab.hud.label("VOLI / LIVE PREVIEW", 16, lab.TEAL))
 	var container := SubViewportContainer.new()
 	container.custom_minimum_size = Vector2(385, 500)
 	container.stretch = true
@@ -232,13 +232,13 @@ func _build() -> void:
 	camera.position = Vector3(0, 1.2, 3.8)
 	camera.look_at(Vector3(0, 1.05, 0))
 	camera.fov = 42
-	right.add_child(lab.label("One body, used in preview and on court.\nHeight and wingspan change reach.\nAppearance does not assign your position.", 14))
+	right.add_child(lab.hud.label("One body, used in preview and on court.\nHeight and wingspan change reach.\nAppearance does not assign your position.", 14))
 	refresh_choices()
 
 func row(parent: Node, caption: String, control: Control) -> HBoxContainer:
 	var line := HBoxContainer.new()
 	line.add_theme_constant_override("separation", 14)
-	var text: Label = lab.label(caption, 13)
+	var text: Label = lab.hud.label(caption, 13)
 	text.custom_minimum_size.x = 110
 	line.add_child(text)
 	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -279,6 +279,7 @@ func refresh_budget() -> void:
 func apply() -> void:
 	if ap_spent() > AP_BUDGET:
 		return
+	preload("res://scripts/athlete_store.gd").sync_statistics(draft)
 	lab.apply_created_athlete(draft)
 	close()
 

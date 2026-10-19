@@ -8,22 +8,22 @@ func run() -> void:
 	lab.set_process(false)
 	lab.set_physics_process(false)
 	lab.player.position = Vector3(15, 0.03, 20)
-	lab.view_yaw = 0.5
-	lab.facing_yaw = 0
-	lab.view_pitch = 0.12
+	lab.camera_rig.view_yaw = 0.5
+	lab.camera_rig.facing_yaw = 0
+	lab.camera_rig.view_pitch = 0.12
 	lab.debug_volumes_visible = true
 	for action in [2, 3]:
 		lab.locked_action = action
 		lab.selected = action
 		lab.armed = true
-		lab._update_aim()
+		lab.camera_rig.update_aim()
 		lab._confirm_action()
-		lab._update_pose()
-		lab._update_camera(2)
+		lab.animation.update()
+		lab.camera_rig.update(2)
 		for age in [0.02, 0.22]:
 			lab.confirm_window = lab.confirm_duration - age
 			lab._update_hurtbox_visual(0)
-			lab._update_ui()
+			lab.hud.update()
 			await process_frame
 			await process_frame
 			await RenderingServer.frame_post_draw

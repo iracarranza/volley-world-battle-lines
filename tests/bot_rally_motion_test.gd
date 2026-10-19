@@ -1,11 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
@@ -17,8 +10,8 @@ func run() -> void:
 	await physics_frame
 	var bots = lab.training_bots
 	bots.toggle_all()
-	lab.view_pitch = 0.27
-	lab._update_camera(2)
+	lab.camera_rig.view_pitch = 0.27
+	lab.camera_rig.update(2)
 	lab._serve()
 	for frame in range(18):
 		lab._tick_ball(1.0 / 120)
@@ -92,8 +85,8 @@ func run() -> void:
 		bots.tick_motion(1.65)
 		bots._plan(3, Vector3(0, 3.3, -0.5), 0.7)
 		bots.tick_motion(0.66)
-		lab._update_camera(2)
-		lab._update_ui()
+		lab.camera_rig.update(2)
+		lab.hud.update()
 		await process_frame
 		await process_frame
 		await RenderingServer.frame_post_draw

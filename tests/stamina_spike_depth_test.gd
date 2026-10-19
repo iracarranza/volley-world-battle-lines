@@ -1,11 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
@@ -44,9 +37,9 @@ func run() -> void:
 	lab.selected = 2
 	lab.armed = true
 	lab.locked_action = 2
-	lab.approach_action = 2
-	lab.jump_charge = 0.8
-	lab._takeoff()
+	lab.motion.approach_action = 2
+	lab.motion.jump_charge = 0.8
+	lab.motion.takeoff()
 	check(lab.athlete.hp == 50 and lab.athlete.stamina < 100, "Jump spends stamina without HP")
 	var spike: Dictionary = lab._raw_hurtbox_definition(2)
 	for depth in [-0.95, 0.95]:

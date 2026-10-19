@@ -21,14 +21,14 @@ var next: Button
 
 func setup(owner_lab: Node3D) -> void:
 	lab = owner_lab
-	lab.box(self, Vector3(3.4,0.16,0.9), HOME + Vector3(0,SEAT_HEIGHT - 0.08,0), Color("a78653"))
-	lab.box(self, Vector3(3.4,0.7,0.12), HOME + Vector3(0,0.95,0.44), Color("a78653"))
+	lab.world_builder.box(self, Vector3(3.4,0.16,0.9), HOME + Vector3(0,SEAT_HEIGHT - 0.08,0), Color("a78653"))
+	lab.world_builder.box(self, Vector3(3.4,0.7,0.12), HOME + Vector3(0,0.95,0.44), Color("a78653"))
 	for x in [-1.3,1.3]:
 		for z in [-0.30,0.30]:
-			lab.box(self, Vector3(0.13,0.47,0.13), HOME + Vector3(x,0.235,z), Color("526575"))
-	lab.world_label("HOME BENCH", HOME + Vector3(0,2.2,0.8), 32, Color("f4cf75"))
+			lab.world_builder.box(self, Vector3(0.13,0.47,0.13), HOME + Vector3(x,0.235,z), Color("526575"))
+	lab.world_builder.world_label("HOME BENCH", HOME + Vector3(0,2.2,0.8), 32, Color("f4cf75"))
 	panel = PanelContainer.new()
-	lab.ui.add_child(panel)
+	lab.hud.ui.add_child(panel)
 	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	panel.offset_left = -260
 	panel.offset_right = 260
@@ -36,15 +36,15 @@ func setup(owner_lab: Node3D) -> void:
 	panel.offset_bottom = 355
 	var stack := VBoxContainer.new()
 	panel.add_child(stack)
-	caption = lab.label("",18,Color("f4cf75"))
+	caption = lab.hud.label("",18,Color("f4cf75"))
 	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stack.add_child(caption)
-	watch = lab.button("WATCH HOME TEAM [V]", toggle_spectate)
+	watch = lab.hud.button("WATCH HOME TEAM [V]", toggle_spectate)
 	stack.add_child(watch)
 	var row := HBoxContainer.new()
 	stack.add_child(row)
-	previous = lab.button("PREVIOUS [Q]", func(): cycle(-1))
-	next = lab.button("NEXT [R]", func(): cycle(1))
+	previous = lab.hud.button("PREVIOUS [Q]", func(): cycle(-1))
+	next = lab.hud.button("NEXT [R]", func(): cycle(1))
 	row.add_child(previous)
 	row.add_child(next)
 	panel.hide()
@@ -76,17 +76,17 @@ func enter() -> void:
 	lab.committed_intent = {}
 	lab.contact_memory.fill(0.0)
 	lab.directional_input.clear()
-	lab.jump_charge = -1
-	lab.jumped = false
-	lab.airborne_action = -1
-	lab.generic_jump = false
-	lab.approach_bound = false
-	lab.approach_release_pending = false
-	lab.quick_step_time = 0
-	lab.roll_lock = 0
-	lab.dive_recovery_time = -1
-	lab.dive_launched = false
-	lab.receive_pose_remaining = 0
+	lab.motion.jump_charge = -1
+	lab.motion.jumped = false
+	lab.motion.airborne_action = -1
+	lab.motion.generic_jump = false
+	lab.motion.approach_bound = false
+	lab.motion.approach_release_pending = false
+	lab.motion.quick_step_time = 0
+	lab.animation.roll_lock = 0
+	lab.animation.dive_recovery_time = -1
+	lab.animation.dive_launched = false
+	lab.animation.receive_pose_remaining = 0
 	lab.rescue_swing_remaining = 0
 	lab.hurtbox_linger = 0
 	lab.hurtbox_root.hide()
@@ -99,7 +99,7 @@ func enter() -> void:
 	if lab.pepper.active():
 		lab.pepper.stop()
 		lab.ball_active = false
-	lab.camera_anchor_ready = false
+	lab.camera_rig.camera_anchor_ready = false
 	lab._message("BENCHED / Exhausted in live play / returning to Home Base")
 	refresh_ui()
 
@@ -116,9 +116,9 @@ func tick(dt: float) -> void:
 	if remaining <= 0.000001:
 		clear()
 		lab.player.position = EXIT
-		lab.facing_yaw = 0
-		lab.view_yaw = 0
-		lab.camera_anchor_ready = false
+		lab.camera_rig.facing_yaw = 0
+		lab.camera_rig.view_yaw = 0
+		lab.camera_rig.camera_anchor_ready = false
 		lab._message("Off the Bench / back at Home Base")
 	refresh_ui()
 
@@ -180,7 +180,7 @@ func apply_pose() -> void:
 	body.scale = Vector3.ONE * float(lab.athlete.build.height) / lab.visual_rig_height
 	body.position = Vector3.ZERO
 	body.rotation = Vector3.ZERO
-	lab.dive_applied_yaw = 0
+	lab.animation.dive_applied_yaw = 0
 	var seated := flight_age >= RETURN_SECONDS
 	for leg in lab.legs:
 		leg.rotation = Vector3(PI*0.5 if seated else 0.25,0,0)

@@ -1,12 +1,5 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Clock = preload("res://scripts/moment_of_contact.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func step_serve(lab: Node3D, seconds: float) -> void:
@@ -25,10 +18,10 @@ func run() -> void:
 		for yaw in [-1.0, 0.0, 1.0, PI]:
 			lab._reset()
 			lab.player.position = Vector3(x, 0, lab.court_half_depth + 0.4)
-			lab.facing_yaw = yaw
-			lab.view_yaw = yaw
-			lab._update_aim()
-			lab._update_pose()
+			lab.camera_rig.facing_yaw = yaw
+			lab.camera_rig.view_yaw = yaw
+			lab.camera_rig.update_aim()
+			lab.animation.update()
 			lab.serve.input_press()
 			step_serve(lab, 0.3)
 			check(lab.serve.channeling() and lab.serve.evidence.is_empty(), "Holding E begins standing channel without premature strike")

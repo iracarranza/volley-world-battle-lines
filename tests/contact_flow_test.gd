@@ -1,13 +1,6 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Flow := preload("res://scripts/contact_flow.gd")
 const Athlete := preload("res://scripts/athlete.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func event(id: String, quality: float = 1, sweet: bool = false, actor: String = "player") -> Dictionary:
 	return {"id":id,"actor":actor,"physical_hit":true,"action":0,"quality":quality,"sweet":sweet,"point":Vector3(0,1,-0.5),"incoming_velocity":Vector3(0,-5,20),"charge_match":{"matched":true,"status":"matched","severity":0}}
 func _initialize() -> void:
@@ -97,8 +90,8 @@ func run() -> void:
 	flow.tick_visuals()
 	check(flow.auras.player.visible and is_equal_approx(flow.auras.player.material_override.get_shader_parameter("flow"),0.25),"Aura opacity follows Flow fraction")
 	check(flow.auras.size() == 12,"Player and all bots have prepared aura resources")
-	lab.athlete_hud.update_values()
-	check(lab.athlete_hud.flow_bar.value == lab.athlete.flow,"Provisional smaller Flow bar reflects meter")
+	lab.hud.athlete_hud.update_values()
+	check(lab.hud.athlete_hud.flow_bar.value == lab.athlete.flow,"Provisional smaller Flow bar reflects meter")
 	flow.clear()
 	var bot_under := event("bot-knock",0.25,false,"training_bot_0")
 	bot_under.point = lab.training_bots.actors[0].global_position+Vector3(0.8,1,-0.5)

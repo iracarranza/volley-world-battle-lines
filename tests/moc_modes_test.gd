@@ -1,12 +1,5 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Clock = preload("res://scripts/moment_of_contact.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func event(id: String,action: int,sweet: bool = true, rescue: bool = false) -> Dictionary:
@@ -22,22 +15,22 @@ func run() -> void:
 	lab.auto_feed = false
 	await physics_frame
 	var clock = lab.moc
-	check(clock.mode == Clock.Mode.CURRENT_SLOWDOWN and lab.moc_button.text.contains("CURRENT"), "Existing MoC is default baseline")
+	check(clock.mode == Clock.Mode.CURRENT_SLOWDOWN and lab.hud.moc_button.text.contains("CURRENT"), "Existing MoC is default baseline")
 	clock.begin(event("baseline",2))
-	check(Engine.time_scale == 1.0 and clock.simulation_scale() == 0.60 and not clock.holding(), "Baseline keeps 60% speed behavior")
-	lab._toggle_moc_mode()
-	check(clock.mode == Clock.Mode.IMPACT_HOLD and not clock.active and Engine.time_scale == 1 and lab.moc_button.text.contains("TUNED"), "Toggle safely restores clock and selects new mode")
+	check(Engine.time_scale == 1.0 and clock.simulation_scale() == 0.60 and clock.simulation_scale() > 0.0, "Baseline keeps 60% speed behavior")
+	lab.hud.toggle_moc_mode()
+	check(clock.mode == Clock.Mode.TUNED_SLOWDOWN and not clock.active and Engine.time_scale == 1 and lab.hud.moc_button.text.contains("TUNED"), "Toggle safely restores clock and selects new mode")
 	for action in range(5):
-		var parts := Clock.hold_parts(event("parts",action))
+		var parts := Clock.tuned_parts(event("parts",action))
 		check(is_equal_approx(parts.total,parts.velocity+parts.sweet+parts.extension) and is_equal_approx(parts.sweet,0.0 if action == 1 else 1.0/60), "Sweet contribution adds one frame")
 		check(parts.total <= (3.0/60 if action in [0,1] else 5.0/60)+0.1+0.000001, "Contact-class hold budget is bounded")
-		var ordinary := Clock.hold_parts(event("ordinary",action,false))
-		var rescue := Clock.hold_parts(event("rescue",action,false,true))
+		var ordinary := Clock.tuned_parts(event("ordinary",action,false))
+		var rescue := Clock.tuned_parts(event("rescue",action,false,true))
 		check(ordinary.total <= 1.0/60+0.1 and rescue.total <= 1.0/60+0.1, "Ordinary and rescue contacts receive one frame plus 100ms at most")
 	var soft := event("soft",1,false)
 	soft.incoming_velocity = Vector3.ZERO
 	soft.outgoing_velocity = Vector3.UP
-	check(Clock.hold_parts(soft).total == 0, "Soft ordinary contact does not interrupt play")
+	check(Clock.tuned_parts(soft).total == 0, "Soft ordinary contact does not interrupt play")
 	lab.ball_active = true
 	lab.ball.position = Vector3(0,2,5)
 	lab.ball_velocity = Vector3(0,5,-25)
@@ -45,39 +38,39 @@ func run() -> void:
 	var point: Vector3 = lab.ball.position
 	clock.begin(event("hold",2))
 	clock._end_usec = Time.get_ticks_usec()+500000 # Keep deterministic assertions within one held interval.
-	check(not clock.holding() and Engine.time_scale == 1.0 and clock.simulation_scale() == 0.60, "Tuned mode slows rather than pauses")
+	check(clock.simulation_scale() > 0.0 and Engine.time_scale == 1.0 and clock.simulation_scale() == 0.60, "Tuned mode slows rather than pauses")
 	var simulation_time: float = lab.elapsed
 	lab._physics_process(0.004)
 	lab._tick_ball(0.004)
 	check(lab.ball.position != point and lab.elapsed > simulation_time, "Ball and simulation continue during slowdown")
-	clock.prepare_hold_pose()
+
 	check(lab.ball.scale == scale_before, "Slowdown does not freeze or compress ball")
 	var click := InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
 	lab._unhandled_input(click)
-	check(lab.charging and clock.pending_inputs.is_empty(), "Gameplay input remains immediate")
+	check(lab.charging, "Gameplay input remains immediate")
 	expire(clock)
 	check(not clock.active and Engine.time_scale == 1, "Expiry restores full speed")
 	lab._reset()
-	check(clock.mode == Clock.Mode.IMPACT_HOLD, "Lab reset preserves selected comparison mode")
+	check(clock.mode == Clock.Mode.TUNED_SLOWDOWN, "Lab reset preserves selected comparison mode")
 	var before_count: int = lab.impact_visual.emitted
 	clock.begin(soft)
 	check(not clock.active and lab.impact_visual.emitted == before_count+1, "Zero-hold contacts still emit physical impact visuals")
 	clock.clear()
 	clock.begin(event("cancel",2))
 	clock._end_usec = Time.get_ticks_usec()+500000
-	clock.prepare_hold_pose()
+
 	lab._unhandled_input(click)
-	lab._toggle_moc_mode()
-	check(Engine.time_scale == 1 and not clock.active and clock.pending_inputs.is_empty() and lab.ball.scale == scale_before, "Mode switch cancels hold and pending actions safely")
+	lab.hud.toggle_moc_mode()
+	check(Engine.time_scale == 1 and not clock.active and lab.ball.scale == scale_before, "Mode switch cancels hold and pending actions safely")
 	clock.begin(event("slow-again",2))
 	check(Engine.time_scale == 1.0 and clock.simulation_scale() == 0.60, "Switching back restores original slowdown")
 	clock.clear()
-	lab._toggle_moc_mode()
+	lab.hud.toggle_moc_mode()
 	clock.begin(event("pause",2))
 	clock._end_usec = Time.get_ticks_usec()+500000
-	clock.prepare_hold_pose()
+
 	lab.paused = true
 	clock._process(0)
 	check(not clock.active and Engine.time_scale == 1 and lab.ball.scale == scale_before, "Pause releases hold cleanly")
@@ -91,7 +84,7 @@ func run() -> void:
 		lab.locked_action = action
 		lab.selected = action
 		lab.locked_charge = 0.65
-		lab._update_aim()
+		lab.camera_rig.update_aim()
 		var shape: Dictionary = lab._raw_hurtbox_definition(action)
 		var point_local: Vector3 = shape.center
 		if action == 1:
@@ -104,13 +97,13 @@ func run() -> void:
 		lab.ball_velocity = Vector3(0,-5,15)
 		lab._confirm_action()
 		lab.confirm_window = lab.confirm_duration-0.22
-		lab._update_pose()
+		lab.animation.update()
 		lab._contact()
 		check(clock.active == (action != 1) and clock.last_event.sweet and clock.last_event.moc_mode == "Tuned Slowdown", "Actual sweet contact selects hold tuning for action %d" % action)
 		clock._end_usec = Time.get_ticks_usec()+500000
 		var contact_point: Vector3 = lab.ball.position
 		var resolved_velocity: Vector3 = lab.ball_velocity
-		clock.prepare_hold_pose()
+
 		lab._tick_ball(0.016)
 		if action == 1:
 			check(lab.ball.position != contact_point and not clock.active, "Actual Set launches without MoC")

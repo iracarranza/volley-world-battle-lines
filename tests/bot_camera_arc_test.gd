@@ -1,11 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
@@ -39,7 +32,7 @@ func run() -> void:
 		var rises: Array[float] = []
 		var ranges: Array[float] = []
 		for pitch in [-0.65, 0.27, 1.15]:
-			lab.view_pitch = pitch
+			lab.camera_rig.view_pitch = pitch
 			var v: Vector3 = lab._loft_velocity(origin, action, 0.7, Vector3.FORWARD)
 			rises.append(v.y * v.y / (2 * lab.GRAVITY))
 			var t: float = (v.y + sqrt(v.y * v.y + 2 * lab.GRAVITY * (origin.y - 0.105))) / lab.GRAVITY
@@ -47,21 +40,21 @@ func run() -> void:
 		check(rises[0] < rises[1] and rises[1] < rises[2], "Pitch changes outgoing arc monotonically")
 		check(absf(rises[0] / rises[1] - 0.35) < 0.001 and absf(rises[2] / rises[1] - 2.5) < 0.001, "Loft caps are enforced")
 		check(absf(ranges[0] - ranges[2]) < 0.001, "Pitch preserves charge-dependent range")
-	lab.camera_mode = lab.ViewMode.ATHLETE
-	lab.view_pitch = 0.8
-	lab._update_camera(2.0)
+	lab.camera_rig.camera_mode = lab.ViewMode.ATHLETE
+	lab.camera_rig.view_pitch = 0.8
+	lab.camera_rig.update(2.0)
 	var floor_position: Vector3 = lab.camera.position
 	var old_up: float = (-lab.camera.global_basis.z).y
-	lab.view_pitch = 1.1
-	lab._update_camera(2.0)
+	lab.camera_rig.view_pitch = 1.1
+	lab.camera_rig.update(2.0)
 	check(lab.camera.position.distance_to(floor_position) < 0.001, "Further look-up does not drag floor camera closer")
 	check((-lab.camera.global_basis.z).y > old_up, "Further look-up tilts upward in place")
 	if "--render" in OS.get_cmdline_user_args():
-		lab.view_pitch = -0.12
-		lab._update_camera(2)
+		lab.camera_rig.view_pitch = -0.12
+		lab.camera_rig.update(2)
 		bots.toggle_all()
-		lab._toggle_bot_menu()
-		lab._update_ui()
+		lab.hud.toggle_bot_menu()
+		lab.hud.update()
 		await process_frame
 		await process_frame
 		await RenderingServer.frame_post_draw

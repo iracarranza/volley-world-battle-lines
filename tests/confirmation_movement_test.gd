@@ -1,11 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 func key(pressed: bool) -> void:
 	var event := InputEventKey.new()
 	event.physical_keycode = KEY_D
@@ -39,8 +32,8 @@ func run() -> void:
 		await physics_frame
 	check(Vector2(lab.player.position.x - start.x, lab.player.position.z - start.z).length() < 0.001, "Grounded confirmation does not translate athlete")
 	check(lab.directional_input.value().x > 0.5, "Movement input still supplies contact DI while locomotion is locked")
-	lab._begin_jump()
-	check(lab.jump_charge < 0, "Jump preparation cannot move athlete out of confirmed grounded action")
+	lab.motion.begin_jump()
+	check(lab.motion.jump_charge < 0, "Jump preparation cannot move athlete out of confirmed grounded action")
 	lab.ball_active = true
 	lab.ball.position = lab.player.position + lab._raw_hurtbox_definition(0).center
 	lab.ball_velocity = Vector3(0, -1, 2)

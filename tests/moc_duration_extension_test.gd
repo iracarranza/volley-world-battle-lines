@@ -1,12 +1,5 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Clock = preload("res://scripts/moment_of_contact.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func wait_real(seconds: float) -> void:
@@ -22,7 +15,7 @@ func run() -> void:
 	lab.set_physics_process(false)
 	await physics_frame
 	var clock = lab.moc
-	for mode in [Clock.Mode.CURRENT_SLOWDOWN,Clock.Mode.IMPACT_HOLD]:
+	for mode in [Clock.Mode.CURRENT_SLOWDOWN,Clock.Mode.TUNED_SLOWDOWN]:
 		clock.set_mode(mode)
 		for action in range(5):
 			for sweet in [false,true]:
@@ -30,7 +23,7 @@ func run() -> void:
 				var e := event("duration-%d-%d-%s" % [mode,action,sweet],action,sweet)
 				var old_seconds := (0.18 if sweet else 0.14) if mode == Clock.Mode.CURRENT_SLOWDOWN else ((3.0/60 if action == 0 else 5.0/60) if sweet else 1.0/60)
 				var expected := 0.0 if action == 1 else old_seconds+0.100
-				var measured: float = Clock.duration_for(action,e.incoming_velocity,e.outgoing_velocity,sweet) if mode == Clock.Mode.CURRENT_SLOWDOWN else Clock.hold_parts(e).total
+				var measured: float = Clock.duration_for(action,e.incoming_velocity,e.outgoing_velocity,sweet) if mode == Clock.Mode.CURRENT_SLOWDOWN else Clock.tuned_parts(e).total
 				check(absf(measured-expected) < 0.000001,"Every non-Set duration is exactly previous tuning +100ms")
 				var visual_count: int = lab.impact_visual.emitted
 				clock.begin(e)
@@ -38,7 +31,7 @@ func run() -> void:
 				check(lab.impact_visual.emitted == visual_count+1,"Sets retain physical impact visuals")
 				check(absf(clock.last_event.velocity_duration_seconds+clock.last_event.sweet_duration_seconds+clock.last_event.duration_extension_seconds-expected) < 0.000001,"Duration components remain additive")
 				if action == 1:
-					check(not clock.active and Engine.time_scale == 1 and not clock.holding(),"Even a sweet fast Set never starts either MoC mode")
+					check(not clock.active and Engine.time_scale == 1 and clock.simulation_scale() > 0.0,"Even a sweet fast Set never starts either MoC mode")
 				else:
 					check(absf(float(clock._end_usec-clock._chain_start_usec)/1000000-expected) < 0.00001,"Increased caps do not clip the extra 100ms")
 		clock.clear()
@@ -54,13 +47,13 @@ func run() -> void:
 		clock.begin(event("set-during-%d" % mode,1,true))
 		check(not clock.active and clock._end_usec == 0 and Engine.time_scale == 1,"Set clears an existing MoC")
 		clock.clear()
-	for mode in [Clock.Mode.CURRENT_SLOWDOWN,Clock.Mode.IMPACT_HOLD]:
+	for mode in [Clock.Mode.CURRENT_SLOWDOWN,Clock.Mode.TUNED_SLOWDOWN]:
 		for airborne in [false,true]:
 			lab._reset()
 			clock.set_mode(mode)
 			lab.ball_active = true
-			lab.jumped = airborne
-			lab.airborne_action = 1 if airborne else -1
+			lab.motion.jumped = airborne
+			lab.motion.airborne_action = 1 if airborne else -1
 			lab.player.position.y = 1.2 if airborne else 0.03
 			lab.selected = 1
 			lab.locked_action = 1
@@ -84,7 +77,7 @@ func run() -> void:
 		bots._plan(1,lab.ball.position,0.01)
 		check(bots.tick(0.02) and clock.last_event.action == 1 and not clock.active,"Actual bot Set also has no MoC")
 		bots.enabled[1] = false
-	check(Clock.hold_parts({"action":2,"physical_hit":true,"incoming_velocity":Vector3.ZERO,"outgoing_velocity":Vector3.UP}).total == 0,"Previously zero-hold soft contacts remain zero")
+	check(Clock.tuned_parts({"action":2,"physical_hit":true,"incoming_velocity":Vector3.ZERO,"outgoing_velocity":Vector3.UP}).total == 0,"Previously zero-hold soft contacts remain zero")
 	print("MOC DURATION EXTENSION: %d / %d passed" % [checks-failures,checks])
 	lab.queue_free()
 	await process_frame

@@ -1,4 +1,5 @@
 extends RefCounted
+const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
 const ReceiveOutcome := preload("res://scripts/receive_outcome.gd")
 const Geometry := preload("res://scripts/contact_geometry.gd")
 const Execution := preload("res://scripts/contact_execution.gd")
@@ -15,7 +16,7 @@ const SAMPLES := 36
 static func predict(lab: Node3D) -> Dictionary:
 	if lab.is_benched() or not lab.ball_active or not (lab.armed or lab.charging) or lab.serve.tossing():
 		return {}
-	var action: int = lab.locked_action if lab.armed else (lab.airborne_action if lab.jumped and lab.airborne_action >= 0 else lab.selected)
+	var action: int = lab.locked_action if lab.armed else (lab.motion.airborne_action if lab.motion.jumped and lab.motion.airborne_action >= 0 else lab.selected)
 	var origin: Vector3 = lab.ball.position
 	var nearby: Vector3 = lab.player.position + Vector3.UP * float(lab.athlete.build.height) * 0.8
 	if origin.distance_to(nearby) > NEAR_METERS:
@@ -30,27 +31,20 @@ static func predict(lab: Node3D) -> Dictionary:
 	var spatial := Geometry.evaluate(shape,sample)
 	if not spatial.hit:
 		return {}
-	var assessment := Execution.assess(spatial,Execution.SWEET_DELAY,false,action)
-	if action == 1:
-		assessment = lab.athlete.stabilize_set(assessment)
-	if action == 0:
-		assessment = ReceiveOutcome.assess(assessment,shape,sample,Vector2(lab.player.velocity.x,lab.player.velocity.z).length(),lab.directional_input.value(),yaw)
+	var request = lab.contact_request(action)
+	request.local_point = sample
+	request.confirmation_age = Execution.SWEET_DELAY
+	request.remembered = false
+	request.ideal_charge_match = true
+	request.apply_set_spread = false
+	request.apply_block_spread = false
 	var power: float = lab.locked_charge if lab.armed else lab.charge
-	var target: Vector3 = lab.committed_intent.get("target",lab.aim)
-	var forward := Vector3.FORWARD.rotated(Vector3.UP,yaw)
-	var velocity: Vector3 = lab._shot_velocity(origin,action,power,target)
-	var ideal := velocity
-	if action == 0:
-		velocity = Geometry.ReceivePlatform.redirect(velocity,origin,yaw,lab.ball_velocity,assessment,lab.GRAVITY)
-	elif action == 2:
-		velocity *= float(assessment.strength)
-	if action == 2:
-		velocity = Spike.resolve(velocity,assessment,lab.directional_input.value(),forward).velocity
-	else:
-		velocity = Influence.resolve(velocity,action,lab.directional_input.value(),target-origin,float(assessment.quality)).velocity
-	velocity = Execution.velocity(action,velocity,lab.ball_velocity,forward,assessment,lab.athlete.timing(),ideal,lab.athlete.ball_control(),lab.athlete.flow,lab.athlete.low_stamina_factor())
-	if action == 0:
-		velocity = ReceiveOutcome.velocity(velocity,assessment)
+	var target: Vector3 = lab.committed_intent.get("target", lab.aim)
+	request.charge = power
+	request.intent_direction = target - origin
+	request.base_velocity = lab._shot_velocity(origin, action, power, target)
+	var assessment := ContactResolver.assess(request)
+	var velocity := ContactResolver.resolve(request, assessment).velocity
 	var gravity: float = lab.GRAVITY
 	var drop := maxf(origin.y-Geometry.VISUAL_BALL_RADIUS,0)
 	var full_time := (velocity.y+sqrt(velocity.y*velocity.y+2*gravity*drop))/gravity
@@ -96,8 +90,10 @@ static func projected_contact(shape: Dictionary, local: Vector3, action: int) ->
 			return center+Vector3(column+radial.x,clampf(point.y,-float(shape.size.y)*0.45,float(shape.size.y)*0.45),radial.y)
 	return center
 
-static func ribbon(result: Dictionary, camera: Vector3) -> ImmediateMesh:
-	var mesh := ImmediateMesh.new()
+static func ribbon(result: Dictionary, camera: Vector3, mesh: ImmediateMesh = null) -> ImmediateMesh:
+	if mesh == null:
+		mesh = ImmediateMesh.new()
+	mesh.clear_surfaces()
 	if result.is_empty():
 		return mesh
 	var points: Array = result.points

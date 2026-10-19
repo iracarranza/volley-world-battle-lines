@@ -1,12 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-
-func check(condition: bool, message: String) -> void:
-	checks += 1
-	if not condition:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 
 func _initialize() -> void:
 	call_deferred("run")

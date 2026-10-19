@@ -27,8 +27,7 @@ var exhaustion_remaining := 0.0
 const WINDED_SECONDS := 10.5
 const EXHAUSTION_SECONDS := 7.0
 const WINDED_REGEN_FACTOR := 0.5
-var traits: Array[String] = []
-const POWER_SERVE_PER_CHARGE := 0.10
+var trait_ids: Array[String] = []
 const QUICK_STEP_HP := 3.0
 const ROLLING_RECEIVE_HP := 5.0
 
@@ -37,12 +36,12 @@ func stat(name: String) -> float:
 
 func trait_effect(name: String) -> float:
 	var book = Store.trait_book()
-	var key := str(traits)+str(book.get_instance_id())
+	var key := str(trait_ids)+str(book.get_instance_id())
 	if key != _effect_key:
 		_effect_key = key
 		_effects.clear()
 		for node in book.nodes:
-			if str(node.name) in traits:
+			if str(node.id) in trait_ids:
 				for effect in node.get("effects",{}):
 					_effects[effect] = float(_effects.get(effect,0))+float(node.effects[effect])
 	return float(_effects.get(name,0))
@@ -109,8 +108,8 @@ func stabilize_set(assessment: Dictionary) -> Dictionary:
 	result["stability"] = stat("stability")
 	return result
 
-func has_trait(trait_name: String) -> bool:
-	return trait_name in traits
+func has_trait(trait_id: String) -> bool:
+	return trait_id in trait_ids
 
 func serve_speed_factor(charge: float) -> float:
 	return (1.0+0.5*effective_serve_charge(charge))/maxf(0.1,1.0+0.5*charge)

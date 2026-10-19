@@ -1,14 +1,7 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 # Through a whole dive in the running lab, no joint may jump at the seams: dive -> landing and slide ->
 # recovery -> standing. Compared with the same dive unsmoothed.
 const Library := preload("res://scripts/pose_library.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func _step(a: Dictionary, b: Dictionary) -> float:
@@ -22,16 +15,16 @@ func _step(a: Dictionary, b: Dictionary) -> float:
 # near each source change, keyed by "from>to", plus the largest anywhere.
 func play(lab, smooth: bool) -> Dictionary:
 	lab._reset()
-	lab.pose_smoothing = smooth
-	lab.pose_smoother.reset()
-	lab.pose_frame_dt = 0.016
-	lab.jumped = true
-	lab.airborne_action = 0
-	lab.jump_charge = -1
-	lab.dive_launched = true
-	lab.dive_quality_value = 0.7
-	lab.dive_world_direction = Vector3.RIGHT
-	lab.dive_flight_time = 0.5
+	lab.animation.pose_smoothing = smooth
+	lab.animation.pose_smoother.reset()
+	lab.animation.pose_frame_dt = 0.016
+	lab.motion.jumped = true
+	lab.motion.airborne_action = 0
+	lab.motion.jump_charge = -1
+	lab.animation.dive_launched = true
+	lab.animation.dive_quality_value = 0.7
+	lab.animation.dive_world_direction = Vector3.RIGHT
+	lab.animation.dive_flight_time = 0.5
 	lab.armed = true
 	lab.locked_action = 0
 	var steps := {}
@@ -46,17 +39,17 @@ func play(lab, smooth: bool) -> Dictionary:
 		frames += 1
 		await process_frame
 		if not landed:
-			lab.dive_air_time = minf(0.5, frames * 0.016)
-			if lab.dive_air_time >= 0.5:
+			lab.animation.dive_air_time = minf(0.5, frames * 0.016)
+			if lab.animation.dive_air_time >= 0.5:
 				lab.player.velocity = Vector3.RIGHT * 5.0
-				lab.jumped = false
+				lab.motion.jumped = false
 				lab.armed = false
-				lab._begin_dive_recovery()
+				lab.animation.begin_dive_recovery()
 				landed = true
 		else:
-			lab._tick_dive_recovery(0.016)
-		lab._update_pose()
-		var source: String = lab._pose_source(lab.jumped and lab.airborne_action == 0, false, false)
+			lab.animation.tick_dive_recovery(0.016)
+		lab.animation.update()
+		var source: String = lab.animation.pose_source(lab.motion.jumped and lab.motion.airborne_action == 0, false, false)
 		var now := Library.read_rig(lab.body)
 		if not previous.is_empty():
 			var step := _step(previous, now)
@@ -70,7 +63,7 @@ func play(lab, smooth: bool) -> Dictionary:
 				near_seam -= 1
 		previous = now
 		last_source = source
-		if landed and lab.dive_recovery_time < 0.0 and frames > 40:
+		if landed and lab.animation.dive_recovery_time < 0.0 and frames > 40:
 			break
 	steps["worst"] = worst
 	steps["frames"] = frames

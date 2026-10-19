@@ -1,12 +1,5 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const DI := preload("res://scripts/directional_influence.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func resolve(v: Vector3, action: int, input: Vector3, quality: float = 1.0) -> Dictionary:
@@ -67,7 +60,7 @@ func run() -> void:
 			lab.locked_charge = 0.6
 			lab.armed = true
 			lab.ball_active = true
-			lab.facing_yaw = 0
+			lab.camera_rig.facing_yaw = 0
 			var shape: Dictionary = lab._hurtbox_definition(action)
 			var contact: Vector3 = shape.center
 			if action == 1:
@@ -89,7 +82,7 @@ func run() -> void:
 			check(lab.last_contact_result.directional_influence.is_read_only(), "Resolved influence is immutable event evidence")
 			var shot: Vector3 = lab.ball_velocity
 			lab.directional_input.sample(Vector3.LEFT, 0.08)
-			lab._rotate_view(Vector2(150, 20))
+			lab.camera_rig.rotate_view(Vector2(150, 20))
 			check(lab.ball_velocity == shot, "Input and camera cannot steer the ball after impact")
 		check(velocities[1].x > velocities[0].x, "Late right input affects actual Receive/Set/Attack flight")
 	lab._reset()

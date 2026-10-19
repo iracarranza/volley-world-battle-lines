@@ -1,33 +1,26 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Recovery := preload("res://scripts/dive_recovery.gd")
 const Stage := preload("res://scripts/dive_stage.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 # A dive that has just touched down heading `direction`, with the clock at `t`.
 func land(lab: Node3D, direction: Vector3, quality: float = 0.7) -> void:
-	lab.jumped = true
-	lab.airborne_action = 0
-	lab.jump_charge = -1
-	lab.dive_launched = true
-	lab.dive_quality_value = quality
-	lab.dive_world_direction = direction
-	lab.dive_flight_time = 0.5
-	lab.dive_air_time = 0.5
+	lab.motion.jumped = true
+	lab.motion.airborne_action = 0
+	lab.motion.jump_charge = -1
+	lab.animation.dive_launched = true
+	lab.animation.dive_quality_value = quality
+	lab.animation.dive_world_direction = direction
+	lab.animation.dive_flight_time = 0.5
+	lab.animation.dive_air_time = 0.5
 	lab.body.rotation = Vector3(0, 0, 0)
-	lab._update_pose()
+	lab.animation.update()
 	lab.player.velocity = direction * 5.0
-	lab.jumped = false
-	lab._begin_dive_recovery()
+	lab.motion.jumped = false
+	lab.animation.begin_dive_recovery()
 func at(lab: Node3D, t: float) -> void:
-	lab.dive_recovery_time = t
-	lab._update_pose()
+	lab.animation.dive_recovery_time = t
+	lab.animation.update()
 func floor_gap(lab: Node3D) -> float:
 	return Recovery.lowest_world_y(lab.body) - lab.player.global_position.y
 func run() -> void:
@@ -60,16 +53,16 @@ func run() -> void:
 	root.add_child(lab)
 	lab.set_process(false)
 	lab.set_physics_process(false)
-	lab.pose_smoothing = false
+	lab.animation.pose_smoothing = false
 	# Touchdown: continuous with the airborne layout, not snapped upright.
 	land(lab, Vector3.FORWARD)
-	var air_pitch: float = lab.dive_recovery_root.x
+	var air_pitch: float = lab.animation.dive_recovery_root.x
 	check(air_pitch < -0.4, "the dive is laid out when it touches down (%.2f)" % air_pitch)
 	at(lab, 0.0)
 	check(absf(lab.body.rotation.x - air_pitch) < 0.02, "touchdown does not snap the body upright (%.2f vs %.2f)" % [lab.body.rotation.x, air_pitch])
-	check(lab.dive_input_locked(), "input is locked at touchdown")
-	check(lab.dive_slide_decel > 0.0, "the body decelerates into the floor")
-	var stop: float = 25.0 / (2.0 * lab.dive_slide_decel)
+	check(lab.animation.dive_input_locked(), "input is locked at touchdown")
+	check(lab.animation.dive_slide_decel > 0.0, "the body decelerates into the floor")
+	var stop: float = 25.0 / (2.0 * lab.animation.dive_slide_decel)
 	check(stop > 0.3 and stop < 1.6, "slide distance is short (%.2f m)" % stop)
 	# The floor, for every direction and both ends of dive quality.
 	for direction in [Vector3.FORWARD, Vector3.RIGHT, Vector3.LEFT, Vector3.BACK, Vector3(0.7, 0, -0.7), Vector3(-0.7, 0, -0.7)]:
@@ -84,37 +77,37 @@ func run() -> void:
 	# Lock, release, finish.
 	land(lab, Vector3.RIGHT, 0.5)
 	var total2: float = Recovery.duration(0.5)
-	lab.dive_recovery_time = 0.1
-	check(lab.dive_input_locked(), "locked early in the recovery")
-	lab.dive_recovery_time = Recovery.lock_seconds(0.5) + 0.02
-	check(not lab.dive_input_locked(), "control returns when the body starts to rise")
-	lab.dive_recovery_time = total2 - 0.01
-	lab._tick_dive_recovery(0.02)
-	check(lab.dive_recovery_time < 0.0, "the recovery ends at the end of its clock")
-	lab._update_pose()
+	lab.animation.dive_recovery_time = 0.1
+	check(lab.animation.dive_input_locked(), "locked early in the recovery")
+	lab.animation.dive_recovery_time = Recovery.lock_seconds(0.5) + 0.02
+	check(not lab.animation.dive_input_locked(), "control returns when the body starts to rise")
+	lab.animation.dive_recovery_time = total2 - 0.01
+	lab.animation.tick_dive_recovery(0.02)
+	check(lab.animation.dive_recovery_time < 0.0, "the recovery ends at the end of its clock")
+	lab.animation.update()
 	check(absf(lab.body.rotation.x) < 0.0001 and absf(lab.body.rotation.z) < 0.0001, "ground state is level after recovery")
 	# Any new action cancels it.
 	land(lab, Vector3.RIGHT, 0.5)
-	lab.dive_recovery_time = 0.5
-	lab.jump_charge = 0.1
-	lab._tick_dive_recovery(0.016)
-	check(lab.dive_recovery_time < 0.0, "starting an action cancels the recovery")
-	lab.jump_charge = -1.0
+	lab.animation.dive_recovery_time = 0.5
+	lab.motion.jump_charge = 0.1
+	lab.animation.tick_dive_recovery(0.016)
+	check(lab.animation.dive_recovery_time < 0.0, "starting an action cancels the recovery")
+	lab.motion.jump_charge = -1.0
 	# The rolling receive owns its own landing.
-	lab.roll_lock = 0.5
-	lab.dive_launched = true
-	lab._begin_dive_recovery()
-	check(lab.dive_recovery_time < 0.0, "a rolling receive does not also play the floor recovery")
-	lab.roll_lock = 0.0
+	lab.animation.roll_lock = 0.5
+	lab.animation.dive_launched = true
+	lab.animation.begin_dive_recovery()
+	check(lab.animation.dive_recovery_time < 0.0, "a rolling receive does not also play the floor recovery")
+	lab.animation.roll_lock = 0.0
 	# One continuous animation: the crouching step, the dive, the landing and the getting up share a source.
 	var q := 0.7
 	land(lab, Vector3.FORWARD, q)
-	lab.dive_recovery_time = 0.05
-	check(lab._pose_source(false, false, false) == "dive", "just after touchdown the source is still the dive")
-	lab.dive_recovery_time = Recovery.lock_seconds(q) + 0.05
-	check(lab._pose_source(false, false, false) == "dive", "through the rise it is still the dive")
-	lab.dive_recovery_time = -1.0
-	check(lab._pose_source(false, false, false) == "locomotion", "after the recovery the source is locomotion")
+	lab.animation.dive_recovery_time = 0.05
+	check(lab.animation.pose_source(false, false, false) == "dive", "just after touchdown the source is still the dive")
+	lab.animation.dive_recovery_time = Recovery.lock_seconds(q) + 0.05
+	check(lab.animation.pose_source(false, false, false) == "dive", "through the rise it is still the dive")
+	lab.animation.dive_recovery_time = -1.0
+	check(lab.animation.pose_source(false, false, false) == "locomotion", "after the recovery the source is locomotion")
 	# Short, and with no stops: the pose keeps moving through every stage.
 	check(Recovery.duration(0.5) < 0.95 and Recovery.lock_seconds(0.5) < 0.65, "the whole recovery is under a second (%.2f s, locked %.2f s)" % [Recovery.duration(0.5), Recovery.lock_seconds(0.5)])
 	var dt := 1.0 / 60.0

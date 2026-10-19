@@ -1,14 +1,7 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Geometry = preload("res://scripts/contact_geometry.gd")
 const Execution = preload("res://scripts/contact_execution.gd")
 const SpikeDirection = preload("res://scripts/spike_direction.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
@@ -42,10 +35,10 @@ func run() -> void:
 				for input in [Vector3.ZERO, right * side, -right * side]:
 					lab._reset()
 					lab.dominant_hand = hand
-					lab.facing_yaw = yaw
-					lab.jumped = true
-					lab.airborne_action = 2
-					lab.airborne_aim = forward
+					lab.camera_rig.facing_yaw = yaw
+					lab.motion.jumped = true
+					lab.motion.airborne_action = 2
+					lab.motion.airborne_aim = forward
 					lab.locked_action = 2
 					lab.selected = 2
 					lab.locked_charge = 0.6
@@ -58,7 +51,7 @@ func run() -> void:
 					lab.confirm_window = lab.confirm_duration - 0.22
 					lab._contact()
 					actual.append(lab.ball_velocity)
-					check(lab.facing_yaw == yaw and lab.athlete.build.power == 65, "Contact changes neither committed facing nor Power stat")
+					check(lab.camera_rig.facing_yaw == yaw and lab.athlete.build.power == 65, "Contact changes neither committed facing nor Power stat")
 				check(actual[0].dot(right) * side > 0, "Actual neutral spike uses physical intersection side")
 				check(actual[1].length() > actual[0].length() and actual[2].length() < actual[0].length(), "Actual contacts apply complementary/contrary speed tradeoff")
 	print("SPIKE GEOMETRY / DI: %d / %d passed" % [checks - failures, checks])

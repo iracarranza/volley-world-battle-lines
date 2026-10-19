@@ -25,37 +25,37 @@ func capture() -> void:
 	lab.set_process(false)
 	lab.set_physics_process(false)
 	lab.auto_feed = false
-	lab.pose_smoothing = false
+	lab.animation.pose_smoothing = false
 	lab.armed = true
 	lab.locked_action = 0
-	lab.jump_charge = -1
-	lab.airborne_action = 0
-	lab.dive_world_direction = direction
-	lab.dive_flight_time = 0.5
-	lab.dive_quality_value = quality
-	lab.dive_turn_total = lab._dive_turn_for(direction, 0.0)
+	lab.motion.jump_charge = -1
+	lab.motion.airborne_action = 0
+	lab.animation.dive_world_direction = direction
+	lab.animation.dive_flight_time = 0.5
+	lab.animation.dive_quality_value = quality
+	lab.animation.dive_turn_total = lab.animation.dive_turn_for(direction, 0.0)
 	var Recovery = load("res://scripts/dive_recovery.gd")
 	var total: float = Recovery.duration(quality)
 	var side_view := dir_name in ["forward", "back", "diagonal"]
 	var images: Array[Image] = []
 	for i in range(FLIGHT_FRAMES + RECOVERY_FRAMES):
 		if i < FLIGHT_FRAMES:
-			lab.jumped = true
-			lab.dive_launched = true
-			lab.dive_air_time = 0.5 * float(i + 1) / float(FLIGHT_FRAMES)
+			lab.motion.jumped = true
+			lab.animation.dive_launched = true
+			lab.animation.dive_air_time = 0.5 * float(i + 1) / float(FLIGHT_FRAMES)
 			lab.body.rotation.y = 0.0
-			lab._update_pose()
+			lab.animation.update()
 		else:
-			if lab.jumped:
-				lab.dive_air_time = 0.5
-				lab._update_pose()
-				lab.jumped = false
+			if lab.motion.jumped:
+				lab.animation.dive_air_time = 0.5
+				lab.animation.update()
+				lab.motion.jumped = false
 				lab.player.velocity = direction * 5.0
 				if recovery_on:
-					lab._begin_dive_recovery()
+					lab.animation.begin_dive_recovery()
 			var t := total * float(i - FLIGHT_FRAMES) / float(RECOVERY_FRAMES - 1)
-			lab.dive_recovery_time = t if recovery_on else -1.0
-			lab._update_pose()
+			lab.animation.dive_recovery_time = t if recovery_on else -1.0
+			lab.animation.update()
 		var offset := Vector3(3.4, 1.3, -0.4) if side_view else Vector3(0.6, 1.3, -3.6)
 		lab.camera.position = lab.player.position + offset
 		lab.camera.look_at(lab.player.position + Vector3(0, 0.45, -0.3))

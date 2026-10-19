@@ -5,7 +5,7 @@ func _ready() -> void:
 func _process(_dt: float) -> void:
 	if not is_instance_valid(lab):
 		return
-	visible = lab.camera_mode == lab.ViewMode.BALL
+	visible = lab.camera_rig.camera_mode == lab.ViewMode.BALL
 	if visible:
 		queue_redraw()
 func _draw() -> void:
@@ -15,7 +15,7 @@ func _draw() -> void:
 	var forward: Vector3 = -lab.camera.global_basis.z
 	forward.y = 0
 	if forward.length_squared() < 0.001:
-		forward = Vector3(-sin(lab.ball_movement_yaw), 0, -cos(lab.ball_movement_yaw))
+		forward = Vector3(-sin(lab.camera_rig.ball_movement_yaw), 0, -cos(lab.camera_rig.ball_movement_yaw))
 	forward = forward.normalized()
 	var right := forward.cross(Vector3.UP)
 	var facing := Vector3(-sin(lab._contact_yaw()), 0, -cos(lab._contact_yaw()))

@@ -8,12 +8,12 @@ func run() -> void:
 	lab.set_process(false)
 	lab.set_physics_process(false)
 	lab.auto_feed = false
-	lab._toggle_debug_volumes()
-	lab._update_camera(2)
+	lab.hud.toggle_debug_volumes()
+	lab.camera_rig.update(2)
 	for amount in [25.0,100.0]:
 		lab.athlete.flow = amount
 		lab.contact_flow.tick_visuals()
-		lab._update_ui()
+		lab.hud.update()
 		for frame in range(4):
 			await process_frame
 		await RenderingServer.frame_post_draw

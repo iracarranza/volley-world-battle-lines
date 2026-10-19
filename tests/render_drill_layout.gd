@@ -20,8 +20,8 @@ func run() -> void:
 			lab.station.serve()
 			lab.camera.position = Vector3(24, 11, 18)
 			lab.camera.look_at(Vector3(16, 0.5, 2))
-		lab._update_pose()
-		lab._update_ui()
+		lab.animation.update()
+		lab.hud.update()
 		for frame in range(3):
 			await process_frame
 		await RenderingServer.frame_post_draw

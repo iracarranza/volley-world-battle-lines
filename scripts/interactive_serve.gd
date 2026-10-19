@@ -19,8 +19,8 @@ const SWING_DURATION := 0.24
 
 func setup(owner_lab: Node3D) -> void:
 	lab = owner_lab
-	hand_volume = lab.sphere(self, HAND_RADIUS, Vector3.ZERO, Color("ffb46e"))
-	hand_volume.material_override = lab.debug_material(Color("ffb46e"), 0.15)
+	hand_volume = lab.world_builder.sphere(self, HAND_RADIUS, Vector3.ZERO, Color("ffb46e"))
+	hand_volume.material_override = lab.world_builder.debug_material(Color("ffb46e"), 0.15)
 	hand_volume.hide()
 
 func tossing() -> bool:
@@ -62,10 +62,10 @@ func press() -> void:
 		last_hand = hand_position()
 		lab._message("SERVE / swing / meet the toss with your striking hand")
 		return
-	if lab.ball_active or lab.jumped or lab.jump_charge >= 0:
+	if lab.ball_active or lab.motion.jumped or lab.motion.jump_charge >= 0:
 		return
-	lab._update_aim()
-	lab._update_pose()
+	lab.camera_rig.update_aim()
+	lab.animation.update()
 	lab.ball_shot = {}
 	state = State.TOSS
 	toss_time = 0
@@ -83,8 +83,8 @@ func press() -> void:
 	var sign := -1.0 if lab.dominant_hand == "Left" else 1.0
 	var shoulder: Vector3 = lab.arms[0 if sign < 0 else 1].position * (float(lab.athlete.build.height) / lab.visual_rig_height)
 	var local := Vector3(shoulder.x, float(lab.athlete.build.height) * 0.68, -0.55)
-	lab.ball.position = lab.player.position + local.rotated(Vector3.UP, lab.facing_yaw)
-	lab.ball_velocity = Vector3.UP * 5.2 + Vector3.FORWARD.rotated(Vector3.UP, lab.facing_yaw) * 0.18
+	lab.ball.position = lab.player.position + local.rotated(Vector3.UP, lab.camera_rig.facing_yaw)
+	lab.ball_velocity = Vector3.UP * 5.2 + Vector3.FORWARD.rotated(Vector3.UP, lab.camera_rig.facing_yaw) * 0.18
 	lab.ball_active = true
 	lab.outgoing = false
 	lab._message("TOSS / E again to strike / early rising contact lofts higher; late contact drives flatter")
@@ -94,7 +94,7 @@ func hand_position() -> Vector3:
 	return arm.get_node("Elbow/Wrist/ContactAnchor").global_position
 
 func apply_pose() -> void:
-	if not tossing() and (lab.armed or lab.jumped or lab.jump_charge >= 0):
+	if not tossing() and (lab.armed or lab.motion.jumped or lab.motion.jump_charge >= 0):
 		follow_time = 0
 	if not tossing() and follow_time <= 0:
 		return
@@ -116,7 +116,7 @@ func tick(dt: float, previous_ball: Vector3) -> void:
 		held_time += dt
 		if held_time >= HOLD_THRESHOLD:
 			state = State.CHANNEL
-			lab.ball.position = lab.player.position + Vector3(0, float(lab.athlete.build.height) * 0.72, -0.45).rotated(Vector3.UP, lab.facing_yaw)
+			lab.ball.position = lab.player.position + Vector3(0, float(lab.athlete.build.height) * 0.72, -0.45).rotated(Vector3.UP, lab.camera_rig.facing_yaw)
 			lab.ball_velocity = Vector3.ZERO
 			lab._message("STANDING SERVE / hold E / %d%%" % roundi(clampf(held_time / CHANNEL_SECONDS, 0, 1) * 100))
 			if held_time >= CHANNEL_SECONDS:
@@ -150,12 +150,12 @@ func strike(hand: Vector3) -> void:
 		return
 	var incoming: Vector3 = lab.ball_velocity
 	var camera_forward: Vector3 = -lab.camera.global_basis.z
-	if lab.camera_mode == lab.ViewMode.BALL:
-		var intentional_pitch: float = lab.view_pitch - 0.27
-		camera_forward = Vector3(-sin(lab.facing_yaw) * cos(intentional_pitch), sin(intentional_pitch), -cos(lab.facing_yaw) * cos(intentional_pitch))
+	if lab.camera_rig.camera_mode == lab.ViewMode.BALL:
+		var intentional_pitch: float = lab.camera_rig.view_pitch - 0.27
+		camera_forward = Vector3(-sin(lab.camera_rig.facing_yaw) * cos(intentional_pitch), sin(intentional_pitch), -cos(lab.camera_rig.facing_yaw) * cos(intentional_pitch))
 	var horizontal := Vector3(camera_forward.x, 0, camera_forward.z).normalized()
 	if horizontal.length_squared() < 0.001:
-		horizontal = Vector3.FORWARD.rotated(Vector3.UP, lab.facing_yaw)
+		horizontal = Vector3.FORWARD.rotated(Vector3.UP, lab.camera_rig.facing_yaw)
 	var camera_pitch := atan2(camera_forward.y, Vector2(camera_forward.x, camera_forward.z).length())
 	var height_ratio: float = clampf((lab.ball.position.y - lab.player.position.y - float(lab.athlete.build.height) * 0.68) / 1.4, 0, 1)
 	# At identical aim, a rising high toss leaves a higher trajectory than a falling one.
@@ -183,7 +183,7 @@ func basic_strike() -> void:
 	lab.ball.position = hand_position()
 	var origin: Vector3 = lab.ball.position
 	var side := 1.0 if lab.player.position.z >= 0 else -1.0
-	var forward := Vector3.FORWARD.rotated(Vector3.UP, lab.facing_yaw)
+	var forward := Vector3.FORWARD.rotated(Vector3.UP, lab.camera_rig.facing_yaw)
 	var depth: float = lab.court_half_depth
 	var width: float = lab.court_half_width
 	var depth_fraction := clampf(0.65+0.4*(lab.athlete.effective_serve_charge(lab._default_charge())-lab._default_charge())+0.08*lab.athlete.flow/100.0,0.4,0.9)

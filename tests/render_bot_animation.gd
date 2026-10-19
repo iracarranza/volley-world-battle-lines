@@ -7,7 +7,7 @@ func run() -> void:
 	root.add_child(lab)
 	lab.set_process(false)
 	lab.set_physics_process(false)
-	lab.ui.hide()
+	lab.hud.ui.hide()
 	var bots = lab.training_bots
 	var rig: Dictionary = bots.rigs[1]
 	bots.actors[1].position = Vector3(15, 0, 20)

@@ -1,26 +1,19 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Hint = preload("res://scripts/trajectory_preview.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func ready(lab: Node3D,action: int) -> void:
 	lab._reset()
 	lab.auto_feed = false
 	lab.moc.enabled = false
-	lab.athlete.traits.clear()
+	lab.athlete.trait_ids.clear()
 	lab.selected = action
 	lab.locked_action = action
 	lab.locked_charge = 0.65
 	lab.armed = true
 	lab.ball_active = true
-	lab.view_pitch = 0.27
-	lab._update_aim()
+	lab.camera_rig.view_pitch = 0.27
+	lab.camera_rig.update_aim()
 	var shape: Dictionary = lab._raw_hurtbox_definition(action)
 	var point: Vector3 = shape.center
 	if action == 1:
@@ -56,11 +49,11 @@ func run() -> void:
 		check(lab.ball_velocity.distance_to(hint.velocity) < 0.0001, "Preview matches actual ideal contact flight for action %d" % action)
 	ready(lab,1)
 	var level := Hint.predict(lab)
-	lab.view_pitch += 0.6
+	lab.camera_rig.view_pitch += 0.6
 	var high := Hint.predict(lab)
 	check(high.velocity.y > level.velocity.y, "Camera ascent changes predicted set arc")
-	lab.view_yaw += 0.5
-	lab._update_aim()
+	lab.camera_rig.view_yaw += 0.5
+	lab.camera_rig.update_aim()
 	var turned := Hint.predict(lab)
 	check(turned.velocity.distance_to(high.velocity) > 0.3, "Current camera/player facing changes live hint")
 	ready(lab,2)
@@ -102,7 +95,7 @@ func run() -> void:
 	lab.serve.state = lab.serve.State.TOSS
 	check(Hint.predict(lab).is_empty(), "Serving toss does not show unrelated receive trajectory")
 	lab.serve.clear()
-	lab._toggle_debug_volumes()
+	lab.hud.toggle_debug_volumes()
 	lab._update_preview()
 	check(lab.preview.mesh != null, "Contact hint remains with debug hurtboxes hidden")
 	lab.bench.enter()

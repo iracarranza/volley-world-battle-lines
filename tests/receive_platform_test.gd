@@ -1,13 +1,6 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Platform := preload("res://scripts/receive_platform.gd")
 const Geometry := preload("res://scripts/contact_geometry.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
@@ -78,7 +71,7 @@ func run() -> void:
 		lab._reset()
 		lab.locked_action = 0
 		lab.locked_charge = 0.6
-		lab.facing_yaw = yaw
+		lab.camera_rig.facing_yaw = yaw
 		lab.aim = lab.player.position + Vector3.FORWARD.rotated(Vector3.UP, yaw) * 9
 		lab.armed = true
 		lab.ball_active = true
@@ -108,7 +101,7 @@ func run() -> void:
 		lab.locked_action = 0
 		lab.selected = 0
 		lab.ball_active = false
-		lab._update_pose()
+		lab.animation.update()
 		for arm in lab.arms:
 			var wrist_node: Node3D = arm.get_node("Elbow/Wrist")
 			var local_wrist: Vector3 = lab.body.to_local(wrist_node.global_position)
@@ -127,8 +120,8 @@ func run() -> void:
 		lab._confirm_action()
 		lab.confirm_window = lab.confirm_duration-0.22
 		lab._contact()
-		lab._update_pose()
-		check(lab.receive_posture == item.posture and lab.last_contact_result.posture == item.posture and lab.receive_pose_remaining > 0, "Actual contact drives the matching receive animation")
+		lab.animation.update()
+		check(lab.animation.receive_posture == item.posture and lab.last_contact_result.posture == item.posture and lab.animation.receive_pose_remaining > 0, "Actual contact drives the matching receive animation")
 		if item.posture == "reaching":
 			check(lab.arms[0].rotation.x > 1.2 and lab.legs[1].get_node("Knee").rotation.x < -0.9, "Reaching pose extends both arms and lunges")
 		if item.posture == "off-axis":

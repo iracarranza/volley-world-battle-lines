@@ -1,14 +1,7 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 # The box jump drill has two kinds of jumps: boxes 1-6 with ordinary exploration jumps and decks 7-9, behind steep
 # slanted walls, that only an attack approach climbs. Every build must be able to do both, and an exploration jump
 # must not reach the decks.
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func key(code: int, pressed: bool) -> void:
 	var event := InputEventKey.new()
 	event.keycode = code
@@ -48,7 +41,7 @@ func attack_jump(lab: Node3D, drills: Node3D, index: int, charge: float, run_up:
 	lab.player.velocity = Vector3.ZERO
 	lab.player.position = Vector3(drills.TOWER_X, below_y + 0.03, start_z)
 	await settle(lab, 8)
-	lab.view_yaw = 0.0 if run_dir < 0.0 else PI
+	lab.camera_rig.view_yaw = 0.0 if run_dir < 0.0 else PI
 	lab.selected = 2
 	lab.locked_action = 2
 	lab.armed = true
@@ -56,17 +49,17 @@ func attack_jump(lab: Node3D, drills: Node3D, index: int, charge: float, run_up:
 	if run_up:
 		key(KEY_W, true)
 	await process_frame
-	lab._begin_jump()
+	lab.motion.begin_jump()
 	var released := false
 	var took_off := false
 	for frame in range(420):
-		if not released and lab.jump_charge >= charge:
-			lab._takeoff()
+		if not released and lab.motion.jump_charge >= charge:
+			lab.motion.takeoff()
 			released = true
 		lab._physics_process(1.0 / 60)
 		await physics_frame
-		took_off = took_off or lab.jumped
-		if took_off and lab.player.is_on_floor() and not lab.jumped:
+		took_off = took_off or lab.motion.jumped
+		if took_off and lab.player.is_on_floor() and not lab.motion.jumped:
 			break
 	key(KEY_W, false)
 	await process_frame

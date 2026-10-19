@@ -1,12 +1,5 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Clock := preload("res://scripts/moment_of_contact.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func event(action: int = 2, charge: float = 1.0) -> Dictionary:
@@ -23,7 +16,7 @@ func prepare(lab: Node3D, action: int) -> void:
 	lab.armed = true
 	lab.ball_active = true
 	lab.aim = Vector3(0, 0, -6)
-	lab.facing_yaw = 0
+	lab.camera_rig.facing_yaw = 0
 	var shape: Dictionary = lab._raw_hurtbox_definition(action)
 	lab.ball.position = lab.player.position + shape.center
 	if action == 1:
@@ -54,8 +47,8 @@ func run() -> void:
 		check(lab.moc.event_count == count + 1 and lab.last_contact_result.physical_hit, "Physical contact emits exactly one impact")
 		check(lab.last_contact_result.intent.target == chosen.target and lab.last_contact_result.outgoing_velocity == lab.ball_velocity, "Impact retains original intent separately from actual outgoing flight")
 		var outgoing: Vector3 = lab.ball_velocity
-		lab._rotate_view(Vector2(120, 30))
-		lab._update_aim()
+		lab.camera_rig.rotate_view(Vector2(120, 30))
+		lab.camera_rig.update_aim()
 		check(lab.ball_velocity == outgoing, "Camera orientation cannot change a resolved shot")
 		lab.moc.begin(lab.last_contact_result)
 		check(lab.moc.event_count == count + 1, "Replaying the same event cannot duplicate MoC")
@@ -84,13 +77,13 @@ func run() -> void:
 	check(Clock.duration_for(0, Vector3.RIGHT * 10, Vector3.LEFT * 10) > Clock.duration_for(0, Vector3.RIGHT * 10, Vector3.RIGHT * 10), "Stronger redirection increases impact emphasis at equal speeds")
 	check(is_equal_approx(Clock.duration_for(0, fast, hard), Clock.duration_for(2, fast, hard)), "The same velocity exchange has the same MoC irrespective of action label")
 	check(Clock.duration_for(2, Vector3.ZERO, Vector3.ZERO) == 0 and Clock.duration_for(2, fast * 100, hard * 100) <= 0.240001, "Motionless exchanges are skipped and high-speed impacts remain capped")
-	lab.jumped = false
+	lab.motion.jumped = false
 	lab.athlete.hp = 100
 	var standing: Vector3 = lab._shot_velocity(Vector3(0, 3.5, 5), 2, 0.7)
-	lab.jumped = true
+	lab.motion.jumped = true
 	var spike: Vector3 = lab._shot_velocity(Vector3(0, 3.5, 5), 2, 0.7)
 	check(absf(spike.length() / standing.length() - 1.50) < 0.001, "Airborne spikes gain 50 percent pace over the prior speed curve")
-	lab.jumped = false
+	lab.motion.jumped = false
 
 	var clock = lab.moc
 	clock.enabled = true
@@ -128,20 +121,20 @@ func run() -> void:
 	check(recovered_under_pressure, "Continuous impacts must include a normal-speed recovery after the chain cap")
 	clock.clear()
 	prepare(lab, 1)
-	lab.camera_mode = lab.ViewMode.ATHLETE
-	lab._update_camera(2.0)
+	lab.camera_rig.camera_mode = lab.ViewMode.ATHLETE
+	lab.camera_rig.update(2.0)
 	lab.player.position.x += 1
-	lab._camera_frame_usec = Time.get_ticks_usec() - 16000
+	lab.camera_rig._camera_frame_usec = Time.get_ticks_usec() - 16000
 	clock.begin(event())
 	lab._process(0.004)
-	check(lab.camera_anchor.x > 0.2 and lab.camera_anchor.x < 0.35, "Camera smoothing uses unscaled real time during MoC")
+	check(lab.camera_rig.camera_anchor.x > 0.2 and lab.camera_rig.camera_anchor.x < 0.35, "Camera smoothing uses unscaled real time during MoC")
 	clock.clear()
 	# Live engine deltas: CharacterBody, ball and drill timers share slowdown.
 	prepare(lab, 1)
 	lab.player.position = Vector3(0, 10, 5)
 	lab.player.velocity = Vector3(2, 0, 0)
-	lab.jumped = true
-	lab.airborne_action = 1
+	lab.motion.jumped = true
+	lab.motion.airborne_action = 1
 	lab.ball.position = Vector3(0, 20, 5)
 	lab.ball_velocity = Vector3(2, 0, 0)
 	var initial_player: Vector3 = lab.player.position

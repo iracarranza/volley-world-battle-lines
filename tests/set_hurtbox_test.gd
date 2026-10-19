@@ -1,14 +1,7 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Geometry := preload("res://scripts/contact_geometry.gd")
 const Athlete := preload("res://scripts/athlete.gd")
 const Store := preload("res://scripts/athlete_store.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
@@ -43,6 +36,7 @@ func run() -> void:
 	await physics_frame
 	var config := Store.blank()
 	config.offsets.accuracy = [8, -4, -4]
+	Store.sync_statistics(config)
 	lab.apply_created_athlete(config)
 	check(lab.athlete.ball_control() == 70, "Creator Ball Control offset survives lab apply")
 	var player_shape: Dictionary = lab._hurtbox_definition(1)
@@ -63,7 +57,7 @@ func run() -> void:
 		lab.locked_charge = 0.6
 		lab.armed = true
 		lab.ball_active = true
-		lab.facing_yaw = 0
+		lab.camera_rig.facing_yaw = 0
 		lab.ball.position = lab.player.position + Vector3(player_shape.center) + Vector3(x, 0.6, 0)
 		lab.aim = lab.ball.position + Vector3.FORWARD * 5
 		var expected: Vector3 = lab._shot_velocity(lab.ball.position, 1, 0.6)
@@ -78,9 +72,9 @@ func run() -> void:
 	lab._confirm_action()
 	if "--render" in OS.get_cmdline_user_args():
 		root.size = Vector2i(1440, 900)
-		lab._update_pose()
-		lab._update_camera(2)
-		lab._update_ui()
+		lab.animation.update()
+		lab.camera_rig.update(2)
+		lab.hud.update()
 		await process_frame
 		await process_frame
 		await RenderingServer.frame_post_draw

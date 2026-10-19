@@ -128,8 +128,8 @@ static func migrate(config: Dictionary) -> Dictionary:
 			resolved[key] = float(out[parent])+float(offsets[i])
 	for key in named:
 		var canonical: String = equivalent.get(str(key).to_snake_case(),str(key).to_snake_case())
-		if not current or not resolved.has(canonical):
-			resolved[canonical] = float(named[key])
+		# Named values are canonical; offsets are an editor projection.
+		resolved[canonical] = float(named[key])
 	out.offsets = {}
 	for parent in ATTRIBUTES:
 		out.offsets[parent] = []
@@ -267,14 +267,14 @@ static func prune_picks(config: Dictionary) -> void:
 				break
 
 # Provisional rule: a Trait is owned once its Attribute requirements are met, unless the athlete has chosen picks.
-static func owned_traits(config: Dictionary) -> Array[String]:
+static func owned_trait_ids(config: Dictionary) -> Array[String]:
 	if has_picks(config):
 		var chosen: Array[String] = []
 		var book = trait_book()
 		for picked in config.picks:
 			var i: int = book.find(String(picked))
 			if i >= 0 and meets_path(config, String(picked)):
-				chosen.append(String(book.nodes[i].name))
+				chosen.append(String(book.nodes[i].id))
 		return chosen
 	var owned: Array[String] = []
 	for key in ATTRIBUTES:
@@ -284,8 +284,18 @@ static func owned_traits(config: Dictionary) -> Array[String]:
 				if float(config.get(need, 0.0)) < float(entry.needs[need]):
 					met = false
 			if met:
-				owned.append(entry.name)
+				owned.append("%s_%s" % [key, String(entry.name).to_snake_case()])
 	return owned
+
+# Display labels only. Gameplay must use owned_trait_ids().
+static func owned_traits(config: Dictionary) -> Array[String]:
+	var names: Array[String] = []
+	var book = trait_book()
+	for id in owned_trait_ids(config):
+		var index: int = book.find(id)
+		if index >= 0:
+			names.append(str(book.nodes[index].name))
+	return names
 
 static func selected_config() -> Dictionary:
 	if selected < 0 or selected >= roster.size():

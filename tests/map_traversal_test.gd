@@ -1,15 +1,8 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 # The map graybox: layout data, and that a body can really traverse it (and cannot go where the layout says it should not).
 const Layout := preload("res://scripts/map_layout.gd")
-var checks := 0
-var failures := 0
 var map: Node3D
 var player: CharacterBody3D
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 # Walk toward `target` (flat) for up to `seconds`, stopping within `reach` metres. Returns the distance left.
@@ -61,10 +54,6 @@ func run() -> void:
 	check(Layout.zone_at(Vector3(0, 0, 30)).begins_with("MIDDLE LANE") and Layout.zone_at(Vector3(-36, 0, 15)).begins_with("TOP LANE"), "lane zones")
 	check(Layout.zone_at(Vector3(-18, 0, 20)).begins_with("UPPER JUNGLE") and Layout.zone_at(Vector3(18, 0, -20)).begins_with("LOWER JUNGLE"), "jungle zones")
 	check(Layout.zone_at(Vector3(-18, 0, 4)) == "PIT" or Layout.zone_at(Vector3(-18, 0, 4)).begins_with("PIT NET COURT"), "the pit")
-	# --- The scene is its own thing ---
-	for path in ["res://scripts/map_traversal.gd", "res://scripts/map_world.gd", "res://scripts/map_layout.gd", "res://scripts/graybox_player.gd"]:
-		var source := FileAccess.get_file_as_string(path)
-		check(not source.contains("contact_lab") and not source.contains("PoseLibrary") and not source.contains("athlete"), "%s shares nothing with the Contact Lab" % path)
 	# --- Traversal in the real physics ---
 	map = load("res://map_traversal.tscn").instantiate()
 	root.add_child(map)

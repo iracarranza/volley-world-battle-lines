@@ -1,4 +1,6 @@
 extends Node3D
+const ContactRequest := preload("res://scripts/contact/contact_request.gd")
+const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
 const ReceiveOutcome := preload("res://scripts/receive_outcome.gd")
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
 const Preparation := preload("res://scripts/bot_preparation.gd")
@@ -61,9 +63,9 @@ func setup(owner_lab: Node3D) -> void:
 		var volume := Node3D.new()
 		actor.add_child(volume)
 		volumes.append(volume)
-		var ring: MeshInstance3D = lab.ring(RADIUS, Color("b49fee"))
+		var ring: MeshInstance3D = lab.world_builder.ring(RADIUS, Color("b49fee"))
 		ring.position = SPOTS[index] + Vector3.UP * 0.04
-		lab.world_label(LABELS[index] + " / SERVE TO BEGIN", SPOTS[index] + Vector3(0, 2.5, 0), 26, Color("b49fee"))
+		lab.world_builder.world_label(LABELS[index] + " / SERVE TO BEGIN", SPOTS[index] + Vector3(0, 2.5, 0), 26, Color("b49fee"))
 		actor.rotation.y = PI
 
 func set_charge_accuracy(index: int, value: float) -> void:
@@ -193,7 +195,7 @@ func _show_volume(definition: Dictionary) -> void:
 	root.add_child(mesh)
 	mesh.position = definition.center
 	mesh.mesh = Geometry.ReceivePlatform.mesh(definition) if stage == 0 else (Geometry.SetHurtbox.mesh(definition, true) if stage == 1 else Geometry.zone_mesh(definition))
-	var material: StandardMaterial3D = lab.debug_material(Color.WHITE, 1)
+	var material: StandardMaterial3D = lab.world_builder.debug_material(Color.WHITE, 1)
 	material.vertex_color_use_as_albedo = true
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mesh.material_override = material
@@ -285,13 +287,29 @@ func tick(dt: float) -> bool:
 			planned = false
 		return false
 	player_contacts = 0
-	var assessment := Execution.assess(Geometry.evaluate(definition, (lab.ball.position - actor.position).rotated(Vector3.UP, -actor.rotation.y)), float(prepared.confirmation_age), false, stage)
 	var incoming_shot: Dictionary = lab.ball_shot
-	if stage == 0:
-		assessment = ReceiveCharge.assess(assessment, incoming_shot, float(prepared.locked_charge)*lab.training_bots.physique.low_stamina_factor(),lab.training_bots.physique.cushioning_bonus(),lab.training_bots.physique.trait_effect("charge_tolerance"))
-		assessment = ReceiveOutcome.assess(assessment,definition,(lab.ball.position-actor.position).rotated(Vector3.UP,-actor.rotation.y),MOVE_SPEED if travelled > 0.001 else 0.0,Vector3.ZERO,actor.rotation.y)
-	if stage == 1:
-		assessment = lab.training_bots.physique.stabilize_set(assessment)
+	var request := ContactRequest.new()
+	request.action = stage
+	request.athlete = lab.training_bots.physique
+	request.actor_id = "pepper_%d" % partner
+	request.shape = definition
+	request.local_point = (lab.ball.position - actor.position).rotated(Vector3.UP, -actor.rotation.y)
+	request.origin = lab.ball.position
+	request.incoming = lab.ball_velocity
+	request.incoming_shot = incoming_shot
+	request.charge = float(prepared.locked_charge)
+	request.confirmation_age = float(prepared.confirmation_age)
+	request.facing = Vector3.FORWARD.rotated(Vector3.UP, actor.rotation.y)
+	request.intent_direction = request.facing
+	request.movement_speed = MOVE_SPEED if travelled > 0.001 else 0.0
+	request.gravity = lab.GRAVITY
+	request.flow = lab.contact_flow.amount(request.actor_id)
+	request.keep_attack_intent = true
+	# Cooperative target solving uses baseline sweet strength as its reference.
+	request.attack_strength_reference = 1.08
+	var assessment := ContactResolver.assess(request)
+	request.aiming_accuracy = 100.0 if assessment.get("rescue", false) else aiming_accuracy[partner]
+	request.aim_random = aim_random
 	var incoming: Vector3 = lab.ball_velocity
 	player_action = next_action(stage, float(assessment.quality))
 	var target_height: float = [0.95, 2.25, 3.2][player_action]
@@ -308,24 +326,12 @@ func tick(dt: float) -> bool:
 		lab.ball_velocity *= lab.training_bots.physique.low_stamina_factor()
 	if stage != 0:
 		lab.ball_velocity *= Preparation.output_factor(lab.contact_flow.attack_charge(float(prepared.locked_charge),"pepper_%d"%partner,lab.ball.position) if stage == 2 else float(prepared.locked_charge))
-	var ideal_velocity: Vector3 = lab.ball_velocity
-	if stage == 0 and assessment.hit:
-		lab.ball_velocity = Geometry.ReceivePlatform.redirect(lab.ball_velocity, origin, actor.rotation.y, incoming, assessment, lab.GRAVITY)
-	elif stage == 2:
-		# Preserve this partner's repeatable target at baseline sweet strength.
-		lab.ball_velocity *= float(assessment.get("strength", 0.48)) / 1.08
-	lab.ball_velocity = Execution.velocity(stage, lab.ball_velocity, incoming, Vector3.FORWARD.rotated(Vector3.UP, actor.rotation.y), assessment, lab.training_bots.physique.timing(), ideal_velocity,lab.training_bots.physique.ball_control(),lab.contact_flow.amount("pepper_%d"%partner),lab.training_bots.physique.low_stamina_factor())
 	if stage == 2:
 		lab.ball_velocity = Influence.constrain_attack(lab.ball_velocity, actor.rotation.y)
-		last_aim = BotAim.apply(origin, lab.ball_velocity, 100.0 if assessment.get("rescue", false) else aiming_accuracy[partner], lab.GRAVITY, aim_random)
-		lab.ball_velocity = last_aim.velocity
-		var direction_result := SpikeDirection.resolve(lab.ball_velocity, assessment, Vector3.ZERO, Vector3.FORWARD.rotated(Vector3.UP, actor.rotation.y), true)
-		lab.ball_velocity = direction_result.velocity
-	if stage != 2:
-		last_aim = BotAim.apply(origin, lab.ball_velocity, 100.0 if assessment.get("rescue", false) else aiming_accuracy[partner], lab.GRAVITY, aim_random)
-		lab.ball_velocity = last_aim.velocity
-	if stage == 0:
-		lab.ball_velocity = ReceiveCharge.velocity(ReceiveOutcome.velocity(lab.ball_velocity,assessment), incoming, Vector3.FORWARD.rotated(Vector3.UP, actor.rotation.y), assessment)
+	request.base_velocity = lab.ball_velocity
+	var result := ContactResolver.resolve(request, assessment)
+	lab.ball_velocity = result.velocity
+	last_aim = result.aiming
 	lab.ball_shot = ReceiveCharge.shot(["receive", "set", "attack"][stage], lab.contact_flow.attack_charge(float(prepared.locked_charge),"pepper_%d"%partner,lab.ball.position) if stage == 2 else float(prepared.locked_charge), "pepper_%d" % partner)
 	if stage == 2 and assessment.hit:
 		lab.contact_flow.consume_attack("pepper_%d"%partner)

@@ -1,12 +1,5 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Execution = preload("res://scripts/contact_execution.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
@@ -37,10 +30,10 @@ func run() -> void:
 		lab._reset()
 		lab.training_bots.away_enabled.fill(false)
 		lab.player.position = Vector3(0, 1.1, 0.9)
-		lab.facing_yaw = 0
-		lab.jumped = true
-		lab.airborne_action = 3
-		lab.airborne_aim = Vector3.FORWARD
+		lab.camera_rig.facing_yaw = 0
+		lab.motion.jumped = true
+		lab.motion.airborne_action = 3
+		lab.motion.airborne_aim = Vector3.FORWARD
 		lab.locked_action = 3
 		lab.armed = true
 		lab.locked_charge = 0.6

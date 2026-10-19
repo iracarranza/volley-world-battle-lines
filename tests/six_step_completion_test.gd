@@ -1,16 +1,9 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Store := preload("res://scripts/athlete_store.gd")
 const Athlete := preload("res://scripts/athlete.gd")
 const Charge := preload("res://scripts/receive_charge.gd")
 const Execution := preload("res://scripts/contact_execution.gd")
 const Platform := preload("res://scripts/receive_platform.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
@@ -54,7 +47,7 @@ func run() -> void:
 	var a := Athlete.new()
 	a.build = Athlete.BUILDS[0].duplicate(true)
 	a.build.statistics = {"swing_power":99,"cushioning":99}
-	a.traits = ["Big Hitter","Power Serve","Charge Tolerance"]
+	a.trait_ids = ["new_trait","power_power_serve","endurance_charge_tolerance"]
 	check(is_equal_approx(a.effective_attack_charge(1),1.3),"Multiply Swing Power then add Big Hitter, uncapped")
 	check(is_equal_approx(a.effective_serve_charge(1),1.12),"Power Serve adds exactly 12 percentage points")
 	check(a.serve_speed_factor(1) > 1,"Serve additive changes actual speed factor")
@@ -71,7 +64,7 @@ func run() -> void:
 	check(is_equal_approx(prep.state_for(0).target,0.675),"Bot preparation accounts for its own Cushioning rather than overcharging")
 	prep.tick(0,1.2)
 	check(Charge.match_charge(Charge.shot("attack",0.8,"test"),prep.state_for(0).locked_charge,0.2).matched,"Bot's actual accumulated charge matches with additive Cushioning")
-	a.traits = ["Second Wind"]
+	a.trait_ids = ["new_trait_2"]
 	a.stamina = 1
 	a.spend(1)
 	check(a.winded and is_equal_approx(a.stamina,a.max_stamina()*0.23),"Second Wind restores 23% of actual capacity on Winded")
@@ -81,15 +74,15 @@ func run() -> void:
 	a.recover(7,true)
 	check(a.winded and a.stamina == 0 and a.second_wind_cooldown == 23,"Exhaustion returns to Winded while passive remains on cooldown")
 	a.reset_fatigue()
-	a.traits = ["Stamina Recovery"]
+	a.trait_ids = ["endurance_stamina_recovery"]
 	a.stamina = 20
 	a.recover(1,true)
 	check(is_equal_approx(a.stamina,30.35),"Stamina Recovery is now a trait effect")
-	a.traits = ["Exertion Efficiency"]
+	a.trait_ids = ["endurance_exertion_efficiency"]
 	a.stamina = 100
 	a.spend(10)
 	check(is_equal_approx(a.stamina,91.2),"Exertion Efficiency reduces actual action costs")
-	a.traits = ["Fast Recovery"]
+	a.trait_ids = ["endurance_fast_recovery"]
 	check(is_equal_approx(a.recovery_rate(),1.12),"Recovery is an independent trait multiplier")
 	var raw := {"hit":true,"quality":0.6,"sweet":false,"zone":"WEAK"}
 	var outgoing := Vector3(2,5,-8)
@@ -116,17 +109,17 @@ func run() -> void:
 	lab.moc.enabled = false
 	lab.auto_feed = false
 	await physics_frame
-	lab.athlete.traits.assign([])
+	lab.athlete.trait_ids.assign([])
 	var fan: Dictionary = lab._raw_hurtbox_definition(0)
-	lab.athlete.traits.assign(["Platform Quality"])
+	lab.athlete.trait_ids.assign(["accuracy_platform_quality"])
 	var improved: Dictionary = lab._raw_hurtbox_definition(0)
 	check(fan.size == improved.size and fan.side_reach == improved.side_reach,"Platform Quality does not enlarge physical reach")
 	var point := Vector3(0,fan.center.y,-fan.forward_reach*0.60)
 	check(Platform.evaluate(improved,point-Vector3(improved.center)).quality > Platform.evaluate(fan,point-Vector3(fan.center)).quality,"Platform Quality increases receive-zone overlap")
-	lab.athlete.traits.assign([])
+	lab.athlete.trait_ids.assign([])
 	lab.athlete.build.statistics = {"timing":99}
 	check(lab._raw_hurtbox_definition(0) == fan,"Timing does not alter receive geometry")
-	lab.athlete.traits.assign(["Revenger"])
+	lab.athlete.trait_ids.assign(["new_trait_7"])
 	lab.athlete.flow = 100
 	var receive := {"id":"revenge","actor":"player","physical_hit":true,"action":0,"quality":0.2,"incoming_shot":{"kind":"attack"},"incoming_velocity":Vector3(0,-2,20),"point":lab.player.position,"charge_match":{"matched":false,"status":"undercharged","severity":1}}
 	lab.contact_flow.record(receive)
@@ -137,7 +130,7 @@ func run() -> void:
 	check(not lab.contact_flow.pending_attacks.has("player"),"Attack bonus is one-shot")
 	lab._reset()
 	lab.athlete.build.statistics = {"swing_power":99}
-	lab.athlete.traits.assign(["Big Hitter","Flow Hitter"])
+	lab.athlete.trait_ids.assign(["new_trait","new_trait_3"])
 	lab.athlete.flow = 100
 	var effective: float = lab.contact_flow.attack_charge(0.6,"player")
 	check(is_equal_approx(effective,1.02),"Flow Hitter is additive after Swing Power and Big Hitter")
@@ -156,13 +149,13 @@ func run() -> void:
 	lab._contact()
 	check(is_equal_approx(lab.last_contact_result.outgoing_shot.charge,effective),"Real attack metadata uses identical effective charge")
 	check(lab.athlete.flow <= 25,"Real Flow Hitter consumes old Flow, then new contact earns Flow")
-	lab.athlete.traits.assign(["Fast Recovery"])
+	lab.athlete.trait_ids.assign(["endurance_fast_recovery"])
 	lab.athlete.build.statistics = {"transition_speed":65}
-	lab.floor_recovery_name = "knee"
-	lab.floor_recovery_time = 0
-	lab.floor_recovery_lock = 0.4
-	lab._tick_floor_recovery(0.1)
-	check(is_equal_approx(lab.floor_recovery_time,0.112),"Recovery trait drives actual recovery controller")
+	lab.animation.floor_recovery_name = "knee"
+	lab.animation.floor_recovery_time = 0
+	lab.animation.floor_recovery_lock = 0.4
+	lab.animation.tick_floor_recovery(0.1)
+	check(is_equal_approx(lab.animation.floor_recovery_time,0.112),"Recovery trait drives actual recovery controller")
 	lab.queue_free()
 	await process_frame
 	print("SIX STEP COMPLETION: %d / %d passed"%[checks-failures,checks])

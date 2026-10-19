@@ -1,13 +1,6 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 const Geometry = preload("res://scripts/contact_geometry.gd")
 const Execution = preload("res://scripts/contact_execution.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
@@ -48,16 +41,16 @@ func run() -> void:
 			var pushed := Execution.velocity(action, outgoing, incoming, Vector3.RIGHT, rescue, 99)
 			check(pushed.x > 0 and absf(pushed.z) < 0.001 and pushed.length() < outgoing.length(), "Rescue is a weak facing-only push")
 	lab._reset()
-	lab.view_pitch = 0.27
+	lab.camera_rig.view_pitch = 0.27
 	lab.aim = Vector3(0, 0, -10)
-	lab.jumped = true
+	lab.motion.jumped = true
 	var driven: Vector3 = lab._shot_velocity(Vector3(0, 4, 0), 2, 0.6)
 	var old_speed := (6.0 + 0.6 * 7.0 + 65.0 * 0.02) * 1.5
 	check(driven.length() > old_speed * 1.35, "Spike travels faster than former pushed trajectory")
 	check(absf(rad_to_deg(atan2(driven.y, Vector2(driven.x, driven.z).length()))) < 4, "Neutral spike is a nearly level drive")
 	var eight_meter_time := 8.0 / Vector2(driven.x, driven.z).length()
 	check(0.5 * lab.GRAVITY * eight_meter_time * eight_meter_time < 0.7, "Driven spike has little gravity curvature across eight meters")
-	lab.jumped = false
+	lab.motion.jumped = false
 	var set_velocity: Vector3 = lab._shot_velocity(Vector3(0, 2.1, 0), 1, 0.6)
 	var time_to_floor: float = (set_velocity.y + sqrt(set_velocity.y * set_velocity.y + 2 * lab.GRAVITY * (2.1 - 0.105))) / lab.GRAVITY
 	var old_set: Dictionary = lab.Flight.solve_flight(5.5 + 0.6 * 4.5, 76, 2.1 - 0.105)
@@ -86,7 +79,7 @@ func run() -> void:
 			lab.armed = true
 			lab.ball_active = true
 			lab.locked_charge = 0.6
-			lab.facing_yaw = 0
+			lab.camera_rig.facing_yaw = 0
 			lab.aim = lab.player.position + Vector3(5, 1, -5)
 			lab.ball.position = lab.player.position + sweet_points[action]
 			lab.ball_velocity = Vector3(2, -5, 4)

@@ -21,7 +21,7 @@ func run() -> void:
 			for frame in range(37):
 				lab.station.tick(1.0 / 120)
 				lab._tick_ball(1.0 / 120)
-		lab._update_ui()
+		lab.hud.update()
 		for frame in range(3):
 			await process_frame
 		await RenderingServer.frame_post_draw

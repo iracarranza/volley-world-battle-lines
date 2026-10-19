@@ -1,11 +1,4 @@
-extends SceneTree
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
+extends "res://tests/support/test_case.gd"
 func _initialize() -> void:
 	call_deferred("run")
 func settle(lab: Node3D) -> void:
@@ -43,24 +36,24 @@ func attack_climb(lab: Node3D, drills: Node3D, index: int, charge: float) -> voi
 	for i in range(8):
 		lab._physics_process(1.0 / 60)
 		await physics_frame
-	lab.view_yaw = 0.0 if run_dir < 0.0 else PI
+	lab.camera_rig.view_yaw = 0.0 if run_dir < 0.0 else PI
 	lab.selected = 2
 	lab.locked_action = 2
 	lab.armed = true
 	lab.locked_charge = 0.7
 	key(KEY_W, true)
 	await process_frame
-	lab._begin_jump()
+	lab.motion.begin_jump()
 	var released := false
 	var took_off := false
 	for frame in range(420):
-		if not released and lab.jump_charge >= charge:
-			lab._takeoff()
+		if not released and lab.motion.jump_charge >= charge:
+			lab.motion.takeoff()
 			released = true
 		lab._physics_process(1.0 / 60)
 		await physics_frame
-		took_off = took_off or lab.jumped
-		if took_off and lab.player.is_on_floor() and not lab.jumped:
+		took_off = took_off or lab.motion.jumped
+		if took_off and lab.player.is_on_floor() and not lab.motion.jumped:
 			break
 	key(KEY_W, false)
 	await process_frame
@@ -82,19 +75,19 @@ func run() -> void:
 		space.keycode = KEY_SPACE
 		space.pressed = true
 		lab._unhandled_input(space)
-		check(not lab.generic_jump and lab.approach_action == action, "Prepared action must choose its sporting approach without a live ball")
-		lab.jump_charge = 0.16 if action == 0 else 0.7
-		lab._takeoff()
-		check(lab.jumped and lab.airborne_action == action and lab.locked_charge == 0.82, "Jump must retain prepared action and original charge")
+		check(not lab.motion.generic_jump and lab.motion.approach_action == action, "Prepared action must choose its sporting approach without a live ball")
+		lab.motion.jump_charge = 0.16 if action == 0 else 0.7
+		lab.motion.takeoff()
+		check(lab.motion.jumped and lab.motion.airborne_action == action and lab.locked_charge == 0.82, "Jump must retain prepared action and original charge")
 		if action == 0:
-			check(lab.confirm_window > 0 and lab.last_jump_height < 0.4, "Charged Receive plus Space must auto-confirm a dive")
+			check(lab.confirm_window > 0 and lab.motion.last_jump_height < 0.4, "Charged Receive plus Space must auto-confirm a dive")
 	lab._reset()
 	await settle(lab)
 	lab.selected = 0
 	lab.charging = true
 	lab.charge = 0.72
-	lab._begin_jump()
-	check(lab.armed and not lab.charging and lab.approach_action == 0 and lab.locked_charge == 0.72, "Space during mouse charge must commit and preserve the charge")
+	lab.motion.begin_jump()
+	check(lab.armed and not lab.charging and lab.motion.approach_action == 0 and lab.locked_charge == 0.72, "Space during mouse charge must commit and preserve the charge")
 	lab._reset()
 	lab.player.position = Vector3(13, 0.03, 6)
 	lab.station.start()
@@ -122,7 +115,7 @@ func run() -> void:
 	lab._reset()
 	lab.player.position = drills.SPIKE_START + Vector3.UP * 0.03
 	await settle(lab)
-	lab.view_pitch = -0.06 # Aim the driven spike downward into the floor target.
+	lab.camera_rig.view_pitch = -0.06 # Aim the driven spike downward into the floor target.
 	drills.start_spike()
 	check(drills.holding_ball() and lab.selected == 2, "Spike Trainer suspends an Attack-height ball")
 	var held: Vector3 = lab.ball.position
@@ -134,10 +127,10 @@ func run() -> void:
 		var shape: Dictionary = lab._raw_hurtbox_definition(2)
 		var local: Vector3 = shape.center + lab.Geometry.sector_point(shape, 0.74, 67.5, 0)
 		lab.player.position = held - local
-		lab.jumped = true
-		lab.airborne_action = 2
-		lab.airborne_aim = Vector3.FORWARD
-		lab.facing_yaw = 0
+		lab.motion.jumped = true
+		lab.motion.airborne_action = 2
+		lab.motion.airborne_aim = Vector3.FORWARD
+		lab.camera_rig.facing_yaw = 0
 		lab.aim = drills.SPIKE_GOAL
 		lab.locked_action = 2
 		lab.locked_charge = 0.65
@@ -155,7 +148,7 @@ func run() -> void:
 	# Failure and retry paths must not grant completion rewards.
 	lab.player.position = drills.BOX_START + Vector3.UP * 0.03
 	lab.player.velocity = Vector3.ZERO
-	lab.jumped = false
+	lab.motion.jumped = false
 	await settle(lab)
 	drills.start_box()
 	drills.box_progress = 2
@@ -164,12 +157,12 @@ func run() -> void:
 	lab.player.position = drills.SPIKE_START + Vector3.UP * 0.03
 	await settle(lab)
 	drills.start_spike()
-	lab.jumped = false
+	lab.motion.jumped = false
 	drills.on_contact(2)
 	check(drills.spike_state == drills.State.FAILED, "Grounded attacks cannot pass a jump-spike drill")
 	drills.start_spike()
-	lab.jumped = true
-	lab.airborne_action = 2
+	lab.motion.jumped = true
+	lab.motion.airborne_action = 2
 	drills.on_contact(2)
 	lab.ball.position = drills.SPIKE_GOAL + Vector3.RIGHT * 5
 	drills.on_ball_down()

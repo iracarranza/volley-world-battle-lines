@@ -9,10 +9,10 @@ func run() -> void:
 	lab.set_process(false)
 	lab.moc.enabled = false
 	lab.player.position = Vector3(3,0.03,15)
-	lab.view_pitch = 0.39
-	lab.view_yaw = 0.2
-	lab._update_aim()
-	lab._toggle_debug_volumes()
+	lab.camera_rig.view_pitch = 0.39
+	lab.camera_rig.view_yaw = 0.2
+	lab.camera_rig.update_aim()
+	lab.hud.toggle_debug_volumes()
 	for action in [0,1,2]:
 		lab.selected = action
 		lab.locked_action = action
@@ -29,14 +29,14 @@ func run() -> void:
 			point += lab.Geometry.sector_point(shape,0.74,67.5,0)
 		else:
 			point.x += 0.25
-		lab.ball.position = lab.player.position + point.rotated(Vector3.UP,lab.facing_yaw)
+		lab.ball.position = lab.player.position + point.rotated(Vector3.UP,lab.camera_rig.facing_yaw)
 		lab.ball_velocity = Vector3(0,-5,3)
 		for view in [lab.ViewMode.ATHLETE,lab.ViewMode.BALL]:
-			lab._set_camera_mode(view)
-			lab._update_pose()
-			lab._update_camera(2)
+			lab.camera_rig.set_mode(view)
+			lab.animation.update()
+			lab.camera_rig.update(2)
 			lab._update_preview()
-			lab._update_ui()
+			lab.hud.update()
 			var hint: Dictionary = lab.last_trajectory_preview
 			if not hint.is_empty():
 				var visible_points := 0

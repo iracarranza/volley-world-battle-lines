@@ -26,10 +26,10 @@ func capture() -> void:
 		lab.player.velocity = Vector3(2, 0, 0)
 	lab.ball_active = true
 	lab.ball.position = lab.player.position + sample
-	lab._update_aim()
-	lab._update_pose()
+	lab.camera_rig.update_aim()
+	lab.animation.update()
 	lab._confirm_action()
-	lab._update_ui()
+	lab.hud.update()
 	lab.camera.position = lab.player.position + Vector3(3.5, 2.7, -4.5)
 	lab.camera.look_at(lab.player.position + Vector3(0, 1.0, -0.35))
 	await process_frame

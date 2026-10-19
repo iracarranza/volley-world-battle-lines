@@ -1,14 +1,7 @@
-extends SceneTree
+extends "res://tests/support/test_case.gd"
 # The map graybox is the Contact Lab hosted on the planned map: the lab's systems stay live, the world under them is the map, the Drills
 # sit on it, and the Contact Lab scene itself is untouched.
 const Layout := preload("res://scripts/map_layout.gd")
-var checks := 0
-var failures := 0
-func check(ok: bool, message: String) -> void:
-	checks += 1
-	if not ok:
-		failures += 1
-		push_error(message)
 func _initialize() -> void:
 	call_deferred("run")
 func key(code: int, pressed: bool) -> void:
@@ -46,7 +39,7 @@ func run() -> void:
 	check(lab.camera.current and not lab.overview_camera.current, "the game starts on the athlete's camera, not the overview")
 	# The athlete walks with the lab's own movement.
 	var start_z: float = lab.player.position.z
-	lab.view_yaw = 0.0
+	lab.camera_rig.view_yaw = 0.0
 	key(KEY_W, true)
 	await process_frame
 	await steps(lab, 45)
@@ -76,7 +69,7 @@ func run() -> void:
 	check(drills.box_state == drills.State.ACTIVE, "the tower starts where it now stands")
 	# One real attack climb of the first layer, with the lab's own approach and jump.
 	lab.athlete.stamina = 100.0
-	lab.view_yaw = 0.0
+	lab.camera_rig.view_yaw = 0.0
 	lab.selected = 2
 	lab.locked_action = 2
 	lab.armed = true
@@ -85,15 +78,15 @@ func run() -> void:
 	await steps(lab, 8)
 	key(KEY_W, true)
 	await process_frame
-	lab._begin_jump()
+	lab.motion.begin_jump()
 	var released := false
 	var target: float = float(drills.layer_charges[0]) + 0.03
 	for frame in range(300):
-		if not released and lab.jump_charge >= target:
-			lab._takeoff()
+		if not released and lab.motion.jump_charge >= target:
+			lab.motion.takeoff()
 			released = true
 		await steps(lab, 1)
-		if released and lab.player.is_on_floor() and not lab.jumped and drills.box_progress > 0:
+		if released and lab.player.is_on_floor() and not lab.motion.jumped and drills.box_progress > 0:
 			break
 	key(KEY_W, false)
 	await process_frame
