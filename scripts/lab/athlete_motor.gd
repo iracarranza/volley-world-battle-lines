@@ -212,7 +212,7 @@ func begin_jump() -> void:
 		return
 	if lab.charging:
 		lab.locked_action = lab.selected
-		lab.locked_charge = lab.charge if lab.charge > 0.13 else lab._default_charge()
+		lab.finish_charge_preparation()
 		lab.charging = false
 		lab.armed = true
 	if lab.armed or lab.ball_active or lab.station.running() or lab.drills.running():
@@ -322,7 +322,7 @@ func takeoff() -> void:
 		lab.player.velocity.x = dive_direction.x * dive_speed
 		lab.player.velocity.z = dive_direction.z * dive_speed
 		if not lab.armed:
-			lab.locked_charge = 0.35 + 65.0 / 250.0
+			lab.begin_auto_preparation(0)
 		lab.armed = true
 		lab.locked_action = 0
 		lab._message("DIVE / " + ("TIMED FIRST STEP" if quality > 0.7 else "EARLY / LATE RELEASE"))

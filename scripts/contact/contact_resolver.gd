@@ -2,6 +2,7 @@ extends RefCounted
 ## One ordered rules pipeline for player, court bots, Pepper and previews.
 ## Geometry -> timing -> charge -> receive outcome -> direction -> execution -> shank.
 const Registry := preload("res://scripts/contact/mechanic_registry.gd")
+const SetIsolation := preload("res://scripts/contact/set_isolation.gd")
 const ReceiveResponse := preload("res://scripts/contact/receive_response.gd")
 const BallState := preload("res://scripts/contact/ball_state.gd")
 const Snapshot := preload("res://scripts/contact/snapshot.gd")
@@ -26,17 +27,24 @@ static func assess(request: Request) -> Dictionary:
 	result["timing_assessment"] = Snapshot.freeze({"sweet_eligible": result.get("sweet", false), "rescue": result.get("rescue", false), "confirmation_age": request.confirmation_age})
 	if request.action == Action.SET:
 		result = request.athlete.stabilize_set(result)
+		result["set_isolation"] = SetIsolation.assess(request,result)
+		var severity: float = result.set_isolation.severity
+		if severity > 0:
+			result["sweet"] = false
+			result["quality"] *= 1.0-0.65*severity
+			result["zone"] = "OVERWHELMED SET"
 	if request.action == Action.RECEIVE:
 		if not request.ideal_charge_match:
 			result = Charge.assess(
 				result, request.incoming_shot,
 				request.charge * request.athlete.low_stamina_factor(),
-				request.athlete.cushioning_bonus(), request.athlete.trait_effect("charge_tolerance")
+				request.athlete.cushioning_bonus(), request.athlete.trait_effect("charge_tolerance"),request.auto_charge
 			)
 		result = Outcome.assess(
 			result, request.shape, request.local_point, request.movement_speed,
 			request.directional_input, atan2(-request.facing.x, -request.facing.z)
 		)
+	if request.auto_charge: result["auto_charge"] = Snapshot.freeze(request.auto_evidence)
 	return result
 
 static func resolve(request: Request, assessment: Dictionary) -> Result:
@@ -83,6 +91,10 @@ static func resolve(request: Request, assessment: Dictionary) -> Result:
 			request.aim_random, request.receive_heading.length_squared() > 0
 		)
 		velocity = result.aiming.velocity
+	if request.action == Action.SET:
+		var isolation: Dictionary = assessment.set_isolation
+		velocity = SetIsolation.velocity(request.incoming,velocity,isolation,request.facing)
+		result.outgoing_shot = BallState.set_contact(request.charge,request.actor_id,velocity,isolation,quality,request.incoming)
 	if request.action == Action.RECEIVE:
 		velocity = Outcome.velocity(velocity, assessment)
 		if not request.ideal_charge_match and assessment.hit:
@@ -104,8 +116,8 @@ static func mechanics(request: Request, result: Result) -> Array:
 	var evidence := {
 		"geometry": {"hit": geometry.get("hit", false), "zone": geometry.get("zone", ""), "quality": geometry.get("quality", 0), "intersection": request.local_point, "platform_quality": request.athlete.trait_effect("platform_quality") if request.action == Action.RECEIVE else 0.0},
 		"timing": {"confirmation_age": request.confirmation_age, "sweet_eligible": timing.get("sweet_eligible", false), "early": response.get("early", 0), "late": response.get("late", 0), "timing": request.athlete.timing()},
-		"potency": {"action_charge": request.charge, "available_output": request.athlete.low_stamina_factor(), "effective_receive_charge": assessment.get("charge_match", {}).get("receive_charge", request.charge), "cushioning": request.athlete.cushioning_bonus() if request.action == Action.RECEIVE else 0.0},
-		"handling": {"profile": Registry.profile(request.action), "model": "receive_response" if not response.is_empty() else "existing_action_rules", "charge_match": assessment.get("charge_match", {}), "incoming_velocity": request.incoming},
+		"potency": {"action_charge": request.charge, "available_output": request.athlete.low_stamina_factor(), "effective_receive_charge": assessment.get("charge_match", {}).get("receive_charge", request.charge), "cushioning": request.athlete.cushioning_bonus() if request.action == Action.RECEIVE else 0.0,"auto_charge":request.auto_evidence},
+		"handling": {"profile": Registry.profile(request.action), "model": "receive_response" if not response.is_empty() else "existing_action_rules", "charge_match": assessment.get("charge_match", {}), "incoming_velocity": request.incoming,"set_isolation":assessment.get("set_isolation",{})},
 		"pressure_control": {"uncontrolled_fraction": response.get("uncontrolled_fraction", 0), "absorption": response.get("receive_absorption", 0), "control": response.get("receive_control", 0), "retention": response.get("retention", 0)},
 		"redirection": {"facing": request.facing, "directional_input": request.directional_input, "redirection": response.get("receive_redirection", 0), "scatter_radians": response.get("scatter_radians", 0), "seed": request.response_seed},
 		"intent_transfer": {"intended_velocity": request.base_velocity, "outgoing_velocity": result.velocity, "delivery_quality": result.outgoing_shot.get("delivery_quality", assessment.get("quality", 0))},

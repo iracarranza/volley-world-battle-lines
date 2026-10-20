@@ -133,7 +133,8 @@ func run() -> void:
 	lab.athlete.trait_ids.assign(["new_trait","new_trait_3"])
 	lab.athlete.flow = 100
 	var effective: float = lab.contact_flow.attack_charge(0.6,"player")
-	check(is_equal_approx(effective,1.02),"Flow Hitter is additive after Swing Power and Big Hitter")
+	var authored_additives: float = lab.athlete.trait_effect("spike_velocity")+lab.athlete.trait_effect("flow_attack_velocity")
+	check(is_equal_approx(effective,0.6*1.2+authored_additives/100.0),"Flow Hitter is additive after Swing Power and Big Hitter")
 	lab._shot_velocity(Vector3(0,3,4),2,0.6)
 	check(lab.athlete.flow == 100,"Aiming/preview cannot consume Flow")
 	lab.ball_active = true

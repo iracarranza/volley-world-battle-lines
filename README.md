@@ -87,7 +87,7 @@ zero Stamina causes Winded for 10.5 s; reaching zero again while Winded causes
 Exhaustion (7 s without regeneration, then Winded). Exhausted athletes cannot serve;
 entering a rally/Pepper while Exhausted benches them for 5 s. Flow rewards contact
 quality, clears on fatigue, holds for 14 s after contact, then decays exponentially.
-See [attribute runtime](docs/attribute-runtime.md) for implemented stat/trait effects.
+See [attribute runtime](docs/attribute-runtime.md) for implemented stat/trait effects. [Auto preparation](docs/auto-charge.md) describes Reaction Speed, tapped matching at contact, and the standard 61% tapped set.
 
 MoC uses local slowdown (**Current: 60%; Tuned: 10%**), never a pause: only the ball and contacting athlete
 slow down. Sets cancel existing MoC and launch at full speed. Off retains impact

@@ -85,7 +85,7 @@ func run() -> void:
 	lab.hud.athlete_hud.update_values()
 	check(lab.athlete.stamina == 150 and lab.hud.athlete_hud.sta_bar.max_value == 150,"Reset and HUD respect capacity")
 	check(athlete("acceleration",99).acceleration() > base.acceleration(),"Acceleration raises velocity convergence rate")
-	check(athlete("lateral_speed",99).strafe_factor() > base.strafe_factor() and base.strafe_factor() < 1,"Lateral Speed reduces real strafe penalty")
+	check(athlete("reaction_speed",99).strafe_factor() == base.strafe_factor() and base.strafe_factor() < 1,"Reaction Speed leaves the neutral strafe penalty unchanged")
 	lab.queue_free()
 	await process_frame
 	print("STAT TIERS / MECHANICS: %d / %d passed"%[checks-failures,checks])

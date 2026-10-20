@@ -1,8 +1,6 @@
 # Contact framework and Receive response
 
-Implemented slice: shared framework and Receive Conditioning. Set, Attack, Block
-and Serve still use their existing execution rules; their future handling curves
-are not advertised as working trait effects. Ball flight remains ballistic.
+Implemented slices: shared framework, Receive Conditioning and provisional Set Isolation. Attack, Block and Serve retain their existing handling rules. Ball flight remains ballistic.
 
 ## Shared named stages
 
@@ -63,7 +61,7 @@ It does not multiply outgoing velocity again.
 `delivery_quality` records how well conditioned the pass is, with source action,
 actor, retained pressure, reference speed and response seed. This is the contract
 for future Set/Attack transfer work; it does not yet impose new attack penalties
-or setter trait bonuses. Other action metadata retains its existing behavior.
+or setter trait bonuses. Set metadata now separates output intent (`action_charge`) from handling effort (`handling_charge`) and resultant pressure (`charge`); see `auto-charge.md`. Other action metadata retains its existing behavior.
 
 With contact volumes enabled (`K`), the persistent lab readout shows input charge,
 resulting ball charge and delivery quality. Full receive evidence includes early/

@@ -22,3 +22,8 @@ static func receive(action_charge: float, actor: String, incoming: Dictionary, i
 		"source_action": str(incoming.get("kind", "free_ball")),
 		"reference_speed": outgoing.length(), "response_seed": response.get("seed", 0),
 	})
+
+static func set_contact(action_charge: float,actor: String,outgoing: Vector3,isolation: Dictionary,quality: float,incoming: Vector3) -> Dictionary:
+	var retained: float = float(isolation.pressure)*float(isolation.severity)*pow(minf(outgoing.length(),incoming.length())/maxf(incoming.length(),PRESSURE_REFERENCE_SPEED),2)
+	var delivered := pow(outgoing.length()/30.0,2)*0.65*(1.0-float(isolation.severity))
+	return Snapshot.freeze({"kind":"set","actor":actor,"action_charge":action_charge,"charge":maxf(0,delivered+retained),"handling_charge":isolation.handling_charge,"delivery_quality":clampf(quality*(1.0-float(isolation.severity)),0,1),"retained_pressure":retained,"reference_speed":outgoing.length()})

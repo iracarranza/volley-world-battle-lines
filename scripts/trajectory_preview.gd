@@ -38,7 +38,7 @@ static func predict(lab: Node3D) -> Dictionary:
 	request.ideal_charge_match = true
 	request.apply_set_spread = false
 	request.apply_block_spread = false
-	var power: float = lab.locked_charge if lab.armed else lab.charge
+	var power: float = lab.prepared_output_charge() if lab.armed else lab.charge
 	var target: Vector3 = lab.committed_intent.get("target", lab.aim)
 	request.charge = power
 	request.intent_direction = target - origin

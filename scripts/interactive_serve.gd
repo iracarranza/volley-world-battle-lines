@@ -77,6 +77,7 @@ func press() -> void:
 	evidence = {}
 	main_court = absf(lab.player.position.x-lab.court_center.x) <= lab.court_half_width+1.5 and absf(lab.player.position.z) > 0.35 and absf(lab.player.position.z) <= lab.court_half_depth+6
 	lab.armed = false
+	lab.auto_preparation.clear()
 	lab.charging = false
 	lab.contacts = 0
 	lab.side_contacts.fill(0)

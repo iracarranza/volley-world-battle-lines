@@ -3,8 +3,8 @@ const ABOVE_LEEWAY := 0.15
 const CONTROL_CHARGE := 0.65
 const FULL_SHANK_GAP := 0.35
 
-static func match_charge(shot: Dictionary, charge: float, cushioning: float = 0.0, tolerance: float = 0.0) -> Dictionary:
-	var required := str(shot.get("kind", "")) in ["serve", "attack"] and shot.has("charge")
+static func match_charge(shot: Dictionary, charge: float, cushioning: float = 0.0, tolerance: float = 0.0,all_contacts: bool = false) -> Dictionary:
+	var required := (all_contacts or str(shot.get("kind", "")) in ["serve", "attack"]) and shot.has("charge")
 	var lower := maxf(float(shot.get("charge", 0)), 0)
 	var upper := lower + ABOVE_LEEWAY
 	var input_charge := charge
@@ -19,9 +19,9 @@ static func match_charge(shot: Dictionary, charge: float, cushioning: float = 0.
 	result.make_read_only()
 	return result
 
-static func assess(assessment: Dictionary, shot: Dictionary, charge: float, cushioning: float = 0.0, tolerance: float = 0.0) -> Dictionary:
+static func assess(assessment: Dictionary, shot: Dictionary, charge: float, cushioning: float = 0.0, tolerance: float = 0.0,all_contacts: bool = false) -> Dictionary:
 	var result := assessment.duplicate(true)
-	var match_result := match_charge(shot, charge, cushioning,tolerance)
+	var match_result := match_charge(shot, charge, cushioning,tolerance,all_contacts)
 	result["charge_match"] = match_result
 	if not match_result.matched:
 		result["sweet"] = false

@@ -112,6 +112,8 @@ var selected := 0
 var locked_action := 0
 var charging := false
 var armed := false
+const AutoCharge := preload("res://scripts/auto_charge.gd")
+var auto_preparation := AutoCharge.new()
 var charge := 0.0
 var locked_charge := 0.0
 var confirm_window := 0.0
@@ -440,7 +442,11 @@ func contact_request(action: int) -> ContactRequest:
 	request.origin = ball.position
 	request.incoming = ball_velocity
 	request.incoming_shot = ball_shot
-	request.charge = locked_charge
+	request.charge = prepared_output_charge() if action == locked_action else locked_charge
+	if auto_preparation.active and action == locked_action:
+		request.auto_charge = true
+		request.auto_evidence = auto_preparation.sample(athlete,ball_shot,ball_velocity)
+		request.handling_charge = float(request.auto_evidence.handling_charge)
 	request.confirmation_age = confirm_duration - maxf(confirm_window, 0) if confirm_duration > 0 else Execution.SWEET_DELAY
 	request.remembered = not Geometry.contains(request.shape, request.local_point) and contact_memory[action] > 0
 	request.facing = Vector3.FORWARD.rotated(Vector3.UP, _contact_yaw())
@@ -563,6 +569,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed and player.is_on_floor():
 			charging = false
 			armed = false
+			auto_preparation.clear()
 			committed_intent = {}
 			confirm_window = 0.0
 			if motion.jump_charge >= 0.0:
@@ -582,8 +589,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				charging = false
 				armed = true
 				locked_action = selected if player.is_on_floor() else motion.airborne_action
-				locked_charge = charge if charge > 0.13 else (0.35 + 65.0 / 250.0)
-				_message("Power ready. Click again when the ball is in reach.")
+				finish_charge_preparation()
+				_message("AUTO ready. Click to confirm." if auto_preparation.active else "Power ready. Click again when the ball is in reach.")
 
 func _physics_process(dt: float) -> void:
 	if paused:
@@ -594,6 +601,8 @@ func _physics_process(dt: float) -> void:
 	var motion_scale: float = moc.actor_scale("player")
 	dt *= motion_scale
 	elapsed += world_dt
+	if auto_preparation.active and armed:
+		auto_preparation.tick(world_dt,athlete,ball_shot,ball_velocity)
 	contact_flow.tick(world_dt)
 	_check_bench()
 	if is_benched():
@@ -634,6 +643,7 @@ func _physics_process(dt: float) -> void:
 		elif confirm_window <= 0:
 			committed_intent = {}
 			armed = false
+			auto_preparation.clear()
 			athlete.spend(2.0)
 			_message("Missed timing / reach. Move under the ball and try again.")
 	_check_bench()
@@ -730,6 +740,20 @@ func _can_contact() -> bool:
 		return false
 	return _overlaps_contact(locked_action) or (ball_active and contact_memory[locked_action] > 0.0)
 
+func begin_auto_preparation(action: int) -> void:
+	auto_preparation.begin(action,_contact_event_serial+1)
+	locked_charge = _default_charge() # Pose reference only; contact charge remains Auto.
+
+func finish_charge_preparation() -> void:
+	if charge <= 0.13:
+		begin_auto_preparation(locked_action)
+	else:
+		auto_preparation.clear()
+		locked_charge = charge
+
+func prepared_output_charge() -> float:
+	return float(auto_preparation.sample(athlete,ball_shot,ball_velocity).charge) if auto_preparation.active else locked_charge
+
 func _default_charge() -> float:
 	return 0.35 + 65.0 / 250.0
 
@@ -794,8 +818,9 @@ func _capture_contact_intent() -> void:
 	var origin := player.position + Vector3.UP * (athlete.reach() - (1.2 if locked_action == 0 else 0.2))
 	var forward := aim - origin
 	forward.y = 0
-	var influence := DirectionalInfluence.resolve(_shot_velocity(origin, locked_action, locked_charge), locked_action, directional_input.value(), forward, 1.0)
-	committed_intent = ContactIntent.capture("player", side_index(player.position.z), locked_action, locked_charge, origin, aim, influence.velocity, elapsed, influence)
+	var input_charge := prepared_output_charge()
+	var influence := DirectionalInfluence.resolve(_shot_velocity(origin, locked_action, input_charge), locked_action, directional_input.value(), forward, 1.0)
+	committed_intent = ContactIntent.capture("player", side_index(player.position.z), locked_action, input_charge, origin, aim, influence.velocity, elapsed, influence,"auto" if auto_preparation.active else "manual")
 
 func _impact_event(actor_id: String, action: int, incoming: Vector3, assessment: Dictionary, incoming_shot: Dictionary) -> ContactEvent:
 	_contact_event_serial += 1
@@ -917,9 +942,9 @@ func _contact() -> void:
 	var quality: float = assessment.quality if assessment.hit else 0.35
 	last_quality = assessment.zone if assessment.hit or assessment.get("rescue", false) else "STRETCHED"
 	var rolled: bool = locked_action == 0 and athlete.has_trait("endurance_rolling_receive") and assessment.hit and assessment.get("edge", false) and not assessment.get("rescue", false) and assessment.get("charge_match", {}).get("matched", true)
-	if committed_intent.is_empty() or int(committed_intent.action) != locked_action or not is_equal_approx(float(committed_intent.charge), locked_charge):
+	if committed_intent.is_empty() or int(committed_intent.action) != locked_action or (not auto_preparation.active and not is_equal_approx(float(committed_intent.charge), locked_charge)):
 		_capture_contact_intent()
-	ball_velocity = _shot_velocity(ball.position, locked_action, locked_charge, committed_intent.target)
+	ball_velocity = _shot_velocity(ball.position, locked_action, request.charge, committed_intent.target)
 	if locked_action == 2 and assessment.get("rescue", false):
 		rescue_swing_remaining = 0.28
 	if rolled:
@@ -939,7 +964,7 @@ func _contact() -> void:
 	last_directional_influence = result.influence
 	if locked_action == Action.ATTACK:
 		animation.spike_swing_yaw = result.influence.shot_yaw_radians
-	ball_shot = ReceiveCharge.shot(["receive", "set", "attack", "block"][locked_action], contact_flow.attack_charge(locked_charge,"player",ball.position) if locked_action == 2 else locked_charge, "player")
+	ball_shot = ReceiveCharge.shot(["receive", "set", "attack", "block"][locked_action], contact_flow.attack_charge(request.charge,"player",ball.position) if locked_action == 2 else request.charge, "player")
 	if not result.outgoing_shot.is_empty():
 		ball_shot = result.outgoing_shot
 	if locked_action == 2 and assessment.hit:
@@ -950,6 +975,7 @@ func _contact() -> void:
 	last_contact = elapsed
 	outgoing = true
 	armed = false
+	auto_preparation.clear()
 	_update_hurtbox_visual(0.0)
 	confirm_window = 0
 	trail_points.clear()
@@ -1077,6 +1103,7 @@ func _finish(message: String) -> void:
 	confirm_window = 0.0
 	committed_intent = {}
 	armed = false
+	auto_preparation.clear()
 	serve.clear()
 	pepper.stop()
 	moc.clear()
@@ -1186,6 +1213,7 @@ func _reset() -> void:
 	last_receive_match = {}
 	charging = false
 	armed = false
+	auto_preparation.clear()
 	motion.jumped = false
 	motion.jump_charge = -1
 	motion.approach_action = -1

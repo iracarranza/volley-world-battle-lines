@@ -5,6 +5,12 @@ const ACCENT := Color("54ead0")
 var selected := 0
 var locked := false
 var charge_level := 0.0
+var auto_charge := false
+
+func set_auto(value: bool) -> void:
+	if auto_charge != value:
+		auto_charge = value
+		queue_redraw()
 
 func set_charge(value: float) -> void:
 	value = clampf(value, 0, 1)
@@ -77,7 +83,7 @@ func _draw() -> void:
 		draw_arc(point, radius, 0, TAU, 64, color if active else Color("486170"), 2.0, true)
 		centered_text(font, str(action + 1), point + Vector2(0, -1), 25 if active else 21, color)
 		centered_text(font, NAMES[action], point + Vector2(0, 18), 12 if active else 10, color)
-	if charge_level > 0:
-		centered_text(font, "%d%%" % roundi(charge_level * 100), corner + Vector2(-80, -72), 16, Color("eff7fb"))
+	if auto_charge or charge_level > 0:
+		centered_text(font, "AUTO" if auto_charge else "%d%%" % roundi(charge_level * 100), corner + Vector2(-80, -72), 16, Color("eff7fb"))
 	centered_text(font, "ACTION WHEEL", Vector2(155, 28), 13, Color("91acbb"))
 	centered_text(font, "COMMITTED" if locked else "1–4 SELECT", Vector2(155, 48), 12, Color("ffce73") if locked else Color("91acbb"))

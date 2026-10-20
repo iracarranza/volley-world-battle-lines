@@ -77,7 +77,7 @@ func stride_speed_rate() -> float:
 	return maxf(0.1,1.0+trait_effect("stride_speed")/100.0)
 
 func strafe_factor() -> float:
-	return Stats.strafe_factor(stat("lateral_speed"))
+	return 0.75 # Retained neutral strafe penalty; Reaction Speed owns Auto preparation.
 
 func max_stamina() -> float:
 	return Stats.capacity(stat("capacity"))

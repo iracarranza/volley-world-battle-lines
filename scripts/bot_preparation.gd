@@ -16,7 +16,7 @@ func state_for(key: int) -> Dictionary:
 func begin(key: int, action: int, shot: Dictionary, time: float, accuracy: float, random: RandomNumberGenerator, cushioning: float = 0.0, available_output: float = 1.0) -> void:
 	var state := state_for(key)
 	var match_result := ReceiveCharge.match_charge(shot, 0)
-	var target := clampf((float(match_result.minimum) + ReceiveCharge.ABOVE_LEEWAY * 0.5-cushioning)/maxf(available_output,0.01),0,1) if action == 0 and match_result.required else DEFAULT_CHARGE
+	var target := clampf(preload("res://scripts/auto_charge.gd").receive_target(float(match_result.minimum),cushioning,available_output),0,1) if action == 0 and match_result.required else DEFAULT_CHARGE
 	if accuracy < 100:
 		target = clampf(target + random.randf_range(-0.35, 0.35) * (1.0 - clampf(accuracy, 0, 100) / 100.0), 0, 1)
 	if float(state.charge) > target:

@@ -185,7 +185,7 @@ func build() -> void:
 	help.add_theme_constant_override("separation", 14)
 	help_panel.add_child(help)
 	help.add_child(label("MAKE THE CONTACT", 25, TEAL))
-	help.add_child(label("1   Select 1 receive, 2 set, 3 attack or 4 block.\n\n2   Hold left mouse to choose power, then release.\n      A quick tap uses your athlete’s default power.\n\n3   Click again as the ball enters your reach ring.\n      Confirm is buffered for a short timing window.\n\nAttack + Space: long right, short left, inward right.\nFourth step launches upward. Right lead is fixed for now.\nReceive + Space: split step, move freely, release to dive.\nClick confirms Receive and cancels a pending dive.\nSet / Block: charge a direct jump; hold movement for carry.\nAttack: full approach gives the strongest spike jump.\n\nReceive low. Set overhead. Jump to spike or block.\nAim across the Net to score; keep sets on your side.\nAfter three personal contacts, return the ball.\n\nRight mouse cancels a grounded preparation.\nHold E: channel a safe standing serve. Tap E: toss; tap again to swing. Rising contact lofts higher. Quick Step: double-tap a direction while an action is charged. B feeds a debug ball. T resets. P pauses. H toggles help.\nI: inspect nearby bot; otherwise start / retry / stop drill.\nEast: Serve Receive. West: Spike Trainer. West lane: Box Jump.\nG: summon a bot here. I: inspect nearby bot. F9: roster.\nK: toggle hit/hurtboxes. Purple circles: serve to start Pepper.\nF5: feed landing here. F6: set target here. Shift+F6: receive target here. F7: tracking feed.\nV switches Athlete View / Ball View.\nMouse looks around. WASD is relative to the view.\nEsc releases the cursor for buttons; click court to return.", 17))
+	help.add_child(label("1   Select 1 receive, 2 set, 3 attack or 4 block.\n\n2   Hold left mouse to choose power, then release.\n      A quick tap prepares AUTO; Reaction Speed controls adaptation.\n\n3   Click again as the ball enters your reach ring.\n      Confirm is buffered for a short timing window.\n\nAttack + Space: long right, short left, inward right.\nFourth step launches upward. Right lead is fixed for now.\nReceive + Space: split step, move freely, release to dive.\nClick confirms Receive and cancels a pending dive.\nSet / Block: charge a direct jump; hold movement for carry.\nAttack: full approach gives the strongest spike jump.\n\nReceive low. Set overhead. Jump to spike or block.\nAim across the Net to score; keep sets on your side.\nAfter three personal contacts, return the ball.\n\nRight mouse cancels a grounded preparation.\nHold E: channel a safe standing serve. Tap E: toss; tap again to swing. Rising contact lofts higher. Quick Step: double-tap a direction while an action is charged. B feeds a debug ball. T resets. P pauses. H toggles help.\nI: inspect nearby bot; otherwise start / retry / stop drill.\nEast: Serve Receive. West: Spike Trainer. West lane: Box Jump.\nG: summon a bot here. I: inspect nearby bot. F9: roster.\nK: toggle hit/hurtboxes. Purple circles: serve to start Pepper.\nF5: feed landing here. F6: set target here. Shift+F6: receive target here. F7: tracking feed.\nV switches Athlete View / Ball View.\nMouse looks around. WASD is relative to the view.\nEsc releases the cursor for buttons; click court to return.", 17))
 	help.add_child(button("LET’S PLAY", func():
 		help_panel.hide()
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -270,7 +270,8 @@ func update() -> void:
 	station_status.text = lab.drills.hud_text() if lab.drills.in_zone() or lab.drills.running() else lab.station.hud_text()
 	bot_status.text = "Next: %d / 3  ·  %d bot contacts" % [mini(lab.side_contacts[lab.side_index(lab.ball.position.z)] + 1, 3), lab.training_bots.total_contacts] if lab.training_bots.any_enabled() else "Helpers off / E serve / G bots"
 	action_wheel.set_action(lab.selected, lab.armed or lab.charging or lab.motion.jumped)
-	action_wheel.set_charge(lab.charge if lab.charging else (lab.locked_charge if lab.armed else 0.0))
+	action_wheel.set_auto(lab.armed and lab.auto_preparation.active)
+	action_wheel.set_charge(lab.charge if lab.charging else (0.0 if lab.auto_preparation.active else (lab.locked_charge if lab.armed else 0.0)))
 	athlete_hud.update_values()
 	camera_badge.text = ("ATHLETE VIEW" if lab.camera_rig.camera_mode == ViewMode.ATHLETE else "BALL VIEW") + "   /   V switch\n" + ("Mouse look / aim   ·   Esc cursor" if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else "Cursor free   ·   click court to play")
 	if lab.camera_rig.camera_mode == ViewMode.BALL:
@@ -297,7 +298,7 @@ func update() -> void:
 	elif lab.charging:
 		state = "CHARGING POWER  /  release to arm"
 	elif lab.armed:
-		state = "READY  /  click at contact    ·    right click cancels on ground"
+		state = ("AUTO READY" if lab.auto_preparation.active else "READY")+"  /  click at contact    ·    right click cancels on ground"
 	if lab.hurtbox_root.visible and lab.hurtbox_action == 2:
 		state += " / GREEN sweet · GOLD fair · ORANGE weak · RED sour"
 	if (lab.armed or lab.charging) and (lab.locked_action if lab.armed else lab.selected) in [0, 1, 2]:

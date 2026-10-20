@@ -11,10 +11,10 @@ const MAX_RATING := 77
 const AP_BUDGET := 12
 const STAT_RANGE := 8
 const ROLES := ["OH", "OP", "S", "MB", "L"]
-const STAT_VERSION := 2
+const STAT_VERSION := 3
 const STATS := {
  "power":["Explosiveness","Jump Power","Swing Power"],
- "speed":["Acceleration","Lateral Speed","Transition Speed"],
+ "speed":["Acceleration","Reaction Speed","Transition Speed"],
  "accuracy":["Ball Control","Timing","Stability"],
  "endurance":["Cushioning","Work Rate","Capacity"],
 }
@@ -112,7 +112,9 @@ static func migrate(config: Dictionary) -> Dictionary:
 	var out := config.duplicate(true)
 	var current := int(out.get("stat_version",0)) >= STAT_VERSION
 	var old_offsets: Dictionary = out.get("offsets",{})
-	var old_names: Dictionary = out.get("stat_names",STATS if current else LEGACY_STATS)
+	var previous_names := STATS.duplicate(true)
+	previous_names.speed = ["Acceleration","Lateral Speed","Transition Speed"]
+	var old_names: Dictionary = out.get("stat_names",STATS if current else (previous_names if int(out.get("stat_version",0)) == 2 else LEGACY_STATS))
 	var named: Dictionary = out.get("statistics",{})
 	if not current and not out.has("legacy_statistics"):
 		out["legacy_statistics"] = {"offsets":old_offsets.duplicate(true),"names":old_names.duplicate(true),"statistics":named.duplicate(true)}
@@ -138,7 +140,7 @@ static func migrate(config: Dictionary) -> Dictionary:
 	# If removed legacy stats supplied the balancing negatives, their positive
 	# counterparts cannot become free SP. Preserve the archive and reset that
 	# group for a clean respec instead of assigning debt to unrelated new stats.
-	if not current:
+	if int(out.get("stat_version",0)) < 2:
 		for parent in ATTRIBUTES:
 			var total := 0.0
 			for value in out.offsets[parent]:
@@ -148,6 +150,12 @@ static func migrate(config: Dictionary) -> Dictionary:
 				explicit = explicit or named.has(str(label).to_snake_case())
 			if total > 0.001 and not explicit:
 				out.offsets[parent].fill(0.0)
+	# Lateral Speed allocations cannot be relabelled into an unrelated mechanic.
+	if old_names.get("speed",[]).has("Lateral Speed") and not named.has("reaction_speed"):
+		var retired: Dictionary = out.get("retired_statistics",{}).duplicate(true)
+		retired["pre_reaction_speed"] = {"statistics":named.duplicate(true),"offsets":old_offsets.duplicate(true),"names":old_names.duplicate(true)}
+		out["retired_statistics"] = retired
+		out.offsets.speed.fill(0.0)
 	out["stat_names"] = STATS.duplicate(true)
 	out["stat_version"] = STAT_VERSION
 	sync_statistics(out)

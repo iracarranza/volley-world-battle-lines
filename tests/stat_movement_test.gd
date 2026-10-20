@@ -61,7 +61,7 @@ func run() -> void:
 	var strafes := []
 	for rating in [65,99]:
 		lab._reset()
-		lab.athlete.build.statistics = {"lateral_speed":rating}
+		lab.athlete.build.statistics = {"reaction_speed":rating}
 		await settle(lab)
 		key(KEY_D,true)
 		await process_frame
@@ -71,7 +71,7 @@ func run() -> void:
 		strafes.append(absf(lab.player.velocity.x))
 		key(KEY_D,false)
 		await process_frame
-	check(strafes[1] > strafes[0] and strafes[0] < lab.athlete.speed(),"Lateral Speed reduces actual strafe penalty")
+	check(is_equal_approx(strafes[1],strafes[0]) and strafes[0] < lab.athlete.speed(),"Reaction Speed does not modify the fixed strafe penalty")
 	lab.queue_free()
 	await process_frame
 	print("STAT MOVEMENT / APPROACH: %d / %d passed"%[checks-failures,checks])
