@@ -4,6 +4,7 @@ extends RefCounted
 ## Owns camera rig state. LabSession schedules updates and composes peers.
 const BallFraming := preload("res://scripts/ball_camera_framing.gd")
 enum ViewMode { ATHLETE, BALL }
+const REFERENCE_HEIGHT := 1.86
 
 var lab: LabSession
 var ball_frame_pivot := Vector3.ZERO
@@ -104,10 +105,11 @@ func update(dt: float) -> void:
 	camera_anchor = stable_target if camera_mode == ViewMode.BALL else camera_anchor.lerp(stable_target, 1.0 - exp(-dt * lab.camera_tuning.follow_response))
 	var anchor := camera_anchor
 	var forward := Vector3(-sin(view_yaw), 0, -cos(view_yaw))
+	var height_scale := float(lab.athlete.build.height) / REFERENCE_HEIGHT
 	var orbit_pitch := view_pitch - 0.27
-	var floor_pitch := asin(clampf((anchor.y - lab.camera_tuning.floor_clearance) / lab.camera_tuning.distance, -0.99, 0.99))
+	var floor_pitch := asin(clampf((anchor.y - lab.camera_tuning.floor_clearance) / (lab.camera_tuning.distance * height_scale), -0.99, 0.99))
 	var position_pitch := minf(orbit_pitch, floor_pitch)
-	var orbit_forward := forward * cos(position_pitch) + Vector3.UP * sin(position_pitch)
+	var orbit_forward := forward * cos(position_pitch) + Vector3.UP * sin(position_pitch) * height_scale
 	var desired_position := anchor - orbit_forward * lab.camera_tuning.distance
 	var look_target := anchor
 	if orbit_pitch > floor_pitch:
