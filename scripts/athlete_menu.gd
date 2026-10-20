@@ -144,6 +144,9 @@ func _build_roster(parent: Node) -> void:
 
 func _build_editor(parent: Node) -> void:
 	var box := panel(parent, Vector2(780, 0))
+	# The panel itself (not just its inner box) takes the free width, so Allocation, Trait Tree and Innates use the space the live preview
+	# occupies on the Build tab.
+	(box.get_parent() as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var tabs := TabContainer.new()
 	editor_tabs = tabs
@@ -186,6 +189,7 @@ func _build_editor(parent: Node) -> void:
 	tree_column.add_child(tree_scroll)
 	tree_scroll.add_child(tree_view)
 	tree_view.node_selected.connect(_show_node)
+	tree_view.node_activated.connect(_claim_node)
 	var detail := panel(trait_page, Vector2(230, 0))
 	capacity_label = label("", 14, GOLD)
 	detail.add_child(capacity_label)
@@ -456,7 +460,8 @@ func _refresh_debug() -> void:
 	for key in Store.ATTRIBUTES:
 		if int(growth.get(key, 0)) > 0:
 			parts.append("%s +%d" % [Store.ATTRIBUTE_NAMES[key], int(growth[key])])
-	debug_readout.text = "Level %d of %d. AP: %d earned (%d from Nets), %d spent, %d free. Free growth: %s." % [int(draft.get("level", 1)), Store.LEVEL_CAP, int(draft.get("bonus_ap", 0)), int(draft.get("net_ap", 0)), Store.ap_spent(draft), _free_points(), ", ".join(parts) if not parts.is_empty() else "none"]
+	var pools: Dictionary = Store.ap_pools(draft)
+	debug_readout.text = "Level %d of %d. Opening AP %d of %d used (%d on innates and height, %d on attributes). Earned AP %d (%d from Nets, attributes only), %d spent, %d free in total. Free growth: %s." % [int(draft.get("level", 1)), Store.LEVEL_CAP, pools.opening_only + pools.opening_attributes, Store.AP_BUDGET, pools.opening_only, pools.opening_attributes, pools.earned_total, int(draft.get("net_ap", 0)), pools.earned_spent, _free_points(), ", ".join(parts) if not parts.is_empty() else "none"]
 
 func _free_points() -> int:
 	return Store.ap_budget(draft) - Store.ap_spent(draft)
@@ -574,7 +579,7 @@ func _step_stat(key: String, index: int, direction: int) -> void:
 func _apply_height(inches: int) -> void:
 	var trial := draft.duplicate()
 	trial.height = inches * 0.0254
-	if not Store.height_allowed(inches, draft.get("innates", [])) or Store.ap_spent(trial) > Store.ap_budget(draft):
+	if not Store.height_allowed(inches, draft.get("innates", [])) or Store.ap_spent(trial) > Store.ap_budget(draft) or Store.opening_only_cost(trial) > Store.AP_BUDGET:
 		height_picker.select(Store.height_inches(float(draft.height)) - Store.MIN_INCHES)
 		status.text = "That height is not available."
 		return
@@ -641,6 +646,14 @@ func _show_node(info: Dictionary) -> void:
 	pick_button.visible = state in ["available", "picked"]
 	pick_button.text = "DROP TRAIT" if state == "picked" else "PICK TRAIT"
 
+# Double-clicking a node claims it when that is valid (it is selected by the first click); it never drops a pick.
+func _claim_node(id: String) -> void:
+	if String(shown_node.get("node_id", "")) != id or (draft.get("picks", []) as Array).has(id):
+		return
+	if Store.pick_blocker(draft, id, String(shown_node.get("via", ""))) != "":
+		return
+	_toggle_pick()
+
 func _toggle_pick() -> void:
 	var id := String(shown_node.get("node_id", ""))
 	if id.is_empty():
@@ -657,6 +670,9 @@ func _toggle_pick() -> void:
 		(tree_view.nodes[id] as Button).pressed.emit()
 
 func _toggle_innate(innate: String) -> void:
+	if Store.innates_locked(draft):
+		status.text = "Innates are chosen before a match. Reset progression to change them."
+		return
 	var chosen: Array = draft.get("innates", [])
 	if innate in chosen:
 		chosen.erase(innate)
@@ -671,6 +687,9 @@ func _toggle_innate(innate: String) -> void:
 		trial.innates = candidate
 		if Store.ap_spent(trial) > Store.ap_budget(draft):
 			status.text = "Not enough AP for %s." % innate
+			return
+		if Store.opening_only_cost(trial) > Store.AP_BUDGET:
+			status.text = "%s is paid from the %d opening AP; earned AP cannot buy innates." % [innate, Store.AP_BUDGET]
 			return
 		chosen = candidate
 	draft.innates = chosen
@@ -691,8 +710,11 @@ func _refresh_innates() -> void:
 	var position_innate: Dictionary = Store.POSITION_INNATES[draft.role]
 	innate_box.add_child(label("POSITION INNATE  (free)", 15, TEAL))
 	innate_box.add_child(label("%s  /  %s\n%s" % [draft.role, position_innate.name, position_innate.text], 15, GOLD))
-	innate_box.add_child(label("MATCH-START INNATES   %d AP remaining" % _free_points(), 15, TEAL))
-	innate_box.add_child(label("Only chosen at build time and they cost much more than ordinary Traits. Giant and Tiny are exclusive.", 12, DIM))
+	var pools: Dictionary = Store.ap_pools(draft)
+	innate_box.add_child(label("MATCH-START INNATES   %d of %d opening AP free" % [pools.opening_free, Store.AP_BUDGET], 15, TEAL))
+	innate_box.add_child(label("Only chosen at build time, paid from the opening AP (never earned AP), and they cost much more than ordinary Traits. Giant and Tiny are exclusive.", 12, DIM))
+	if Store.innates_locked(draft):
+		innate_box.add_child(label("Locked: this athlete has progressed. Reset progression to change innates.", 13, GOLD))
 	var chosen: Array = draft.get("innates", [])
 	for innate in Store.INNATES:
 		var info: Dictionary = Store.INNATES[innate]
@@ -700,6 +722,7 @@ func _refresh_innates() -> void:
 		line.add_theme_constant_override("separation", 12)
 		var on: bool = innate in chosen
 		var toggle := button("%s  %s" % ["●" if on else "○", innate], func(): _toggle_innate(innate), 160)
+		toggle.disabled = Store.innates_locked(draft)
 		toggle.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		line.add_child(toggle)
 		line.add_child(label("%d AP" % int(info.cost), 15, GOLD))

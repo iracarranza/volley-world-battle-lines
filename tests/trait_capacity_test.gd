@@ -84,7 +84,7 @@ func run() -> void:
 	check(not book.conflicts(ids["Steady Arms"], ids["Shoot Set"]) and not book.conflicts(ids["Rolling Receive"], ids["Second Wind"]), "Starts are free: subtrees open side by side, capacity limits them")
 	check(not book.conflicts(ids["Power Serve"], ids["Big Hitter"]) and not book.conflicts(ids["Power Serve"], ids["Quick Step"]), "A hitter can open the serving and hitting subtrees together")
 	check(book.parents_of(ids["Rhythm Hitter"]).has(ids["Big Hitter"]) and book.parents_of(ids["Rhythm Hitter"]).has(ids["Tough Arms"]), "Rhythm Hitter is reachable from Big Hitter and Tough Arms")
-	check(book.parents_of(ids["Never Stay Down"]) == [ids["Apex Hitter"]] and book.conflicts(ids["Keep in Time"], ids["Heavy Arm"]) and book.conflicts(ids["Jungle Ball"], ids["Rhythm Hitter"]), "Rhythm Hitter's branches are alternatives, and Tough Arms chooses Flow or Scramble")
+	check(book.parents_of(ids["Never Stay Down"]) == [ids["Apex Hitter"]] and book.conflicts(ids["Rhythm Hitter"], ids["Heavy Arm"]) and book.conflicts(ids["Rhythm Hitter"], ids["Spring Legs"]) and book.conflicts(ids["Jungle Ball"], ids["Rhythm Hitter"]), "Rhythm Hitter, Heavy Arm and Spring Legs are alternatives under Big Hitter, and Tough Arms chooses Rhythm Hitter or Scramble")
 	var both: Dictionary = Store.blank()
 	both.power = 80.0
 	both.speed = 70.0
@@ -117,8 +117,9 @@ func run() -> void:
 	var tough_via := {"new_trait_3": "pow_tough_arms"}
 	var via_tough: Dictionary = book.active_effects(["new_trait", "pow_tough_arms", "new_trait_3"], tough_via)
 	check(float(via_tough.get("platform_quality", 0.0)) == 4.0 and float(via_tough.get("spike_velocity", 0.0)) == 10.0, "Consuming Tough Arms keeps its +4 Platform Quality, and Big Hitter stays a current Trait with its +10")
-	var deep: Dictionary = book.active_effects(["new_trait", "new_trait_3", "pow_heavy_arm", "pow_sledgehammer"])
-	check(float(deep.get("spike_velocity", 0.0)) == 15.0, "A successor down the line still keeps what the first parent gave (Big Hitter 10 plus Sledgehammer 5)")
+	var deep: Dictionary = book.active_effects(["new_trait", "pow_heavy_arm", "pow_sledgehammer"])
+	check(float(deep.get("spike_velocity", 0.0)) == 15.0 and book.frontier(["new_trait", "pow_heavy_arm", "pow_sledgehammer"]) == ["pow_sledgehammer"], "A successor is a running total: Sledgehammer is +15, restating Big Hitter's 10")
+	check(book.active_gameplay_rules(["new_trait", "pow_heavy_arm", "pow_sledgehammer"]).is_empty() and book.active_gameplay_rules(["new_trait", "pow_spring_legs", "pow_skyhook", "pow_apex_hitter", "new_trait_11"]).is_empty(), "The Heavy Arm and Spring Legs lines use no Flow mechanics")
 	# Stat requirements: Tooler needs 8 Spin from current Traits
 	check(not book.unmet_stats("pow_tooler", ["new_trait", "pow_wide_arm", "pow_edge_contact"]).is_empty(), "Tooler needs Spin: Edge Contact alone is 4")
 	check(book.unmet_stats("pow_tooler", ["new_trait", "pow_wide_arm", "pow_edge_contact", "pow_eyes_up", "pow_read_the_block"]).is_empty(), "Edge Contact and Read the Block together give the 8 Spin")

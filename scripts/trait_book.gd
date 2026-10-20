@@ -425,6 +425,64 @@ func conflicts(a: String, b: String) -> bool:
 				return true
 	return false
 
+# The parents a node stands on in a particular build, for fork exclusivity: a picked node uses the parent it consumed; the candidate (not yet
+# picked) uses the one side being tested; any other node uses all of its parents.
+func _route_parents(x: String, picks: Array, via: Dictionary, candidate: String, side: String) -> Array:
+	if x == candidate and side != "":
+		return [side]
+	if picks.has(x):
+		return consumed_parents(x, picks, via)
+	return parents_of(x)
+
+func _route_lineage(id: String, picks: Array, via: Dictionary, candidate: String, side: String) -> Array:
+	var out := []
+	var queue := [id]
+	while not queue.is_empty():
+		var current: String = queue.pop_back()
+		if out.has(current) or find(current) < 0:
+			continue
+		out.append(current)
+		for parent in _route_parents(current, picks, via, candidate, side):
+			queue.append(parent)
+	return out
+
+# Does taking `candidate` (through `side`, one of its parents, or "" for none) fork against a node already picked in this build? A node that
+# can be reached from two lines only uses the fork of the line it was actually taken through.
+func conflicts_route(candidate: String, other: String, picks: Array, via: Dictionary, side: String) -> bool:
+	var below_a := _route_lineage(candidate, picks, via, candidate, side)
+	var below_b := _route_lineage(other, picks, via, candidate, side)
+	var forks_on := String(rules.get("forks", "exclusive")) == "exclusive"
+	for x in below_a:
+		var node_x: Dictionary = nodes[find(x)]
+		for y in below_b:
+			if x == y or below_b.has(x) or below_a.has(y):
+				continue
+			var node_y: Dictionary = nodes[find(y)]
+			if forks_on and not bool(node_x.get("standalone", false)) and not bool(node_y.get("standalone", false)):
+				var parents_y := _route_parents(y, picks, via, candidate, side)
+				for parent in _route_parents(x, picks, via, candidate, side):
+					if parents_y.has(parent):
+						return true
+			var key := start_key(node_x)
+			if key != "" and key == start_key(node_y):
+				return true
+	return false
+
+# Is `candidate` locked out by what is picked? Only if every way of taking it (each parent it could be taken through) forks against a pick.
+func locked_in_build(candidate: String, picks: Array, via: Dictionary, chosen_side: String = "") -> bool:
+	var sides: Array = [chosen_side] if chosen_side != "" else choice_parents(candidate)
+	if sides.is_empty():
+		sides = [""]
+	for side in sides:
+		var clear := true
+		for picked in picks:
+			if conflicts_route(candidate, String(picked), picks, via, String(side)):
+				clear = false
+				break
+		if clear:
+			return false
+	return true
+
 static func _ap(needs: Dictionary) -> float:
 	var total := 0.0
 	for key in needs:

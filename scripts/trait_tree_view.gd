@@ -3,6 +3,7 @@ extends Control
 # The trait tree as an athlete sees it: one page per Attribute, laid out as authored in the trait tree editor
 # (data/trait_tree.json). Nodes are picked, available, locked behind a rating, locked out by an exclusive branch, or planned.
 signal node_selected(info: Dictionary)
+signal node_activated(id: String)
 
 const Store := preload("res://scripts/athlete_store.gd")
 const TEAL := Color("54ead0")
@@ -56,6 +57,10 @@ func _gui_input(event: InputEvent) -> void:
 		if event.pressed:
 			drag_distance = 0.0
 	elif event is InputEventMouseMotion and dragging:
+		# A click on a node rebuilds the view, which can swallow the release: stop dragging when the button is no longer held.
+		if not (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
+			dragging = false
+			return
 		var step: Vector2 = -event.relative
 		drag_distance += step.length()
 		scroll.scroll_horizontal += int(step.x)
@@ -128,6 +133,9 @@ func rebuild(draft: Dictionary) -> void:
 		for other_id in dotted:
 			var other_index: int = book.find(String(other_id))
 			if other_index < 0 or book.nodes[other_index].attribute != page:
+				continue
+			# Dotted lines are drawn only for the selected node, or from it, so long links do not cross the whole page.
+			if selected_id != node.id and selected_id != String(other_id):
 				continue
 			var other_top := MARGIN + Vector2(float(book.nodes[other_index].pos[0]), float(book.nodes[other_index].pos[1]) + HEADER - 30.0)
 			edges.append([other_top + Vector2(NODE.x * 0.5, NODE.y), top_left + Vector2(NODE.x * 0.5, 0), true])
@@ -208,9 +216,14 @@ func _node(info: Dictionary, top_left: Vector2, state: String) -> Button:
 				hover_node = ""
 				overlay.queue_redraw()
 		)
+	b.gui_input.connect(func(event: InputEvent):
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and event.double_click:
+			node_activated.emit(info.id)
+	)
 	b.pressed.connect(func():
 		if drag_distance > DRAG_START:
 			return
+		dragging = false
 		selected_id = info.id
 		var shown := info
 		if info.get("parents", []).size() > 1:

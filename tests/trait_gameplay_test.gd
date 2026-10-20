@@ -23,11 +23,14 @@ func run() -> void:
 	Store.pick_trait(cfg, ids["Rhythm Hitter"])
 	var rules: Array = book.active_gameplay_rules(cfg.picks, cfg.get("via", {}))
 	check(rules.size() == 1 and rules[0].id == "rhythm-release" and rules[0].threshold == 100 and rules[0].consume == "all", "Rhythm Hitter releases at Flow 100, consuming all")
-	Store.pick_trait(cfg, ids["Heavy Arm"])
+	Store.pick_trait(cfg, ids["Keep in Time"])
 	rules = book.active_gameplay_rules(cfg.picks, cfg.get("via", {}))
-	check(rules.size() == 1 and rules[0].id == "rhythm-release", "A successor restates the rule; the consumed one is not summed")
-	var fx: Dictionary = book.active_effects(cfg.picks, cfg.get("via", {}))
-	check(float(fx.get("swing_power_band", 0)) == 1.0 and float(fx.get("swing_power_band_cap", 0)) == 3.0, "Heavy Arm: Swing Power one band up, capped at T3")
+	check(rules.size() == 1 and rules[0].id == "keep-in-time", "A successor's rule replaces the consumed one; they are not summed")
+	var heavy := {"power": 99.0, "speed": 99.0, "accuracy": 99.0, "endurance": 99.0, "picks": []}
+	Store.pick_trait(heavy, ids["Big Hitter"])
+	Store.pick_trait(heavy, ids["Heavy Arm"])
+	var fx: Dictionary = book.active_effects(heavy.picks, {})
+	check(float(fx.get("swing_power_band", 0)) == 1.0 and float(fx.get("swing_power_band_cap", 0)) == 3.0 and book.active_gameplay_rules(heavy.picks, {}).is_empty(), "Heavy Arm: Swing Power one band up, capped at T3, with no Flow rule")
 	var bass: Dictionary = book.nodes[book.find(ids["Drop the Bass"])].gameplay[0]
 	check(bass.consume == 80 and bass.pending.jump.jump_power == 5 and bass.pending.attack.spike_velocity == 12, "Drop the Bass matches the contract's receive spender")
 	var merged := {"power": 99.0, "speed": 99.0, "accuracy": 99.0, "endurance": 99.0, "picks": []}

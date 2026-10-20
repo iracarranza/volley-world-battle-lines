@@ -255,7 +255,7 @@
 			"needs_stats": {},
 			"parent": "new_trait",
 			"pos": [
-				470.0,
+				620.0,
 				110.0
 			],
 			"requires": [],
@@ -507,26 +507,18 @@
 		{
 			"alt_parents": [],
 			"attribute": "power",
-			"carried": {
-				"new_trait": {
-					"spike_velocity": 10.0
-				},
-				"pow_tough_arms": {
-					"platform_quality": 4.0
-				}
-			},
+			"carried": {},
 			"cost": 0,
 			"effects": {
-				"flow_state": 5.0,
-				"jump_stamina_threshold": 15.0,
-				"spike_velocity": 15.0,
+				"spike_velocity": 25.0,
 				"jump_power_band": 1,
 				"jump_power_band_cap": 3,
 				"swing_power_band": 1,
-				"swing_power_band_cap": 4
+				"swing_power_band_cap": 4,
+				"jump_stamina_threshold": 15.0
 			},
 			"exclusive": "",
-			"flow": true,
+			"flow": false,
 			"id": "new_trait_11",
 			"kind": "trait",
 			"name": "Never Stay Down",
@@ -539,24 +531,14 @@
 			"parent": "pow_apex_hitter",
 			"pos": [
 				470.0,
-				550.0
+				440.0
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Jump Power counts as one band higher, up to T3, and Swing Power up to T4. +15 Spike Velocity. Your Jumps always reach their maximum height even at diminished Stamina or Charge, until 15% Stamina remains.",
+			"text": "+25 Spike Velocity. Jump Power counts as one band higher, up to T3, and Swing Power up to T4. Your Jumps always reach their maximum height even at diminished Stamina or Charge, until 15% Stamina remains.",
 			"weight": 3,
 			"merges": [],
-			"gameplay": [
-				{
-					"id": "rhythm-release",
-					"trigger": "attack",
-					"threshold": 100,
-					"consume": "all",
-					"effects": {
-						"spike_velocity": 8
-					}
-				}
-			]
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -799,22 +781,15 @@
 		{
 			"alt_parents": [],
 			"attribute": "power",
-			"carried": {
-				"new_trait": {
-					"spike_velocity": 10.0
-				},
-				"pow_tough_arms": {
-					"platform_quality": 4.0
-				}
-			},
+			"carried": {},
 			"cost": 0,
 			"effects": {
-				"flow_state": 5.0,
+				"spike_velocity": 10.0,
 				"swing_power_band": 1,
 				"swing_power_band_cap": 3
 			},
 			"exclusive": "",
-			"flow": true,
+			"flow": false,
 			"id": "pow_heavy_arm",
 			"kind": "trait",
 			"name": "Heavy Arm",
@@ -822,50 +797,32 @@
 				"power": 76.0
 			},
 			"needs_stats": {},
-			"parent": "new_trait_3",
+			"parent": "new_trait",
 			"pos": [
 				320.0,
-				220.0
+				110.0
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Swing Power counts as one band higher, up to T3.",
+			"text": "+10 Spike Velocity. Swing Power counts as one band higher, up to T3.",
 			"weight": 1,
 			"merges": [],
-			"gameplay": [
-				{
-					"id": "rhythm-release",
-					"trigger": "attack",
-					"threshold": 100,
-					"consume": "all",
-					"effects": {
-						"spike_velocity": 8
-					}
-				}
-			]
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
 			"attribute": "power",
-			"carried": {
-				"new_trait": {
-					"spike_velocity": 10.0
-				},
-				"pow_tough_arms": {
-					"platform_quality": 4.0
-				}
-			},
+			"carried": {},
 			"cost": 0,
 			"effects": {
-				"flow_state": 5.0,
-				"spike_velocity": 15.0,
+				"spike_velocity": 25.0,
 				"swing_power_band": 1,
 				"swing_power_band_cap": 3,
 				"jump_power_band": 1,
 				"jump_power_band_cap": 4
 			},
 			"exclusive": "",
-			"flow": true,
+			"flow": false,
 			"id": "pow_terminal_hitter",
 			"kind": "trait",
 			"name": "Terminal Hitter",
@@ -877,44 +834,27 @@
 			"parent": "pow_sledgehammer",
 			"pos": [
 				320.0,
-				440.0
+				330.0
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Swing Power counts as one band higher, up to T3. +15 Spike Velocity, and Jump Power counts as one band higher, up to T4. The END is what keeps the jump through a long rally.",
+			"text": "+25 Spike Velocity. Swing Power counts as one band higher, up to T3, and Jump Power up to T4. The END is what keeps the jump through a long rally.",
 			"weight": 3,
 			"merges": [],
-			"gameplay": [
-				{
-					"id": "rhythm-release",
-					"trigger": "attack",
-					"threshold": 100,
-					"consume": "all",
-					"effects": {
-						"spike_velocity": 8
-					}
-				}
-			]
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
 			"attribute": "power",
-			"carried": {
-				"new_trait": {
-					"spike_velocity": 10.0
-				},
-				"pow_tough_arms": {
-					"platform_quality": 4.0
-				}
-			},
+			"carried": {},
 			"cost": 0,
 			"effects": {
-				"flow_state": 5.0,
+				"spike_velocity": 10.0,
 				"jump_power_band": 1,
 				"jump_power_band_cap": 3
 			},
 			"exclusive": "",
-			"flow": true,
+			"flow": false,
 			"id": "pow_spring_legs",
 			"kind": "trait",
 			"name": "Spring Legs",
@@ -922,50 +862,32 @@
 				"power": 76.0
 			},
 			"needs_stats": {},
-			"parent": "new_trait_3",
+			"parent": "new_trait",
 			"pos": [
 				470.0,
-				220.0
+				110.0
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Jump Power counts as one band higher, up to T3.",
+			"text": "+10 Spike Velocity. Jump Power counts as one band higher, up to T3.",
 			"weight": 1,
 			"merges": [],
-			"gameplay": [
-				{
-					"id": "rhythm-release",
-					"trigger": "attack",
-					"threshold": 100,
-					"consume": "all",
-					"effects": {
-						"spike_velocity": 8
-					}
-				}
-			]
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
 			"attribute": "power",
-			"carried": {
-				"new_trait": {
-					"spike_velocity": 10.0
-				},
-				"pow_tough_arms": {
-					"platform_quality": 4.0
-				}
-			},
+			"carried": {},
 			"cost": 0,
 			"effects": {
-				"flow_state": 5.0,
-				"spike_velocity": 15.0,
+				"spike_velocity": 25.0,
 				"jump_power_band": 1,
 				"jump_power_band_cap": 3,
 				"swing_power_band": 1,
 				"swing_power_band_cap": 4
 			},
 			"exclusive": "",
-			"flow": true,
+			"flow": false,
 			"id": "pow_apex_hitter",
 			"kind": "trait",
 			"name": "Apex Hitter",
@@ -977,24 +899,14 @@
 			"parent": "pow_skyhook",
 			"pos": [
 				470.0,
-				440.0
+				330.0
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Jump Power counts as one band higher, up to T3. +15 Spike Velocity, and Swing Power counts as one band higher, up to T4.",
+			"text": "+25 Spike Velocity. Jump Power counts as one band higher, up to T3, and Swing Power up to T4.",
 			"weight": 3,
 			"merges": [],
-			"gameplay": [
-				{
-					"id": "rhythm-release",
-					"trigger": "attack",
-					"threshold": 100,
-					"consume": "all",
-					"effects": {
-						"spike_velocity": 8
-					}
-				}
-			]
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1070,7 +982,7 @@
 			"flow": false,
 			"id": "pow_broad_range",
 			"kind": "trait",
-			"name": "Broad Range",
+			"name": "Max Extension",
 			"needs": {
 				"accuracy": 74.0,
 				"power": 76.0
@@ -1571,23 +1483,15 @@
 		{
 			"alt_parents": [],
 			"attribute": "power",
-			"carried": {
-				"new_trait": {
-					"spike_velocity": 10.0
-				},
-				"pow_tough_arms": {
-					"platform_quality": 4.0
-				}
-			},
+			"carried": {},
 			"cost": 0,
 			"effects": {
-				"flow_state": 5.0,
-				"spike_velocity": 5.0,
+				"spike_velocity": 15.0,
 				"swing_power_band": 1,
 				"swing_power_band_cap": 3
 			},
 			"exclusive": "",
-			"flow": true,
+			"flow": false,
 			"id": "pow_sledgehammer",
 			"kind": "trait",
 			"name": "Sledgehammer",
@@ -1598,45 +1502,27 @@
 			"parent": "pow_heavy_arm",
 			"pos": [
 				320.0,
-				330.0
+				220.0
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Swing Power counts as one band higher, up to T3. +5 Spike Velocity.",
+			"text": "+15 Spike Velocity. Swing Power counts as one band higher, up to T3.",
 			"weight": 1,
 			"merges": [],
-			"gameplay": [
-				{
-					"id": "rhythm-release",
-					"trigger": "attack",
-					"threshold": 100,
-					"consume": "all",
-					"effects": {
-						"spike_velocity": 8
-					}
-				}
-			]
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
 			"attribute": "power",
-			"carried": {
-				"new_trait": {
-					"spike_velocity": 10.0
-				},
-				"pow_tough_arms": {
-					"platform_quality": 4.0
-				}
-			},
+			"carried": {},
 			"cost": 0,
 			"effects": {
-				"flow_state": 5.0,
-				"spike_velocity": 5.0,
+				"spike_velocity": 15.0,
 				"jump_power_band": 1,
 				"jump_power_band_cap": 3
 			},
 			"exclusive": "",
-			"flow": true,
+			"flow": false,
 			"id": "pow_skyhook",
 			"kind": "trait",
 			"name": "Skyhook",
@@ -1647,24 +1533,14 @@
 			"parent": "pow_spring_legs",
 			"pos": [
 				470.0,
-				330.0
+				220.0
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Jump Power counts as one band higher, up to T3. +5 Spike Velocity.",
+			"text": "+15 Spike Velocity. Jump Power counts as one band higher, up to T3.",
 			"weight": 1,
 			"merges": [],
-			"gameplay": [
-				{
-					"id": "rhythm-release",
-					"trigger": "attack",
-					"threshold": 100,
-					"consume": "all",
-					"effects": {
-						"spike_velocity": 8
-					}
-				}
-			]
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],

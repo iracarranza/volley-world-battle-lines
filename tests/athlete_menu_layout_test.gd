@@ -9,6 +9,7 @@ func mouse(pressed: bool) -> InputEventMouseButton:
 func motion(rel: Vector2) -> InputEventMouseMotion:
 	var e := InputEventMouseMotion.new()
 	e.relative = rel
+	e.button_mask = MOUSE_BUTTON_MASK_LEFT # a drag moves with the button held
 	return e
 func run() -> void:
 	var Store = load("res://scripts/athlete_store.gd")
@@ -59,5 +60,12 @@ func run() -> void:
 	view._gui_input(mouse(false))
 	(view.nodes[view.nodes.keys()[0]] as Button).pressed.emit()
 	check(view.selected_id != "", "A plain click still selects")
+	# A release lost to a rebuild must not leave the tree following the mouse: motion without the button held ends the drag.
+	view.dragging = true
+	var loose := InputEventMouseMotion.new()
+	loose.relative = Vector2(0, 30)
+	var before: int = menu.tree_scroll.scroll_vertical
+	view._gui_input(loose)
+	check(not view.dragging and menu.tree_scroll.scroll_vertical == before, "Motion with no button held stops a stuck drag")
 	print("athlete_menu_layout: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)

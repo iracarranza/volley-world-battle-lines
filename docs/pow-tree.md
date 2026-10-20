@@ -18,7 +18,7 @@ Draft revised 2026-10-19 after the Flow notes, written into `data/trait_tree.jso
 | **Serving** | Power Serve (3) → fork: Topspin Serve (9) → Jump Topspin (12) → Siege Serve (22, w2); or Rattling Serve (7, more knockback on a charge mismatch) → Draining Serve (17, and more Stamina drain on a mismatch) |
 | **Hitting** (vertical) | Big Hitter (3) → Rhythm Hitter (7) → fork: Heavy Arm (11) → Sledgehammer (15) → Terminal Hitter (26, w3); or Spring Legs (11) → Skyhook (15) → Apex Hitter (26, w3) → Never Stay Down (39, w3); or Keep in Time (12) → Drop the Bass (20, w2) |
 | **Transition and Flow** | Tough Arms (4) → fork: Rhythm Hitter (7, shared with Hitting) → Keep in Time (12) → Drop the Bass (20, w2); or Scramble (6) → Jungle Ball (9) → Back Attacker (12) |
-| **Range** | Wide Arm (4) → Edge Contact (11) → Broad Range (20) |
+| **Range** | Wide Arm (4) → Edge Contact (11) → Max Extension (20) |
 | **Spotter** | Eyes Up (4) → Read the Block (10) → Spotter (16) |
 | **Burst** | Coil (4) → Quick Plant (12) → Burst Attacker (22, w2) |
 | **Jackknife** | Utility Arm (4) → Stand Tall (10) → Jackknife (18, w2) → Revenger (22, w2) |
@@ -81,3 +81,16 @@ Flow Hitter, Flowing Transition and Flowing Finisher are now **Rhythm Hitter**, 
 ## Serving revision (2026-10-20)
 
 The Pepper line (Com-Pepp-Itor, Pepper Patroller, Lane Bully) is removed. In its place: **Rattling Serve** (knockback on charge mismatches) then **Draining Serve** (Stamina drain on mismatches). Both names are provisional. ACC mirrors the drain one step earlier: Steady Serve → Lockdown Serve (drain) → Pinned Down (inflicted recovery poses last longer); or Steady Serve → Float Serve → Jump Float → Hybrid Serve (requires Power Serve).
+
+## Hitting restructure (2026-10-20, supersedes the Hitting rows above)
+
+Rhythm Hitter, Heavy Arm and Spring Legs are now three alternatives under Big Hitter (Rhythm Hitter is also reachable from Tough Arms). Each runs down its own column, side by side:
+
+| Level | Heavy Arm line | Spring Legs line | Rhythm line (Flow) |
+|---|---|---|---|
+| 1 | Heavy Arm | Spring Legs | Rhythm Hitter |
+| 2 | Sledgehammer | Skyhook | Keep in Time |
+| 3 | Terminal Hitter | Apex Hitter | Drop the Bass |
+| 4 | | Never Stay Down | |
+
+Only the Rhythm line uses Flow (Flow cost, Flow State, the release rules). The Heavy Arm and Spring Legs lines are stat and band lines: Spike Velocity as running totals (Big Hitter's 10, then 15, then 25) and Swing Power / Jump Power band upgrades, with no Flow mechanic.

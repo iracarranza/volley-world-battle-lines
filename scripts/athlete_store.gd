@@ -242,6 +242,25 @@ static func simulate_match(config: Dictionary, nearby: int = 0) -> int:
 		first = false
 	return total
 
+# What only the 12 opening AP can pay for: innates (chosen before a match) and an extended height. Earned AP (levels, Nets, debug) never can.
+static func opening_only_cost(config: Dictionary) -> int:
+	var cost := height_cost(height_inches(float(config.get("height", 1.86))))
+	for innate in config.get("innates", []):
+		cost += int(INNATES.get(innate, {}).get("cost", 0))
+	return cost
+
+# Innates are chosen before a match: once an athlete has progressed they are fixed until progression is reset.
+static func innates_locked(config: Dictionary) -> bool:
+	return bool(config.get("progressed", false)) or int(config.get("level", 1)) > 1 or int(config.get("bonus_ap", 0)) > 0
+
+# The two AP pools: the 12 opening AP (innates, height and attributes) and earned AP (attributes only). Attributes use the opening pool first.
+static func ap_pools(config: Dictionary) -> Dictionary:
+	var opening_only := opening_only_cost(config)
+	var attributes := maxi(0, ap_spent(config) - opening_only)
+	var opening_attrs := mini(attributes, maxi(0, AP_BUDGET - opening_only))
+	return {"opening_only": opening_only, "opening_attributes": opening_attrs, "opening_free": maxi(0, AP_BUDGET - opening_only - opening_attrs),
+		"earned_total": int(config.get("bonus_ap", 0)), "earned_spent": attributes - opening_attrs}
+
 static func grant_ap(config: Dictionary, amount: int) -> void:
 	config["bonus_ap"] = maxi(0, int(config.get("bonus_ap", 0)) + amount)
 	config["progressed"] = true
@@ -358,9 +377,8 @@ static func pick_blocker(config: Dictionary, id: String, via: String = "") -> St
 		return "planned"
 	if picks.has(id):
 		return "picked"
-	for picked in picks:
-		if book.conflicts(id, String(picked)):
-			return "locked"
+	if book.locked_in_build(id, picks, config.get("via", {}), via):
+		return "locked"
 	if not meets_path(config, id):
 		return "ratings"
 	if not book.unmet(id, picks).is_empty():
