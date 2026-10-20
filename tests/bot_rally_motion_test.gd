@@ -67,6 +67,7 @@ func run() -> void:
 	check(bots.actors[7].position.y < 0.001, "Blocker lands after contact")
 	# Static attack keeps its ground position but can still jump to contact.
 	lab._reset()
+	bots.set_mode(6, 1)   # placing no longer makes a helper static, so choose static first
 	bots.place_at_player(6)
 	var fixed: Vector3 = bots.settings[6].fixed_position
 	lab.ball_active = true

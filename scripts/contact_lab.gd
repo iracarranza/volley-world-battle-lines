@@ -21,6 +21,7 @@ var last_directional_influence: Dictionary = {}
 const MoC := preload("res://scripts/moment_of_contact.gd")
 const NetResponse := preload("res://scripts/net_response.gd")
 var net_response := NetResponse.new()
+var net_bounce_pending := false
 var net_body: StaticBody3D
 var moc: Node
 var committed_intent: Dictionary = {}
@@ -38,6 +39,11 @@ const Flight = preload("res://vendor/vwm/ball_flight_model.gd")
 const GRAVITY = Flight.DEFAULT_GRAVITY_MPS2
 const SPIKE_SPEED_MULTIPLIER := 1.50
 const ATTACK_DRIVE_FACTOR := 1.40
+# The launch angle the bump's range is measured at, in degrees. The calibrated height ceiling stays where it was, so a higher angle is a steeper
+# bump that lands shorter rather than a higher one: the arc's angle follows from its height over its range.
+const BUMP_ANGLE := 68.0
+# A jumping attack's base launch angle before charge and the view add to it (negative is downward).
+const SPIKE_BASE_ANGLE := -9.0
 const SET_RISE_FACTOR := 0.80
 const SET_RANGE_FACTOR := 1.40
 const GROUND_SET_RANGE_FACTOR := 1.65
@@ -55,6 +61,9 @@ var debug_volumes_visible := true
 const BallFraming := preload("res://scripts/ball_camera_framing.gd")
 var facing_arrow: MeshInstance3D
 var drills: Node3D
+var bot_pads: Node3D
+var court_center := Vector3.ZERO
+var net_height := 2.43
 var court_half_width := 4.5
 var court_half_depth := 9.0
 var court_outline: MeshInstance3D
@@ -142,6 +151,62 @@ var animation: AthleteAnimation = AthleteAnimation.new(self)
 var hud: LabHud = LabHud.new(self)
 var world_builder: LabWorldBuilder = LabWorldBuilder.new(self)
 
+func build_net_visuals() -> void:
+	world_builder.build_net_visuals()
+
+func build_net_colliders() -> void:
+	world_builder.build_net_colliders()
+
+func clear_net_responses() -> void:
+	net_response.clear()
+
+func resolve_ball_net(previous: Vector3,dt: float) -> Dictionary:
+	return net_response.step(previous,ball.position,ball_velocity,dt,float(ball_shot.get("charge",0)))
+
+func athlete_touches_net(from: Vector3,to: Vector3,height: float = 1.7,radius: float = NetResponse.MIDLINE_RADIUS) -> bool:
+	return net_response.touches_body(from,to,height,radius)
+
+func net_collision_rids() -> Array[RID]:
+	return [net_body.get_rid()]
+
+var current_net := 1
+var bot_menu: RefCounted
+
+func bot_courts() -> Dictionary:
+	return {1:{"position":court_center,"width":court_half_width*2,"depth":court_half_depth*2,"height":net_height}}
+
+func interact_nearby_bot() -> bool:
+	var best := -1
+	var distance := 2.2
+	for slot in range(training_bots.actors.size()):
+		if not training_bots.actors[slot].visible: continue
+		var next: float = player.position.distance_to(training_bots.actors[slot].position)
+		if next < distance:
+			distance = next
+			best = slot
+	if best < 0: return false
+	if bot_menu == null: bot_menu = preload("res://scripts/map_bot_menu.gd").new(hud)
+	bot_menu.open_bot(best)
+	return true
+
+func uses_legacy_bot_pads() -> bool:
+	return true
+
+func _create_training_bots() -> Node3D:
+	return preload("res://scripts/map_bot_roster.gd").new()
+
+func open_bot_menu() -> bool:
+	if bot_menu == null: bot_menu = preload("res://scripts/map_bot_menu.gd").new(hud)
+	bot_menu.toggle()
+	return true
+
+func refresh_bot_rally() -> void:
+	training_bots.refresh_for_rally()
+	pepper.refresh_for_rally()
+
+func prepare_serve_context() -> void:
+	pass
+
 func _ready() -> void:
 	receive_resolved.connect(animation.on_receive_resolved)
 	moc = MoC.new()
@@ -149,7 +214,7 @@ func _ready() -> void:
 	add_child(moc)
 	world_builder.build()
 	_build_player()
-	training_bots = preload("res://scripts/training_bots.gd").new()
+	training_bots = _create_training_bots()
 	add_child(training_bots)
 	training_bots.setup(self)
 	station = preload("res://scripts/serve_receive_station.gd").new()
@@ -158,6 +223,10 @@ func _ready() -> void:
 	drills = preload("res://scripts/map_drills.gd").new()
 	add_child(drills)
 	drills.setup(self)
+	if uses_legacy_bot_pads():
+		bot_pads = preload("res://scripts/bot_pads.gd").new()
+		add_child(bot_pads)
+		bot_pads.setup(self)
 	serve = preload("res://scripts/interactive_serve.gd").new()
 	add_child(serve)
 	serve.setup(self)
@@ -447,21 +516,25 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_B: _feed()
 			KEY_E: serve.input_press()
 			KEY_TAB: _cycle_build()
-			KEY_F1, KEY_F2, KEY_F3, KEY_F4:
-				training_bots.toggle(event.keycode - KEY_F1, event.shift_pressed)
 			KEY_F5:
-				debug_feed_target = Vector3(clampf(player.position.x, -4.2, 4.2), 0.95, clampf(player.position.z, 0.6, 8.5))
+				debug_feed_target = Vector3(clampf(player.position.x,court_center.x-court_half_width+0.3,court_center.x+court_half_width-0.3), 0.95, clampf(player.position.z, 0.6, 8.5))
 				debug_feed_locked = true
 				_message("Feed landing locked here / F5 to retarget; F7 restores tracking feed")
-			KEY_F6: training_bots._capture_set_target()
+			KEY_F6:
+				if event.shift_pressed: training_bots._capture_receive_target()
+				else: training_bots._capture_set_target()
 			KEY_F7:
 				debug_feed_locked = false
 				_message("Feed follows player again")
-			KEY_G: training_bots.toggle_all()
+			KEY_G: training_bots.spawn_at_player()
 			KEY_I:
+				if interact_nearby_bot():
+					return
 				if pepper.active() or serve.tossing():
 					_finish("Free play stopped / I to start nearby drill")
-				if drills.in_zone():
+				if is_instance_valid(bot_pads) and bot_pads.in_zone() >= 0:
+					bot_pads.interact()
+				elif drills.in_zone():
 					drills.interact()
 				else:
 					station.interact()
@@ -528,8 +601,11 @@ func _physics_process(dt: float) -> void:
 		return
 	var previous_player_position := player.position
 	motion.tick(dt, motion_scale)
-	if ball_active and not station.running() and not drills.running() and not pepper.active() and NetResponse.body_touches(previous_player_position,player.position):
+	var rally_live: bool = ball_active and not station.running() and not drills.running() and not pepper.active()
+	if rally_live and athlete_touches_net(previous_player_position,player.position):
 		_finish("NET FAULT / Athlete touched the net")
+	elif not rally_live:
+		_hold_midline_off_net(previous_player_position)
 	camera_rig.update_aim()
 	animation.update()
 	station.tick(world_dt)
@@ -541,8 +617,8 @@ func _physics_process(dt: float) -> void:
 		if ball_active and not station.running() and not drills.running() and not pepper.active():
 			for slot in range(training_bots.actors.size()):
 				var actor: Node3D = training_bots.actors[slot]
-				if actor.visible and NetResponse.body_touches(actor.position,actor.position,0.27,training_bots.physique.build.height):
-					_finish("NET FAULT / %s bot touched the net" % ("Home" if slot < 4 else "Away"))
+				if training_bots.slot_enabled(slot) and athlete_touches_net(actor.position,actor.position,training_bots.physique.build.height):
+					_finish("NET FAULT / %s bot touched the net" % ("Away" if training_bots.slot_away(slot) else "Home"))
 					break
 	elif auto_feed and not station.in_zone() and not station.running() and not drills.in_zone() and not drills.running():
 		feed_timer -= world_dt
@@ -571,7 +647,7 @@ func is_benched() -> bool:
 func in_live_rally() -> bool:
 	if station.running() or drills.running() or not ball_active or serve.tossing():
 		return false
-	return pepper.active() or (absf(player.position.x) <= court_half_width + 1.5 and absf(player.position.z) <= court_half_depth + 1.5)
+	return pepper.active() or (absf(player.position.x-court_center.x) <= court_half_width + 1.5 and absf(player.position.z) <= court_half_depth + 1.5)
 
 func _check_bench() -> bool:
 	if not is_benched() and athlete.exhausted and in_live_rally():
@@ -590,9 +666,10 @@ func _tick_benched(dt: float) -> void:
 func _resize_court() -> void:
 	var home := 1
 	var away := 0
-	for action in range(4):
-		home += int(training_bots.is_enabled(action, 1))
-		away += int(training_bots.is_enabled(action, -1))
+	for slot in range(training_bots.settings.size()):
+		if training_bots.slot_enabled(slot):
+			home += int(not training_bots.slot_away(slot))
+			away += int(training_bots.slot_away(slot))
 	var team_size := maxi(home, away)
 	# Provisional 1/2/3/4+ player layouts; both halves use the larger team.
 	court_half_width = [2.5, 3.0, 3.75, 4.5][mini(team_size - 1, 3)]
@@ -603,6 +680,9 @@ func _serve() -> void:
 	serve.press()
 
 func _feed() -> void:
+	if not training_bots.ready_to_serve():
+		_message("Wait for bots to clear the net")
+		return
 	if is_benched():
 		return
 	if serve.tossing() or pepper.active():
@@ -616,11 +696,13 @@ func _feed() -> void:
 	if station.in_zone():
 		_message("Serve Receive station / use I to start, stop or retry the sequence.")
 		return
-	net_response.clear()
-	var target := Vector3(clampf(player.position.x + sin(attempts * 1.7) * 0.7, -3.5, 3.5), 0.95, clampf(player.position.z, 2, 8))
+	refresh_bot_rally()
+	clear_net_responses()
+	net_bounce_pending = false
+	var target := Vector3(clampf(player.position.x+sin(attempts*1.7)*0.7,court_center.x-court_half_width+0.5,court_center.x+court_half_width-0.5), 0.95, clampf(player.position.z, 2, 8))
 	if debug_feed_locked:
 		target = debug_feed_target
-	ball.position = Vector3(target.x * 0.6, 3.6, -7.5)
+	ball.position = Vector3(court_center.x+(target.x-court_center.x)*0.6,3.6,-7.5)
 	var duration := 2.0
 	ball_velocity = (target - ball.position) / duration + Vector3.UP * (GRAVITY * duration * 0.5)
 	ball_shot = ReceiveCharge.shot("serve", 0.60, "debug_feed")
@@ -671,7 +753,7 @@ func _loft_velocity(origin: Vector3, action: int, power: float, direction: Vecto
 		power = ReceiveCharge.CONTROL_CHARGE
 		var ceiling := _bump_ceiling(origin.y)
 		peak = origin.y + (ceiling - origin.y) * lerpf(0.25, 1.0, clampf(power, 0, 1))
-		var previous := Flight.solve_flight(5.0 + power * 5.5, 60.0, maxf(origin.y - 0.105, 0.0))
+		var previous := Flight.solve_flight(5.0 + power * 5.5, BUMP_ANGLE, maxf(origin.y - 0.105, 0.0))
 		distance = previous.range_meters
 	else:
 		var ceiling := maxf(origin.y + 0.35, _bump_ceiling(1.0))
@@ -700,7 +782,7 @@ func _shot_velocity(origin: Vector3, action: int, power: float, target: Variant 
 	var speed := (6.0 + power * 7.0 + 65.0 * 0.02) * hp_factor
 	if action == 2:
 		speed *= ATTACK_DRIVE_FACTOR * (SPIKE_SPEED_MULTIPLIER if motion.jumped else 1.0)
-	var angle := -3.0 + power * 2.0 if motion.jumped else 6.0
+	var angle := SPIKE_BASE_ANGLE + power * 2.0 if motion.jumped else 6.0
 	if action == 3:
 		speed = 5.0 + power * 3.5
 		angle = -18.0
@@ -733,7 +815,8 @@ func _impact_event(actor_id: String, action: int, incoming: Vector3, assessment:
 	return event
 
 func _publish_impact(event: Dictionary) -> void:
-	net_response.clear()
+	clear_net_responses()
+	net_bounce_pending = false
 	net_response.clear_side = signf(ball.position.z)
 	if event.action == Action.RECEIVE:
 		receive_resolved.emit(event)
@@ -765,10 +848,31 @@ func _exit_tree() -> void:
 
 func _advance_action_after_contact() -> void:
 	# A queued next selection never changes the current airborne commitment.
-	selected = pepper.next_action(pepper.stage, 1.0) if pepper.active() else (locked_action + 1) % ACTIONS.size()
+	if pepper.active():
+		selected = pepper.next_action(pepper.stage, 1.0)
+		return
+	# The wheel moves on to the next contact only when nobody else is on your court to take it.
+	if training_bots.has_teammates(side_index(player.position.z)):
+		return
+	selected = (locked_action + 1) % ACTIONS.size()
+
+# Out of a rally the net is still a wall for the body's midline, though shoulders and arms may overlap it: the athlete cannot walk through.
+# In a rally the midline reaching the net is the fault instead.
+func _hold_midline_off_net(previous: Vector3) -> void:
+	if not athlete_touches_net(previous,player.position,1.7,NetResponse.MIDLINE_RADIUS+0.03):
+		return
+	var side := signf(previous.z) if absf(previous.z) > 0.0001 else (signf(player.position.z) if absf(player.position.z) > 0.0001 else 1.0)
+	player.position.z = side * (NetResponse.HALF_DEPTH + NetResponse.MIDLINE_RADIUS + 0.035)
+	if player.velocity.z * side < 0.0:
+		player.velocity.z = 0.0
 
 func side_index(z: float) -> int:
 	return 0 if z >= 0 else 1
+
+func block_serve_fault(action: int,shot: Dictionary,actor: String) -> bool:
+	if action != 3 or str(shot.get("kind","")) != "serve": return false
+	_finish("SERVE BLOCK FAULT / %s blocked a serve" % actor)
+	return true
 
 func _contact() -> void:
 	if _check_bench():
@@ -780,6 +884,7 @@ func _contact() -> void:
 		return
 	if locked_action == 0 and _local_contact_position().z > 0:
 		return
+	if block_serve_fault(locked_action,ball_shot,"Athlete"): return
 	var incoming_velocity := ball_velocity
 	var incoming_shot := ball_shot
 	if motion.jumped and motion.airborne_action == 2 and locked_action == 2 and not animation.spike_contacted:
@@ -902,15 +1007,23 @@ func _tick_ball(dt: float) -> void:
 			return
 	if _try_swept_player_block(previous, dt):
 		return
-	var net_result := net_response.step(previous,ball.position,ball_velocity,dt,float(ball_shot.get("charge",0)))
+	var net_result := resolve_ball_net(previous,dt)
+	# Helpers look again once the ball has come off the net, so they can receive it.
+	if net_result.contact != "":
+		net_bounce_pending = true
+	elif net_bounce_pending and not bool(net_result.pocket):
+		net_bounce_pending = false
+		training_bots.replan_after_net()
 	ball.position = net_result.position
 	ball_velocity = net_result.velocity
-	if previous.z*ball.position.z < 0 and not net_response.pocket and net_result.contact == "":
+	if previous.z*ball.position.z < 0 and not bool(net_result.pocket) and net_result.contact == "":
 		var crossing := previous.lerp(ball.position,previous.z/(previous.z-ball.position.z))
-		if absf(crossing.x) <= 4.5 and crossing.y < NetResponse.BOTTOM-NetResponse.RADIUS:
+		if absf(crossing.x-Vector3(net_result.net_origin).x) <= float(net_result.net_half_width) and crossing.y < float(net_result.net_bottom)-NetResponse.RADIUS:
 			_finish("UNDER-NET FAULT / Ball crossed beneath the webbing")
 			return
-	if net_result.crossed and absf(ball.position.x) <= 4.6:
+	if net_result.crossed:
+		training_bots.net_rebound = false
+	if net_result.crossed and absf(ball.position.x-court_center.x) <= net_response.web_half_width+0.1:
 		if not pepper.active():
 			side_contacts[side_index(ball.position.z)] = 0
 			contacts = 0
@@ -921,7 +1034,9 @@ func _tick_ball(dt: float) -> void:
 		return
 	if (serve.state != serve.State.IDLE or pepper.active()) and not station.running() and not drills.running():
 		var query := PhysicsRayQueryParameters3D.create(previous, ball.position)
-		query.exclude = [player.get_rid(),net_body.get_rid()]
+		var excluded := net_collision_rids()
+		excluded.append(player.get_rid())
+		query.exclude = excluded
 		var solid := get_world_3d().direct_space_state.intersect_ray(query)
 		if not solid.is_empty():
 			ball.position = solid.position + solid.normal * Geometry.BALL_RADIUS
@@ -940,7 +1055,7 @@ func _tick_ball(dt: float) -> void:
 		if drills.running():
 			drills.on_ball_down()
 			return
-		if outgoing and ball.position.z < 0 and ball.position.z >= -court_half_depth and absf(ball.position.x) <= court_half_width:
+		if outgoing and ball.position.z < 0 and ball.position.z >= -court_half_depth and absf(ball.position.x-court_center.x) <= court_half_width:
 			returns += 1
 			_finish("IN! Clean return across the Net. Next feed in 3 seconds.")
 		elif outgoing and ball.position.z < 0:
@@ -956,7 +1071,8 @@ func _tick_ball(dt: float) -> void:
 	_draw_line(trail, trail_points)
 
 func _finish(message: String) -> void:
-	net_response.clear()
+	clear_net_responses()
+	net_bounce_pending = false
 	action_endlag = 0.0
 	confirm_window = 0.0
 	committed_intent = {}
@@ -965,6 +1081,7 @@ func _finish(message: String) -> void:
 	pepper.stop()
 	moc.clear()
 	ball_active = false
+	training_bots.on_rally_end()
 	feed_timer = 3.0
 	_message(message)
 
@@ -1019,7 +1136,8 @@ func _update_preview(draw_trajectory: bool = true) -> void:
 	landing_marker.visible = ball_active
 
 func _reset() -> void:
-	net_response.clear()
+	clear_net_responses()
+	net_bounce_pending = false
 	if is_instance_valid(impact_visual):
 		impact_visual.clear()
 	if is_instance_valid(contact_flow):
@@ -1097,6 +1215,8 @@ func _reset() -> void:
 	training_bots.reset()
 	station.reset()
 	drills.reset()
+	if is_instance_valid(bot_pads):
+		bot_pads.reset()
 	_resize_court()
 	_message("Explore freely / E toss → E strike / serve into purple Pepper circles / K debug boxes")
 

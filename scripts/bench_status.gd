@@ -51,8 +51,8 @@ func setup(owner_lab: Node3D) -> void:
 
 func teammates() -> Array[int]:
 	var result: Array[int] = []
-	for slot in range(4):
-		if lab.training_bots.settings[slot].enabled:
+	for slot in range(lab.training_bots.actors.size()):
+		if lab.training_bots.settings[slot].enabled and not lab.training_bots.slot_away(slot):
 			result.append(slot)
 	return result
 

@@ -89,7 +89,7 @@ func run() -> void:
 	flow.record(event("aura",1,true))
 	flow.tick_visuals()
 	check(flow.auras.player.visible and is_equal_approx(flow.auras.player.material_override.get_shader_parameter("flow"),0.25),"Aura opacity follows Flow fraction")
-	check(flow.auras.size() == 12,"Player and all bots have prepared aura resources")
+	check(flow.auras.size() == lab.training_bots.actors.size()+4,"Player and all bots have prepared aura resources")
 	lab.hud.athlete_hud.update_values()
 	check(lab.hud.athlete_hud.flow_bar.value == lab.athlete.flow,"Provisional smaller Flow bar reflects meter")
 	flow.clear()

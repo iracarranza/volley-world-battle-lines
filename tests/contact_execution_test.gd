@@ -47,7 +47,7 @@ func run() -> void:
 	var driven: Vector3 = lab._shot_velocity(Vector3(0, 4, 0), 2, 0.6)
 	var old_speed := (6.0 + 0.6 * 7.0 + 65.0 * 0.02) * 1.5
 	check(driven.length() > old_speed * 1.35, "Spike travels faster than former pushed trajectory")
-	check(absf(rad_to_deg(atan2(driven.y, Vector2(driven.x, driven.z).length()))) < 4, "Neutral spike is a nearly level drive")
+	check(rad_to_deg(atan2(driven.y, Vector2(driven.x, driven.z).length())) > -15 and driven.y < 0, "Neutral airborne spike is a downward driven line")
 	var eight_meter_time := 8.0 / Vector2(driven.x, driven.z).length()
 	check(0.5 * lab.GRAVITY * eight_meter_time * eight_meter_time < 0.7, "Driven spike has little gravity curvature across eight meters")
 	lab.motion.jumped = false

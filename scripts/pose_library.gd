@@ -16,6 +16,7 @@ const SIDES := ["Left", "Right"]
 # same movement on both sides. sided false means one joint, no left/right.
 # Spine channels are positive forward (flexion), left (bend) and left (twist).
 const CHANNELS := {
+	"hip_yaw": {"sign": [1.0, 1.0], "sided": false, "range": Vector2(-125, 125), "group": "Spine", "label": "Pelvis turn (+ left; legs and hips)"},
 	"hip_shift": {"sign": [1.0, 1.0], "sided": false, "range": Vector2(-35, 35), "group": "Spine", "label": "Hips forward/back (cm, + forward)"},
 	"hip_hinge": {"sign": [1.0, 1.0], "sided": false, "range": Vector2(-30, 90), "group": "Spine", "label": "Hip hinge (+ leans forward)"},
 	"lumbar_flexion": {"sign": [1.0, 1.0], "sided": false, "range": Vector2(-20, 50), "group": "Spine", "label": "Lumbar bend (+ forward)"},
@@ -154,6 +155,8 @@ static func read_rig(body: Node3D) -> Dictionary:
 			if node == null:
 				continue
 			var basis := node.basis
+			if joint.path == "%sLeg" and body.has_meta("spine_angles"):
+				basis = Basis(Vector3.UP, -deg_to_rad(float(body.get_meta("spine_angles").get("hip_yaw", 0.0)))) * basis
 			if joint.path == "%sArm":
 				basis = thorax_inverse * basis
 			var euler := basis.get_euler(EULER_ORDER_XZY)

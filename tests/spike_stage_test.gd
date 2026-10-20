@@ -65,7 +65,7 @@ func run() -> void:
 	check(absf(float(loaded_a["shoulder_roll:Right"]) - float(loaded_b["shoulder_roll:Right"])) < 1.0 and absf(float(loaded_a["thoracic_twist"]) - float(loaded_b["thoracic_twist"])) < 1.0, "the loaded pose is the same wherever the ball is: the arm commits to the ball only when the strike starts")
 	var follow_left := Stage.pose_for(0.3, 1.0, 0.7, "Power swing", {"ball_local": Vector3(0.0, 2.3, -0.35), "shot_yaw": 0.5})
 	var follow_right := Stage.pose_for(0.3, 1.0, 0.7, "Power swing", {"ball_local": Vector3(0.0, 2.3, -0.35), "shot_yaw": -0.5})
-	check(absf(float(follow_left["thoracic_twist"])+float(follow_left["lumbar_twist"])) <= Stage.CHEST_TURN_LIMIT and float(follow_left["shoulder_roll:Right"]) < float(follow_right["shoulder_roll:Right"]) - 10.0, "the arm exaggerates the shot direction while the chest remains facing forward")
+	check(absf(float(follow_left["thoracic_twist"])+float(follow_left["lumbar_twist"])) <= Stage.CHEST_TURN_LIMIT and absf(float(follow_left["shoulder_roll:Right"])-float(follow_right["shoulder_roll:Right"])) > 10.0, "shot sides produce distinct arm poses while the chest remains facing forward (world-space hand direction is covered by swing_lead_in_test)")
 	for hand in [-1.0,1.0]:
 		for phase in [-0.3,0.0,0.3,0.45]:
 			for yaw in [-0.5,0.0,0.5]:

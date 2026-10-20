@@ -91,6 +91,7 @@ func run() -> void:
 	lab._reset()
 	lab.player.position = Vector3(13, 0.03, 6)
 	lab.station.start()
+	lab.station.force_next_feed = 0
 	lab.station.serve()
 	check(lab.station.state == lab.station.State.TOSS, "Drill telegraphs the toss before striking")
 	lab.station.strike_feed()

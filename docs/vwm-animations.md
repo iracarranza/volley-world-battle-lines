@@ -53,3 +53,18 @@ Not done: bots and Pepper partners, and the Stamina and HP cost of a recovery.
 
 Strips: `godot --path . --script res://tests/render_recovery_strip.gd -- --name=knee|fall_roll|fall_slide|blown_away [--side=left] [--close]`
 writes `artifacts/recovery-<name>.png`. Tests: `tests/floor_recovery_test.gd`, `tests/floor_recovery_lab_test.gd`.
+
+
+## Procedural by contact side
+
+Receive animations are built from where the ball is, not from fixed left and right poses:
+
+- **Postures:** moving, reaching and off-axis all turn the platform and shoulders toward the ball (35%, 60% and 100% of the angle), and a reaching receive lunges with the leg on the ball's side.
+- **Recoveries:** knee, knocked away, shrug and blown away are authored for a contact on the right and mirrored for the left. Shrug and blown away also blend toward a symmetric version as the contact nears the middle (`lateral`, full at 0.45 of the platform width), so a ball down the middle favours no side. A shrug lifts the near shoulder higher and steps the far leg back; blown away flings the near arm higher and twists the body away.
+- **Running:** a prepared receive no longer runs with the platform out. The arms come down as the athlete speeds up (from 55% to 85% of top speed) and come back as they slow or as the ball gets within about 3 m.
+
+## Spike and set lead-in
+
+- **Angled spikes:** the cross-body and outward swings were reversed (a shot to the left swung the right-hander's arm outward). A sign in `SpikeStage._aim` is fixed: a shot to the left now carries the hand left for either hand, a shot to the right carries it right (`tests/swing_lead_in_test.gd`, `tests/render_spike_directions.gd`).
+- **Spike lead-in:** a ball struck before the strike had finished (a click as the ball is already in reach) used to snap the arm from the loaded pose to contact in one frame. The arm now carries on through the rest of the strike over 0.09 s, and the follow-through starts from contact.
+- **Set lead-in:** the hands now gather as the ball comes in (from the ready stance a second out to the forehead as it arrives) instead of already being gathered, and the push after contact blends over 0.20 s instead of 0.12 s. With no ball coming the gather holds, as before.

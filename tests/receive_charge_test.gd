@@ -82,7 +82,7 @@ func run() -> void:
 	await physics_frame
 	var origin := Vector3(0,1,5)
 	check(lab._shot_velocity(origin, 0, 0.1).is_equal_approx(lab._shot_velocity(origin, 0, 1.0)), "Receive charge no longer controls range")
-	check(lab.training_bots.settings.size() == 8 and lab.pepper.settings.size() == 3, "Independent charge controls for all bots")
+	check(lab.training_bots.settings.size() == lab.training_bots.MAX_PER_TEAM*2 and lab.pepper.settings.size() == 3, "Independent charge controls for all bots")
 	for amount in [0.4, 0.675, 0.9]:
 		lab._reset()
 		lab.moc.enabled = false
@@ -131,6 +131,7 @@ func run() -> void:
 	check(low_under and low_over, "Low charge accuracy can produce both mismatch types")
 	lab._reset()
 	lab.station.start()
+	lab.station.force_next_feed = 0
 	lab.station.serve()
 	lab.station.tick(lab.station.TOSS_SECONDS)
 	check(lab.ball_shot.kind == "serve" and lab.ball_shot.charge == lab.station.CHARGES[0], "Drill feeds carry charge metadata")

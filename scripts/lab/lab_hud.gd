@@ -24,6 +24,7 @@ var station_status: Label
 var bot_buttons: Array[Button] = []
 var bot_status: Label
 var bot_panel: PanelContainer
+var bot_scroll: ScrollContainer
 var menu_panels: Array[Control] = []
 var bot_modes: Array[OptionButton] = []
 var action_wheel: Control
@@ -135,108 +136,13 @@ func build() -> void:
 	stats.add_child(info)
 	metrics = label("", 13)
 	stats.add_child(metrics)
-	bot_panel = panel(Vector2(24, 180), Vector2(610, 530))
-	var bot_scroll := ScrollContainer.new()
-	bot_scroll.custom_minimum_size = Vector2(570, 490)
-	bot_panel.add_child(bot_scroll)
-	var bot_stack := VBoxContainer.new()
-	bot_stack.add_theme_constant_override("separation", 7)
-	bot_scroll.add_child(bot_stack)
-	bot_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot_stack.add_child(label("CAMERA TEST BOTS", 13, TEAL))
-	bot_stack.add_child(label("Esc: free cursor   /   F9: close bots", 12))
-	for slot in range(8):
-		if slot == 3:
-			var unused := CheckButton.new()
-			bot_stack.add_child(unused)
-			unused.hide()
-			bot_buttons.append(unused)
-			continue # Home court deliberately has no blocker.
-		var action := slot % 4
-		var bot_row := HBoxContainer.new()
-		bot_stack.add_child(bot_row)
-		var toggle := CheckButton.new()
-		toggle.text = ("HOME " if slot < 4 else "AWAY ") + ACTIONS[action]
-		toggle.custom_minimum_size.x = 185
-		toggle.focus_mode = Control.FOCUS_NONE
-		toggle.toggled.connect(func(_on: bool): lab.training_bots.toggle(action, slot >= 4))
-		bot_buttons.append(toggle)
-		bot_row.add_child(toggle)
-		var order := OptionButton.new()
-		for text in ["Any contact", "1st contact", "2nd contact", "3rd contact"]:
-			order.add_item(text)
-		order.select(lab.training_bots.settings[slot].contact_order)
-		order.tooltip_text = "Block jumps for reachable incoming attacks before the first contact." if action == 3 else "Which contact this action attempts on its side."
-		order.item_selected.connect(func(index: int): lab.training_bots.set_contact_order(slot, index))
-		order.focus_mode = Control.FOCUS_NONE
-		bot_row.add_child(order)
-		var mode := OptionButton.new()
-		mode.add_item("Follow ball")
-		mode.add_item("Static")
-		mode.add_item("Move")
-		mode.focus_mode = Control.FOCUS_NONE
-		mode.item_selected.connect(func(index: int): lab.training_bots.set_mode(slot, index))
-		bot_row.add_child(mode)
-		bot_modes.append(mode)
-		var place := button("Place at my position", func():
-			lab.training_bots.place_at_player(slot)
-			mode.select(1)
-		)
-		place.tooltip_text = "Locks this bot to your X/Z position, mirrored onto its court side."
-		bot_stack.add_child(place)
-		var accuracy_row := HBoxContainer.new()
-		bot_stack.add_child(accuracy_row)
-		var accuracy_label := label("Tracking accuracy: 100%", 12)
-		accuracy_label.custom_minimum_size.x = 185
-		accuracy_row.add_child(accuracy_label)
-		var accuracy := HSlider.new()
-		accuracy.min_value = 0
-		accuracy.max_value = 100
-		accuracy.step = 1
-		accuracy.value = lab.training_bots.settings[slot].tracking_accuracy
-		accuracy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		accuracy.custom_minimum_size.x = 220
-		accuracy.tooltip_text = "Follow Ball / Move: 100% centers the hurtbox; lower values add up to 2.5m of positioning error."
-		accuracy.value_changed.connect(func(value: float):
-			lab.training_bots.set_tracking_accuracy(slot, value)
-			accuracy_label.text = "Tracking accuracy: %d%%" % value
-		)
-		accuracy_row.add_child(accuracy)
-		mode.item_selected.connect(func(index: int): accuracy.editable = index != 1)
-		place.pressed.connect(func(): accuracy.editable = false)
-		var speed_row := HBoxContainer.new()
-		bot_stack.add_child(speed_row)
-		var speed_label := label("Move speed: 6.0 m/s", 12)
-		speed_label.custom_minimum_size.x = 185
-		speed_row.add_child(speed_label)
-		var speed := HSlider.new()
-		speed.min_value = 0
-		speed.max_value = 12
-		speed.step = 0.25
-		speed.value = lab.training_bots.settings[slot].move_speed
-		speed.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		speed.custom_minimum_size.x = 220
-		speed.editable = false
-		speed.tooltip_text = "Move mode only: maximum ground travel speed toward the assigned contact. Zero holds position."
-		speed.value_changed.connect(func(value: float):
-			lab.training_bots.set_move_speed(slot, value)
-			speed_label.text = "Move speed: %.2f m/s" % value
-		)
-		mode.item_selected.connect(func(index: int): speed.editable = index == 2)
-		place.pressed.connect(func(): speed.editable = false)
-		speed_row.add_child(speed)
-		bot_stack.add_child(bot_aim_control("Aiming accuracy", lab.training_bots.settings[slot].aiming_accuracy, func(value: float): lab.training_bots.set_aiming_accuracy(slot, value)))
-		bot_stack.add_child(bot_aim_control("Charge accuracy", lab.training_bots.settings[slot].charge_accuracy, func(value: float): lab.training_bots.set_charge_accuracy(slot, value), true))
-
-	bot_stack.add_child(label("PEPPER PARTNER AIM / always Move", 13, TEAL))
-	for index in range(3):
-		var aim_title: String = ["Box partner aim", "East partner aim", "Home path aim"][index]
-		bot_stack.add_child(bot_aim_control(aim_title, lab.pepper.settings[index].aiming_accuracy, func(value: float): lab.pepper.set_aiming_accuracy(index, value)))
-		bot_stack.add_child(bot_aim_control("Pepper %d charge accuracy" % (index + 1), lab.pepper.settings[index].charge_accuracy, func(value: float): lab.pepper.set_charge_accuracy(index, value), true))
-	bot_stack.add_child(button("G  /  TOGGLE ALL BOTS", func(): lab.training_bots.toggle_all()))
-	bot_status = label("Helpers off", 12)
-	bot_stack.add_child(bot_status)
+	# Legacy panel handles remain for callers; the unified inspector owns bot UI.
+	bot_panel = panel(Vector2.ZERO,Vector2.ONE)
 	bot_panel.hide()
+	bot_scroll = ScrollContainer.new()
+	bot_panel.add_child(bot_scroll)
+	bot_status = label("",12)
+	bot_panel.add_child(bot_status)
 	var station_panel := panel(Vector2(345, 126), Vector2(670, 102))
 	station_status = label("", 13, Color("a8cbff"))
 	station_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -279,7 +185,7 @@ func build() -> void:
 	help.add_theme_constant_override("separation", 14)
 	help_panel.add_child(help)
 	help.add_child(label("MAKE THE CONTACT", 25, TEAL))
-	help.add_child(label("1   Select 1 receive, 2 set, 3 attack or 4 block.\n\n2   Hold left mouse to choose power, then release.\n      A quick tap uses your athlete’s default power.\n\n3   Click again as the ball enters your reach ring.\n      Confirm is buffered for a short timing window.\n\nAttack + Space: long right, short left, inward right.\nFourth step launches upward. Right lead is fixed for now.\nReceive + Space: split step, move freely, release to dive.\nClick confirms Receive and cancels a pending dive.\nSet / Block: charge a direct jump; hold movement for carry.\nAttack: full approach gives the strongest spike jump.\n\nReceive low. Set overhead. Jump to spike or block.\nAim across the Net to score; keep sets on your side.\nAfter three personal contacts, return the ball.\n\nRight mouse cancels a grounded preparation.\nHold E: channel a safe standing serve. Tap E: toss; tap again to swing. Rising contact lofts higher. Quick Step: double-tap a direction while an action is charged. B feeds a debug ball. T resets. P pauses. H toggles help.\nI: start / retry / stop nearby drill.\nEast: Serve Receive. West: Spike Trainer. West lane: Box Jump.\nF1–F3: home bots. Shift+F1–F4: away bots. G: all.\nK: toggle hit/hurtboxes. Purple circles: serve to start Pepper.\nF5: feed landing here. F6: set target here. F7: tracking feed.\nV switches Athlete View / Ball View.\nMouse looks around. WASD is relative to the view.\nEsc releases the cursor for buttons; click court to return.", 17))
+	help.add_child(label("1   Select 1 receive, 2 set, 3 attack or 4 block.\n\n2   Hold left mouse to choose power, then release.\n      A quick tap uses your athlete’s default power.\n\n3   Click again as the ball enters your reach ring.\n      Confirm is buffered for a short timing window.\n\nAttack + Space: long right, short left, inward right.\nFourth step launches upward. Right lead is fixed for now.\nReceive + Space: split step, move freely, release to dive.\nClick confirms Receive and cancels a pending dive.\nSet / Block: charge a direct jump; hold movement for carry.\nAttack: full approach gives the strongest spike jump.\n\nReceive low. Set overhead. Jump to spike or block.\nAim across the Net to score; keep sets on your side.\nAfter three personal contacts, return the ball.\n\nRight mouse cancels a grounded preparation.\nHold E: channel a safe standing serve. Tap E: toss; tap again to swing. Rising contact lofts higher. Quick Step: double-tap a direction while an action is charged. B feeds a debug ball. T resets. P pauses. H toggles help.\nI: inspect nearby bot; otherwise start / retry / stop drill.\nEast: Serve Receive. West: Spike Trainer. West lane: Box Jump.\nG: summon a bot here. I: inspect nearby bot. F9: roster.\nK: toggle hit/hurtboxes. Purple circles: serve to start Pepper.\nF5: feed landing here. F6: set target here. Shift+F6: receive target here. F7: tracking feed.\nV switches Athlete View / Ball View.\nMouse looks around. WASD is relative to the view.\nEsc releases the cursor for buttons; click court to return.", 17))
 	help.add_child(button("LET’S PLAY", func():
 		help_panel.hide()
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -346,6 +252,8 @@ func toggle_debug_volumes() -> void:
 	lab._update_hurtbox_visual(0)
 
 func toggle_bot_menu() -> void:
+	if lab.open_bot_menu():
+		return
 	ui.visible = true
 	bot_panel.visible = not bot_panel.visible
 	if bot_panel.visible:
@@ -356,11 +264,10 @@ func toggle_bot_menu() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func update() -> void:
+	if lab.bot_menu != null: lab.bot_menu.update_vitals()
 	if not ui.visible:
 		return
 	station_status.text = lab.drills.hud_text() if lab.drills.in_zone() or lab.drills.running() else lab.station.hud_text()
-	for slot in range(8):
-		bot_buttons[slot].set_pressed_no_signal(lab.training_bots.is_enabled(slot % 4, -1 if slot >= 4 else 1))
 	bot_status.text = "Next: %d / 3  ·  %d bot contacts" % [mini(lab.side_contacts[lab.side_index(lab.ball.position.z)] + 1, 3), lab.training_bots.total_contacts] if lab.training_bots.any_enabled() else "Helpers off / E serve / G bots"
 	action_wheel.set_action(lab.selected, lab.armed or lab.charging or lab.motion.jumped)
 	action_wheel.set_charge(lab.charge if lab.charging else (lab.locked_charge if lab.armed else 0.0))
@@ -404,3 +311,7 @@ func update() -> void:
 
 func _init(session: LabSession) -> void:
 	lab = session
+
+func inspect_bot(slot: int) -> void:
+	if lab.bot_menu == null: lab.bot_menu = preload("res://scripts/map_bot_menu.gd").new(self)
+	lab.bot_menu.open_bot(slot)

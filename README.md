@@ -1,8 +1,8 @@
 # Volley World: Battle Lines
 
 Godot 4.7 volleyball prototype, formerly Rally Lanes. The title screen leads to a
-persistent athlete roster, Contact Lab and trait editor. The project also includes
-a playable map graybox and pose editor. VWM's character construction and supplied assets remain under `vendor/vwm`.
+playable map, persistent athlete roster, Contact Lab and trait editor. The project also includes
+a pose editor. VWM's character construction and supplied assets remain under `vendor/vwm`.
 
 ## Run and validate
 
@@ -18,7 +18,8 @@ python3 tools/test.py contact_hitch_profile --render
 
 Set `GODOT` or pass `--godot` if Godot is elsewhere. Tests copy the project and use
 a temporary user directory; they do not edit the live roster or authored poses.
-Open `map_graybox.tscn` and press F6 for the map-hosted lab;
+Choose **Enter Map** on the title screen for map play, or **Contact Lab** for the isolated test area.
+Open `map_graybox.tscn` and press F6 to start map play directly;
 `map_traversal.tscn` is the minimal geometry/movement scene.
 Logs and machine-readable results go to `artifacts/checks`. See
 [cleanup methodology](docs/cleanup-methodology.md) for verification and profiling.
@@ -33,10 +34,10 @@ Logs and machine-readable results go to `artifacts/checks`. See
 | 1–4 | Select Receive, Set, Attack, Block |
 | Hold left mouse, release, click | Charge, arm, confirm contact |
 | Right mouse | Cancel grounded preparation |
-| Hold/release Space | Travel jump, or an approach for the prepared action |
+| Hold/release Space | Travel jump, Receive split-step/dive, direct Set/Block jump, or Attack approach |
 | Hold E | Complete a standing serve channel |
 | Tap E, tap E again | Toss, then manually strike using facing and contact geometry |
-| I | Start/stop/retry the nearby drill |
+| I | Inspect the nearby bot; otherwise start/stop/retry the nearby drill |
 | K / O | Toggle contact volumes / cycle Current MoC, Tuned MoC, Off |
 | F8 / F9 | Toggle HUD / bot settings |
 | F1–F3 | Toggle home Receive / Set / Attack helpers |
@@ -123,3 +124,5 @@ indexed in [docs/README.md](docs/README.md). Older handoffs are design history a
 may describe superseded mechanics; they are not runtime specifications.
 
 [Action-specific jump controls and tuning](docs/action-jumps.md) describe Receive split steps, direct Set/Block jumps, and the retained Attack approach.
+
+Map play uses the three primary nets: **1 Top, 2 Middle, 3 Bottom**. **G** summons a bot here; **F9** opens the roster and nearby **I** opens that bot’s settings. Assigning a net/side teleports it to the Receive Bot Target. Bots have separate actions for contacts 1–3 and an independent Block toggle. Each net allows five bots total, and each team allows fourteen across the map. [Map controls and bot assignments](docs/map-play.md).

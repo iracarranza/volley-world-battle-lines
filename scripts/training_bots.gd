@@ -33,6 +33,8 @@ var motion := Motion.new()
 var rigs: Array[Dictionary] = []
 var incoming_action := -1
 var physique := Athlete.new()
+const Vitals := preload("res://scripts/bot_vitals.gd")
+var athletes: Array[LabAthlete] = []
 var shapes: Array[Dictionary] = []
 var random := RandomNumberGenerator.new()
 var aim_random := RandomNumberGenerator.new()
@@ -45,6 +47,11 @@ var actors: Array[Node3D] = []
 var captions: Array[Label3D] = []
 var contact_boxes: Array[MeshInstance3D] = []
 var move_targets: Dictionary = {}
+const ReturnController := preload("res://scripts/bot_return.gd")
+var returns := ReturnController.new()
+# Set after the ball comes off the net: receivers may then take a ball that drops right at the tape, and plans made on the pre-net flight are dropped.
+var net_rebound := false
+var active_slot := -1
 var active_action := -1
 var intercept := Vector3.ZERO
 var remaining := 0.0
@@ -62,8 +69,9 @@ func setup(owner_lab: Node3D) -> void:
 	random.randomize()
 	aim_random.randomize()
 	charge_random.randomize()
-	for slot in range(8):
-		var action := slot % 4
+	for slot in range(settings.size()):
+		athletes.append(Vitals.create(physique))
+		var action := slot_action(slot)
 		var actor := Node3D.new()
 		add_child(actor)
 		actors.append(actor)
@@ -108,20 +116,70 @@ func setup(owner_lab: Node3D) -> void:
 		contact_box.material_override = material
 		contact_boxes.append(contact_box)
 		var caption := Label3D.new()
-		caption.text = ("HOME " if slot < 4 else "AWAY ") + NAMES[action]
+		caption.text = ("HOME " if not slot_away(slot) else "AWAY ") + NAMES[action]
 		caption.font_size = 32
 		caption.pixel_size = 0.006
 		caption.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		caption.modulate = COLORS[action]
 		actor.add_child(caption)
 		captions.append(caption)
-		actor.position = Vector3(-3.0 + action * 2.0, 0, 5 if slot < 4 else -5)
+		actor.position = spawn_position(slot)
 		settings[slot].fixed_position = actor.position
-		actor.rotation.y = PI if slot >= 4 else 0.0
+		actor.rotation.y = PI if slot_away(slot) else 0.0
 		actor.visible = false
+
+func responsible_for(slot: int,contact: int,action: int) -> bool:
+	return settings[slot].contact_order == 0 or settings[slot].contact_order == contact
+
+func idle_return_enabled(slot: int) -> bool:
+	return settings[slot].moves
+
+func on_rally_end() -> void:
+	animation.reset()
+	active_action = -1
+	active_slot = -1
+	preparation.reset()
+	motion.plans.clear()
+	move_targets.clear()
+	returns.begin(self)
+
+func ready_to_serve() -> bool:
+	return returns.net_clear(self)
+
+func spawn_at_player() -> void:
+	lab._message("Open bot settings to summon a generic bot")
+
+func _capture_receive_target() -> void:
+	pass
+
+func slot_action(slot: int) -> int:
+	return slot % 4
+
+func slot_away(slot: int) -> bool:
+	return slot >= 4
+
+func slot_enabled(slot: int) -> bool:
+	return settings[slot].enabled and not (slot_action(slot) == 3 and not slot_away(slot))
+
+func slot_for(action: int,z: float) -> int:
+	return action+(4 if z < 0 else 0)
+
+func spawn_position(slot: int) -> Vector3:
+	return Vector3(lab.court_center.x-3.0+slot_action(slot)*2.0,0,-5 if slot_away(slot) else 5)
 
 func is_enabled(action: int, z: float) -> bool:
 	return settings[(action) + 4].enabled if z < 0 else (settings[action].enabled and action != 3)
+
+# Whether any helper is playing on this side of the net (0 home, 1 away): the player is then not the only one on their court.
+func has_teammates(side: int) -> bool:
+	for slot in range(side * 4, side * 4 + 4):
+		if is_enabled(slot_action(slot), -1 if side == 1 else 1):
+			return true
+	return false
+
+func ensure_receiver(home: bool = false) -> void:
+	if not is_enabled(0,1 if home else -1):
+		toggle(0,not home)
 
 func toggle(action: int, away: bool = false) -> void:
 	if action == 3 and not away:
@@ -148,12 +206,16 @@ func toggle_all() -> void:
 
 func _capture_set_target() -> void:
 	set_target_locked = true
-	set_target = Vector3(clampf(lab.player.position.x, -4.2, 4.2), 3.8, clampf(absf(lab.player.position.z), 0.6, 8.5))
+	set_target = Vector3(clampf(lab.player.position.x, lab.court_center.x-lab.court_half_width+0.3, lab.court_center.x+lab.court_half_width-0.3), 3.8, clampf(absf(lab.player.position.z), 0.6, 8.5))
 	lab._message("SET BOT target locked to your position / F6 to retarget")
 
 func reset() -> void:
+	refresh_for_rally()
+	returns.clear()
+	net_rebound = false
 	preparation.reset()
 	active_action = -1
+	active_slot = -1
 	motion.plans.clear()
 	animation.reset()
 	move_targets.clear()
@@ -161,10 +223,10 @@ func reset() -> void:
 	total_contacts = 0
 	last_action = -1
 	last_was_block = false
-	for slot in range(8):
-		var action := slot % 4
-		actors[slot].position = Vector3(-3.0 + action * 2.0, 0, 5 if slot < 4 else -5) if settings[slot].follows_ball else settings[slot].fixed_position
-		captions[slot].text = ("HOME " if slot < 4 else "AWAY ") + NAMES[action]
+	for slot in range(settings.size()):
+		var action := slot_action(slot)
+		actors[slot].position = spawn_position(slot) if settings[slot].follows_ball else settings[slot].fixed_position
+		captions[slot].text = ("HOME " if not slot_away(slot) else "AWAY ") + NAMES[action]
 		captions[slot].position.y = 2.15
 		contact_boxes[slot].position = shapes[slot].center
 		Motion.Pose.base(rigs[slot].body, 0, 0, 0, false)
@@ -172,6 +234,7 @@ func reset() -> void:
 
 func replan(skip_block: bool = false) -> void:
 	active_action = -1
+	active_slot = -1
 	move_targets.clear()
 	if (is_instance_valid(lab.serve) and lab.serve.tossing()) or (is_instance_valid(lab.pepper) and lab.pepper.active()):
 		return
@@ -182,21 +245,25 @@ func replan(skip_block: bool = false) -> void:
 	var gravity: float = lab.GRAVITY
 	# Optional block is an incoming near-Net interception before the first
 	# ordinary contact. It does not replace a missing setter or attacker.
-	if not skip_block and incoming_action == 2 and settings[(3) + 4].enabled and (settings[7].contact_order in [0, 1]) and velocity.z < 0 and not last_was_block and absf(velocity.z) > 0.01 and origin.z * velocity.z < 0:
-		var receiving_sign := -1.0 if velocity.z < 0 else 1.0
-		var block_time := (receiving_sign * 0.25 - origin.z) / velocity.z
+	var blocker := slot_for(3,velocity.z)
+	if not skip_block and incoming_action == 2 and blocker >= 0 and slot_enabled(blocker) and settings[blocker].contact_order in [0,1] and not last_was_block and absf(velocity.z) > 0.01 and origin.z*velocity.z < 0:
+		var receiving_sign := signf(velocity.z)
+		var block_time := (receiving_sign*0.25-origin.z)/velocity.z
 		if block_time > 0.025 and block_time < 3.0:
-			var block_point := origin + velocity * block_time + Vector3.DOWN * gravity * block_time * block_time * 0.5
-			if absf(block_point.x) <= 4.5 and block_point.y >= 2.43 and block_point.y <= contact_anchor(7).y + _jump_ceiling(7) + 0.25 and (settings[7].follows_ball or _static_intercept(7, origin, velocity, gravity) > 0):
-				var t := block_time if settings[7].follows_ball else _static_intercept(7, origin, velocity, gravity)
-				_plan(3, origin + velocity * t + Vector3.DOWN * gravity * t * t * 0.5, t)
+			var block_point := origin+velocity*block_time+Vector3.DOWN*gravity*block_time*block_time*0.5
+			if absf(block_point.x-lab.court_center.x) <= lab.court_half_width and block_point.y >= lab.net_height and block_point.y <= contact_anchor(blocker).y+_jump_ceiling(blocker)+0.25 and (settings[blocker].follows_ball or _static_intercept(blocker,origin,velocity,gravity)>0):
+				var t := block_time if settings[blocker].follows_ball else _static_intercept(blocker,origin,velocity,gravity)
+				_plan(3,origin+velocity*t+Vector3.DOWN*gravity*t*t*0.5,t,blocker)
 				return
+
 	var best_time := 6.0
 	var best_action := -1
+	var best_slot := -1
 	var best_point := Vector3.ZERO
-	for slot in range(8):
-		var action := slot % 4
-		if action == 3 or not is_enabled(action, -1 if slot >= 4 else 1):
+	var best_distance := INF
+	for slot in range(settings.size()):
+		var action := slot_action(slot)
+		if action == 3 or not slot_enabled(slot):
 			continue
 		var time := -1.0
 		if settings[slot].follows_ball:
@@ -209,37 +276,67 @@ func replan(skip_block: bool = false) -> void:
 				time = (velocity.y + sqrt(discriminant)) / gravity
 		else:
 			time = _static_intercept(slot, origin, velocity, gravity)
-		if time < 0.025 or time > 5.0 or time >= best_time:
+		if time < 0.025 or time > 5.0 or time > best_time+0.00001:
 			continue
 		var point := origin + velocity * time + Vector3.DOWN * gravity * time * time * 0.5
-		if (point.z < 0) != (slot >= 4):
+		if (point.z < 0) != (slot_away(slot)):
 			continue
 		var side: int = lab.side_index(point.z)
 		var count: int = lab.side_contacts[side] if lab.side_index(origin.z) == side else 0
 		if count >= 3 or (settings[slot].contact_order != 0 and settings[slot].contact_order != count + 1):
 			continue
-		if absf(point.x) > 5.5 or absf(point.z) > 10 or absf(point.z) < 0.35:
+		if absf(point.x-lab.court_center.x) > maxf(5.5,lab.court_half_width+1.0) or absf(point.z) > maxf(10.0,lab.court_half_depth+1.0) or absf(point.z) < (0.12 if net_rebound else 0.35):
 			continue
+		var distance := actors[slot].position.distance_squared_to(point)
+		if is_equal_approx(time,best_time) and distance >= best_distance: continue
+		best_distance = distance
 		best_time = time
 		best_action = action
+		best_slot = slot
 		best_point = point
 	if best_action >= 0:
-		_plan(best_action, best_point, best_time)
+		_plan(best_action, best_point, best_time,best_slot)
 	else:
 		_attempt_unreachable_jumps(origin, velocity, gravity)
 
+# The ball has hit the net or its webbing and come off it. Whatever the helpers had planned was for the flight before the net, so drop it
+# and look again at where the ball is now going. Both sides can take it: it may fall back where it came from or drop over.
+func replan_after_net() -> void:
+	net_rebound = true
+	for slot in range(settings.size()):
+		if preparation.state_for(slot).planned:
+			preparation.finish(slot)
+		motion.plans.erase(slot)
+	replan()
+
+func athlete_for(slot: int) -> LabAthlete:
+	return athletes[slot]
+
+func move_speed_for(slot: int) -> float:
+	return settings[slot].move_speed*(0.55 if athlete_for(slot).exhausted else 1.0)
+
+func spend_stamina(slot: int,cost: float) -> void:
+	Vitals.spend(athlete_for(slot),cost,lab.contact_flow,"training_bot_%d" % slot)
+
+func spend_jump(slot: int) -> void:
+	spend_stamina(slot,athlete_for(slot).jump_stamina_cost())
+
+func refresh_for_rally() -> void:
+	for athlete in athletes: Vitals.refresh(athlete)
+
 func _jump_ceiling(slot: int) -> float:
-	return physique.leap(1.0,1.0,lab.contact_flow.jump_bonus("training_bot_%d"%slot) if is_instance_valid(lab.contact_flow) else 0.0)
+	return athlete_for(slot).leap(1.0,1.0,lab.contact_flow.jump_bonus("training_bot_%d"%slot) if is_instance_valid(lab.contact_flow) else 0.0)
 
 func _attempt_unreachable_jumps(origin: Vector3, velocity: Vector3, gravity: float) -> void:
 	# An invalid prediction must not leave the assigned overhead role motionless.
 	# This is a physical attempt only: it never awards a touch or changes flight.
 	var time := clampf(maxf(velocity.y / gravity, 0.25), 0.25, 0.65)
 	var projected := origin + velocity * time + Vector3.DOWN * gravity * time * time * 0.5
-	for slot in [1, 2, 5, 6]:
-		var action: int = slot % 4
-		var away: bool = slot >= 4
-		if not is_enabled(action, -1 if away else 1) or motion.plans.has(slot):
+	for slot in range(settings.size()):
+		if slot_action(slot) not in [1,2]: continue
+		var action: int = slot_action(slot)
+		var away: bool = slot_away(slot)
+		if not slot_enabled(slot) or motion.plans.has(slot):
 			continue
 		if (projected.z < 0) != away:
 			continue
@@ -248,18 +345,20 @@ func _attempt_unreachable_jumps(origin: Vector3, velocity: Vector3, gravity: flo
 		if count >= 3 or (settings[slot].contact_order != 0 and settings[slot].contact_order != count + 1):
 			continue
 		var target: Vector3 = settings[slot].fixed_position if not settings[slot].follows_ball else projected - contact_anchor(slot).rotated(Vector3.UP, actors[slot].rotation.y)
-		target.x = clampf(target.x, -5.5, 5.5)
+		target.x = clampf(target.x, lab.court_center.x-lab.court_half_width-1, lab.court_center.x+lab.court_half_width+1)
 		target.z = clampf(absf(target.z), 0.5, 10.0) * (-1.0 if away else 1.0)
 		target.y = clampf(projected.y - contact_anchor(slot).y, 0.30, _jump_ceiling(slot))
-		motion.begin(slot, actors[slot], target, time, settings[slot].follows_ball, gravity, settings[slot].move_speed if settings[slot].moves else -1.0,NAN,physique.explosiveness_rate())
+		motion.begin(slot, actors[slot], target, time, settings[slot].follows_ball, gravity, move_speed_for(slot) if settings[slot].moves else -1.0,NAN,athlete_for(slot).explosiveness_rate(),action)
+		spend_jump(slot)
 		if is_instance_valid(lab.contact_flow):
 			lab.contact_flow.consume_jump("training_bot_%d"%slot)
 		motion.plans[slot]["fallback"] = true
 		if active_action < 0:
 			active_action = action
+			active_slot = slot
 			intercept = projected
 			remaining = time
-			preparation.begin(slot, action, lab.ball_shot, time, settings[slot].charge_accuracy, charge_random,physique.cushioning_bonus(),physique.low_stamina_factor())
+			preparation.begin(slot, action, lab.ball_shot, time, settings[slot].charge_accuracy, charge_random,athlete_for(slot).cushioning_bonus(),athlete_for(slot).low_stamina_factor())
 
 func set_contact_order(slot: int, order: int) -> void:
 	settings[slot].contact_order = clampi(order, 0, 3)
@@ -284,18 +383,17 @@ func set_move_speed(slot: int, value: float) -> void:
 		motion.plans[slot]["move_speed"] = settings[slot].move_speed
 
 func setter_direction(slot: int, origin: Vector3) -> Vector3:
-	var setter_slot := 1 if slot < 4 else 5
-	if not is_enabled(1, -1 if slot >= 4 else 1):
+	var setter_slot := slot_for(1,-1 if slot_away(slot) else 1)
+	if not is_enabled(1, -1 if slot_away(slot) else 1):
 		return Vector3.ZERO
 	var direction := actors[setter_slot].position - origin
 	direction.y = 0
 	return direction.normalized() if direction.length_squared() > 0.0001 else Vector3.FORWARD.rotated(Vector3.UP, actors[slot].rotation.y)
 
 func place_at_player(slot: int) -> void:
-	settings[slot].fixed_position = Vector3(clampf(lab.player.position.x, -5.5, 5.5), 0, clampf(absf(lab.player.position.z), 0.5, 10.0) * (-1 if slot >= 4 else 1))
+	settings[slot].fixed_position = Vector3(clampf(lab.player.position.x, lab.court_center.x-lab.court_half_width-1, lab.court_center.x+lab.court_half_width+1), 0, clampf(absf(lab.player.position.z), 0.5, 10.0) * (-1 if slot_away(slot) else 1))
 	actors[slot].position = settings[slot].fixed_position
-	settings[slot].follows_ball = false
-	settings[slot].moves = false
+	# Only the spot changes: a follow, move or static helper stays what it was. A move helper comes back here after its contacts.
 	contact_boxes[slot].position = shapes[slot].center
 	replan()
 
@@ -303,11 +401,11 @@ func place_at_player(slot: int) -> void:
 # receive fan and dominant-arm sector. Small spatial steps avoid fast-ball tunneling.
 func _static_intercept(slot: int, origin: Vector3, velocity: Vector3, gravity: float) -> float:
 	var step := clampf(0.025 / maxf(velocity.length() + gravity * 5.0, 1.0), 0.0005, 0.01)
-	var time := 0.35 if slot % 4 == 2 else (0.12 if slot % 4 == 3 else 0.025)
+	var time := 0.35 if slot_action(slot) == 2 else (0.12 if slot_action(slot) == 3 else 0.025)
 	var frame := Basis(Vector3.UP,-actors[slot].rotation.y)
 	var fixed := settings[slot].fixed_position
-	var overhead := slot % 4 in [2,3]
-	var max_jump := _jump_ceiling(slot)*(1.2 if slot % 4 == 2 else 1.0) if overhead else 0.0
+	var overhead := slot_action(slot) in [2,3]
+	var max_jump := _jump_ceiling(slot)*(1.2 if slot_action(slot) == 2 else 1.0) if overhead else 0.0
 	var anchor_height := contact_anchor(slot).y
 	while time <= 5.0:
 		var point := origin + velocity * time + Vector3.DOWN * gravity * time * time * 0.5
@@ -326,11 +424,11 @@ func contains_ball(slot: int, point: Vector3) -> bool:
 
 func contact_anchor(slot: int) -> Vector3:
 	var shape := shapes[slot]
-	if slot % 4 == 1:
+	if slot_action(slot) == 1:
 		return Vector3(shape.center) + Vector3.UP * (float(shape.radius) * 0.55)
-	if slot % 4 == 2:
+	if slot_action(slot) == 2:
 		return Vector3(shape.center) + Geometry.sector_point(shape, 0.74, 67.5, 0.0)
-	return Vector3(shape.center) + (Vector3.RIGHT * float(shape.column_x) if slot % 4 == 3 else Vector3.ZERO)
+	return Vector3(shape.center) + (Vector3.RIGHT * float(shape.column_x) if slot_action(slot) == 3 else Vector3.ZERO)
 
 func set_charge_accuracy(slot: int, value: float) -> void:
 	settings[slot].charge_accuracy = clampf(value, 0, 100)
@@ -342,19 +440,22 @@ func set_tracking_accuracy(slot: int, value: float) -> void:
 	settings[slot].tracking_accuracy = clampf(value, 0, 100)
 	replan()
 
-func _plan(action: int, point: Vector3, time: float) -> void:
+func _plan(action: int, point: Vector3, time: float, chosen_slot: int = -1) -> void:
 	active_action = action
 	intercept = point
 	remaining = time
-	var slot := action + (4 if point.z < 0 else 0)
-	preparation.begin(slot, action, lab.ball_shot, time, settings[slot].charge_accuracy, charge_random,physique.cushioning_bonus(),physique.low_stamina_factor())
+	var slot := chosen_slot if chosen_slot >= 0 else slot_for(action,point.z)
+	if slot < 0: return
+	active_slot = slot
+	returns.release(slot)
+	preparation.begin(slot, action, lab.ball_shot, time, settings[slot].charge_accuracy, charge_random,athlete_for(slot).cushioning_bonus(),athlete_for(slot).low_stamina_factor())
 	if action == 0:
 		var toward_setter := setter_direction(slot, actors[slot].position)
 		if toward_setter.length_squared() > 0:
 			actors[slot].rotation.y = atan2(-toward_setter.x, -toward_setter.z)
 	var aim_yaw: float = actors[slot].rotation.y
 	if action == 2:
-		var destination := Vector3(1.8 * sin(total_contacts * 1.3), 1.0, -6.0 if point.z > 0 else 6.0)
+		var destination := Vector3(lab.court_center.x+1.8 * sin(total_contacts * 1.3), 1.0, -6.0 if point.z > 0 else 6.0)
 		var heading := destination - point
 		aim_yaw = atan2(-heading.x, -heading.z)
 	if settings[slot].follows_ball:
@@ -368,7 +469,8 @@ func _plan(action: int, point: Vector3, time: float) -> void:
 			if action in [1, 2]:
 				target.y = maxf(0.25, target.y)
 			target.y = minf(target.y, _jump_ceiling(slot) * (1.2 if action == 2 else 1.0))
-			motion.begin(slot, actors[slot], target, time, true, lab.GRAVITY, settings[slot].move_speed if settings[slot].moves else -1.0, aim_yaw,physique.explosiveness_rate())
+			motion.begin(slot, actors[slot], target, time, true, lab.GRAVITY, move_speed_for(slot) if settings[slot].moves else -1.0, aim_yaw,athlete_for(slot).explosiveness_rate(),action)
+			spend_jump(slot)
 			if is_instance_valid(lab.contact_flow):
 				lab.contact_flow.consume_jump("training_bot_%d"%slot)
 		elif settings[slot].moves:
@@ -378,34 +480,63 @@ func _plan(action: int, point: Vector3, time: float) -> void:
 	elif action in [2, 3]:
 		var target := settings[slot].fixed_position
 		target.y = clampf(point.y - contact_anchor(slot).y, 0.25 if action == 2 else 0.0, _jump_ceiling(slot) * (1.2 if action == 2 else 1.0))
-		motion.begin(slot, actors[slot], target, time, false, lab.GRAVITY, -1.0, aim_yaw,physique.explosiveness_rate())
+		motion.begin(slot, actors[slot], target, time, false, lab.GRAVITY, -1.0, aim_yaw,athlete_for(slot).explosiveness_rate(),action)
+		spend_jump(slot)
 		if is_instance_valid(lab.contact_flow):
 			lab.contact_flow.consume_jump("training_bot_%d"%slot)
 	captions[slot].position.y = maxf(contact_anchor(slot).y + 0.55, 2.15)
 
+func tick_support_motion(_dt: float,_scales: Dictionary) -> void:
+	pass
+
 func tick_motion(dt: float) -> void:
-	for slot in range(8):
-		if is_enabled(slot % 4, -1 if slot >= 4 else 1):
+	for slot in range(settings.size()):
+		if slot_enabled(slot):
 			preparation.tick(slot, dt * lab.moc.actor_scale("training_bot_%d" % slot))
 	var previous_positions: Array[Vector3] = []
 	for actor in actors:
 		previous_positions.append(actor.position)
+	returns.tick(self,dt)
 	var scales := {}
-	for slot in range(8):
+	for slot in range(settings.size()):
 		scales[slot] = lab.moc.actor_scale("training_bot_%d" % slot)
+	for slot in motion.plans:
+		if float(motion.plans[slot].move_speed) >= 0: motion.plans[slot].move_speed = move_speed_for(slot)
 	motion.tick(dt, actors, rigs, scales)
 	for slot in move_targets.keys():
 		var actor := actors[slot]
 		var target: Vector3 = move_targets[slot]
 		var ground := Vector3(target.x, actor.position.y, target.z)
 		var before := actor.position
-		actor.position = actor.position.move_toward(ground, settings[slot].move_speed * dt * float(scales[slot]))
+		actor.position = actor.position.move_toward(ground, move_speed_for(slot) * dt * float(scales[slot]))
 		var speed := actor.position.distance_to(before) / maxf(dt, 0.0001)
-		Motion.Pose.base(rigs[slot].body, float(Time.get_ticks_msec()) * 0.008, speed, 0, slot % 4 == 0)
+		Motion.Pose.base(rigs[slot].body, float(Time.get_ticks_msec()) * 0.008, speed, 0, slot_action(slot) == 0)
+		Motion.Pose.ground_feet(rigs[slot].body)
+	tick_support_motion(dt,scales)
+	# A move helper walks back to its placed spot once it has no ball to go to: after its contact and landing, and whenever it has been pulled away.
+	for slot in range(settings.size()):
+		if not idle_return_enabled(slot) or returns.contains(slot) or not slot_enabled(slot) or move_targets.has(slot) or motion.plans.has(slot):
+			continue
+		if lab.ball_active and active_action == slot_action(slot) and slot == active_slot:
+			continue
+		var home: Vector3 = settings[slot].fixed_position
+		var home_ground := Vector3(home.x, actors[slot].position.y, home.z)
+		if actors[slot].position.distance_to(home_ground) < 0.03:
+			continue
+		var from_here := actors[slot].position
+		actors[slot].position = from_here.move_toward(home_ground, move_speed_for(slot) * dt * float(scales[slot]))
+		var walked := actors[slot].position.distance_to(from_here) / maxf(dt, 0.0001)
+		Motion.Pose.base(rigs[slot].body, float(Time.get_ticks_msec()) * 0.008, walked, 0, false)
 		Motion.Pose.ground_feet(rigs[slot].body)
 	for slot in range(rigs.size()):
-		var action := slot % 4
-		var planned := active_action == action and ((slot >= 4) == (intercept.z < 0))
+		var profile := athlete_for(slot)
+		var walked := Vector2(actors[slot].position.x-previous_positions[slot].x,actors[slot].position.z-previous_positions[slot].z).length()
+		var busy: bool = motion.plans.has(slot) or move_targets.has(slot) or preparation.state_for(slot).planned
+		if settings[slot].enabled:
+			if lab.ball_active and (walked > 0.001 or busy): spend_stamina(slot,dt*3.0)
+			profile.recover(dt,not busy and walked < 0.001)
+		var action := slot_action(slot)
+		var planned := active_action == action and slot == active_slot
 		var motion_plan: Dictionary = motion.plans.get(slot, {})
 		var airborne := not motion_plan.is_empty() and str(motion_plan.get("phase", "")) in ["jump", "landing"]
 		var animation_state: Dictionary = animation.states.get(rigs[slot].body.get_instance_id(), {})
@@ -417,16 +548,16 @@ func tick_motion(dt: float) -> void:
 		if action == 0 and not Geometry.contains(shapes[slot], point):
 			point = contact_anchor(slot)
 		var posture := Geometry.ReceivePlatform.posture(shapes[slot], point, speed) if action == 0 else "planted"
-		animation.update(rigs[slot], dt * float(scales[slot]), {"action": action, "charge": float(preparation.state_for(slot).charge), "planned": planned or not motion_plan.is_empty(), "airborne": airborne, "remaining": float(motion_plan.get("contact", remaining)) - float(motion_plan.get("elapsed", 0)) if not motion_plan.is_empty() else remaining, "rise": motion_plan.get("rise", 0.4), "preserve_base": not motion_plan.is_empty(), "contact_point": point, "posture": posture, "speed": speed, "cycle": float(Time.get_ticks_msec()) * 0.008, "swing_yaw": motion_plan.get("swing_yaw", 0.0),"transition_rate":physique.transition_rate()})
+		animation.update(rigs[slot], dt * float(scales[slot]), {"action": action, "charge": float(preparation.state_for(slot).charge), "planned": planned or not motion_plan.is_empty(), "airborne": airborne, "remaining": float(motion_plan.get("contact", remaining)) - float(motion_plan.get("elapsed", 0)) if not motion_plan.is_empty() else remaining, "rise": motion_plan.get("rise", 0.4), "preserve_base": not motion_plan.is_empty(), "contact_point": point, "posture": posture, "speed": speed, "cycle": float(Time.get_ticks_msec()) * 0.008, "swing_yaw": motion_plan.get("swing_yaw", 0.0),"transition_rate":athlete_for(slot).transition_rate()})
 	for slot in range(actors.size()):
 		var travel: Vector3 = lab.contact_flow.displacement("training_bot_%d" % slot,dt*float(scales[slot])) if is_instance_valid(lab.contact_flow) else Vector3.ZERO
 		actors[slot].position += travel
-		settings[slot].fixed_position += travel
+		# Knockback displaces the athlete, never their saved placement.
 		if motion.plans.has(slot):
 			motion.plans[slot].start += travel
 			motion.plans[slot].ground += travel
 	for slot in range(contact_boxes.size()):
-		var precision := active_action == slot % 4 and ((slot >= 4) == (intercept.z < 0)) and Execution.sweet_active(slot % 4, float(preparation.state_for(slot).confirmation_age))
+		var precision := active_action == slot_action(slot) and slot == active_slot and Execution.sweet_active(slot_action(slot), float(preparation.state_for(slot).confirmation_age))
 		var material: StandardMaterial3D = contact_boxes[slot].material_override
 		material.vertex_color_use_as_albedo = precision
 		material.albedo_color = Color.WHITE if precision else Color(0.96, 0.61, 0.41, 0.16)
@@ -437,6 +568,11 @@ func tick_motion(dt: float) -> void:
 
 func tick(dt: float) -> bool:
 	tick_motion(dt)
+	return tick_contact(dt)
+
+var resolving_contact := false
+
+func tick_contact(dt: float) -> bool:
 	if not lab.ball_active or active_action < 0:
 		return false
 	remaining -= dt
@@ -445,20 +581,23 @@ func tick(dt: float) -> bool:
 	var action := active_action
 	if remaining < -Execution.CONTACT_SECONDS:
 		active_action = -1
+		active_slot = -1
 		replan(action == 3)
 		return false
 	if not is_enabled(action, intercept.z):
 		active_action = -1
+		active_slot = -1
 		if action == 3:
 			replan(true)
 		return false
 	# A manual contact replans the intercept, so a helper never follows an old flight.
-	var bot_slot := action + (4 if intercept.z < 0 else 0)
+	var bot_slot := active_slot if active_slot >= 0 else slot_for(action,intercept.z)
 	var prepared := preparation.state_for(bot_slot)
 	if prepared.phase != "confirmed":
 		return false
 	if float(prepared.confirmation_age) > Execution.CONTACT_SECONDS:
 		active_action = -1
+		active_slot = -1
 		preparation.finish(bot_slot)
 		if action == 3:
 			replan(true)
@@ -481,17 +620,20 @@ func tick(dt: float) -> bool:
 			var cleared_block: bool = action == 3 and local_velocity.z > 0 and local.z > float(shapes[bot_slot].center.z) + float(shapes[bot_slot].size.z) * 0.5 + Geometry.BALL_RADIUS
 			if remaining < -Execution.CONTACT_SECONDS or cleared_block:
 				active_action = -1
+				active_slot = -1
 				if action == 3:
 					replan(true)
 			return false
 	else:
 		intercept = lab.ball.position
 	active_action = -1
+	active_slot = -1
 	var side: int = lab.side_index(intercept.z)
-	var slot := action + (4 if intercept.z < 0 else 0)
-	if action != 3 and (lab.side_contacts[side] >= 3 or (settings[slot].contact_order != 0 and lab.side_contacts[side] + 1 != settings[slot].contact_order)):
+	var slot := bot_slot
+	if action != 3 and (lab.side_contacts[side] >= 3 or not responsible_for(slot,lab.side_contacts[side]+1,action)):
 		replan()
 		return false
+	if lab.block_serve_fault(action,lab.ball_shot,"Bot #%d" % (slot+1)): return true
 	lab.ball.position = intercept
 	if action != 3:
 		lab.side_contacts[side] += 1
@@ -500,10 +642,11 @@ func tick(dt: float) -> bool:
 	var incoming: Vector3 = lab.ball_velocity
 	var incoming_shot: Dictionary = lab.ball_shot
 	var local_contact: Vector3 = (lab.ball.position - actors[slot].position).rotated(Vector3.UP, -actors[slot].rotation.y)
+	resolving_contact = true
 	var request := ContactRequest.new()
 	request.action = action
 	request.response_seed = total_contacts + 1
-	request.athlete = physique
+	request.athlete = athlete_for(slot)
 	request.actor_id = "training_bot_%d" % slot
 	request.shape = shapes[slot]
 	request.local_point = local_contact
@@ -514,7 +657,7 @@ func tick(dt: float) -> bool:
 	request.confirmation_age = float(prepared.confirmation_age)
 	request.facing = Vector3.FORWARD.rotated(Vector3.UP, actors[slot].rotation.y)
 	request.intent_direction = request.facing
-	request.movement_speed = settings[slot].move_speed if settings[slot].moves else 0.0
+	request.movement_speed = move_speed_for(slot) if settings[slot].moves else 0.0
 	request.gravity = lab.GRAVITY
 	request.flow = lab.contact_flow.amount(request.actor_id)
 	request.keep_attack_intent = true
@@ -527,9 +670,9 @@ func tick(dt: float) -> bool:
 	if action == 0:
 		last_receive_match = execution.charge_match
 	last_preparation = preparation.evidence(slot)
-	_launch(action)
+	_launch(action,slot)
 	if action != 2:
-		lab.ball_velocity *= physique.low_stamina_factor()
+		lab.ball_velocity *= athlete_for(slot).low_stamina_factor()
 	if action != 0:
 		lab.ball_velocity *= Preparation.output_factor(lab.contact_flow.attack_charge(float(prepared.locked_charge),"training_bot_%d"%slot,lab.ball.position) if action == 2 else float(prepared.locked_charge))
 	request.base_velocity = lab.ball_velocity
@@ -547,9 +690,10 @@ func tick(dt: float) -> bool:
 		lab.contact_flow.consume_attack("training_bot_%d"%slot)
 	preparation.finish(slot)
 	lab._emit_external_impact("training_bot_%d" % slot, action, incoming, execution,incoming_shot)
-	var posture := Geometry.ReceivePlatform.posture(shapes[slot], local_contact, settings[slot].move_speed if settings[slot].moves else 0.0) if action == 0 else "planted"
+	var posture := Geometry.ReceivePlatform.posture(shapes[slot], local_contact, move_speed_for(slot) if settings[slot].moves else 0.0) if action == 0 else "planted"
 	var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actors[slot].rotation.y, -PI, PI) if action == 2 else 0.0
 	animation.contact(rigs[slot], action, local_contact, posture, swing_yaw, execution.get("rescue", false))
+	spend_stamina(slot,athlete_for(slot).contact_cost(action,1).x)
 	total_contacts += 1
 	last_action = action
 	lab.trail_points.clear()
@@ -558,6 +702,7 @@ func tick(dt: float) -> bool:
 		lab.contact_memory[memory_slot] = 0.0
 	lab.outgoing = false
 	lab._message(NAMES[action] + " BOT contact / Ball View tracks the new flight")
+	resolving_contact = false
 	replan()
 	return true
 
@@ -568,10 +713,11 @@ func _bump_ceiling(height: float) -> float:
 	var up := float(launch.required_speed_mps) * sin(deg_to_rad(76.0))
 	return height + up * up / (2 * float(lab.GRAVITY))
 
-func _launch(action: int) -> void:
+func _launch(action: int,firing_slot: int = -1) -> void:
+	net_rebound = false
 	var origin: Vector3 = lab.ball.position
 	var side := 1.0 if origin.z > 0 else -1.0
-	var lane_x := 1.8 * sin(total_contacts * 1.3)
+	var lane_x: float = lab.court_center.x+1.8 * sin(total_contacts * 1.3)
 	var target := Vector3(lane_x, 2.25, side * 3.0)
 	var duration := 1.35
 	match action:
@@ -587,11 +733,11 @@ func _launch(action: int) -> void:
 			target = Vector3(lane_x, 1.0, -side * 5.0)
 			duration = 1.15
 	if action == 0:
-		var receiver_slot := 0 if origin.z >= 0 else 4
+		var receiver_slot := firing_slot if firing_slot >= 0 else slot_for(0,origin.z)
 		var toward_setter := setter_direction(receiver_slot, origin)
 		if toward_setter.length_squared() > 0:
-			var setter_slot := receiver_slot + 1
-			var range_flight: Dictionary = lab.Flight.solve_flight(5.0 + 0.70 * 5.5, 60.0, maxf(origin.y - Geometry.VISUAL_BALL_RADIUS, 0))
+			var setter_slot := slot_for(1,origin.z)
+			var range_flight: Dictionary = lab.Flight.solve_flight(5.0 + 0.70 * 5.5, lab.BUMP_ANGLE, maxf(origin.y - Geometry.VISUAL_BALL_RADIUS, 0))
 			var nominal_range: float = range_flight.range_meters
 			var setter_distance := Vector2(actors[setter_slot].position.x - origin.x, actors[setter_slot].position.z - origin.z).length()
 			target = origin + toward_setter * minf(setter_distance, nominal_range)
@@ -600,7 +746,7 @@ func _launch(action: int) -> void:
 		var ceiling: float = _bump_ceiling(origin.y) if action == 0 else maxf(origin.y + 0.35, _bump_ceiling(1.0))
 		var peak := origin.y + (ceiling - origin.y) * (0.70 if action == 0 else 0.85)
 		if action == 1:
-			var setter_slot := 1 if origin.z >= 0 else 5
+			var setter_slot := firing_slot if firing_slot >= 0 else slot_for(1,origin.z)
 			var ground_factor: float = 1.0 if actors[setter_slot].position.y > 0.05 else lab.GROUND_SET_RISE_FACTOR
 			peak = origin.y + (peak - origin.y) * lab.SET_RISE_FACTOR * ground_factor
 		peak = maxf(peak, target.y + 0.25)
@@ -609,7 +755,7 @@ func _launch(action: int) -> void:
 		duration = (upward + sqrt(maxf(0, upward * upward + 2 * gravity * (origin.y - target.y)))) / gravity
 	lab.ball_velocity = (target - origin) / duration + Vector3.UP * float(lab.GRAVITY) * duration * 0.5
 	if action == 2:
-		var slot := 2 if origin.z >= 0 else 6
+		var slot := firing_slot if firing_slot >= 0 else slot_for(2,origin.z)
 		var yaw: float = actors[slot].rotation.y
 		lab.ball_velocity = Influence.constrain_attack(lab.ball_velocity, yaw)
 		var shot_yaw := atan2(-lab.ball_velocity.x, -lab.ball_velocity.z)

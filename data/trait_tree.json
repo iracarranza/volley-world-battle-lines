@@ -3,6 +3,10 @@
 		{
 			"attribute": "power",
 			"cost": 0,
+			"effects": {
+				"serve_velocity": 12.0
+			},
+			"exclusive": "power_start",
 			"id": "power_power_serve",
 			"kind": "trait",
 			"name": "Power Serve",
@@ -14,15 +18,16 @@
 				210.0,
 				0.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "+12 Serve Velocity.",
-			"exclusive": "power_start",
-			"effects": {
-				"serve_velocity": 12
-			}
+			"weight": 1
 		},
 		{
 			"attribute": "speed",
 			"cost": 0,
+			"effects": {},
+			"exclusive": "",
 			"id": "speed_quick_step",
 			"kind": "trait",
 			"name": "Quick Step",
@@ -34,11 +39,16 @@
 				210.0,
 				0.0
 			],
-			"text": "Active: double-tap a direction while an action is charged for one burst of movement. Cooldown 5s exploring, 8s in a rally."
+			"requires": [],
+			"standalone": false,
+			"text": "Active: double-tap a direction while an action is charged for one burst of movement. Cooldown 5s exploring, 8s in a rally.",
+			"weight": 1
 		},
 		{
 			"attribute": "speed",
 			"cost": 0,
+			"effects": {},
+			"exclusive": "",
 			"id": "speed_dump",
 			"kind": "planned",
 			"name": "Dump",
@@ -50,11 +60,16 @@
 				110.0,
 				110.0
 			],
-			"text": "Planned: quick jump-set dump."
+			"requires": [],
+			"standalone": false,
+			"text": "Planned: quick jump-set dump.",
+			"weight": 1
 		},
 		{
 			"attribute": "accuracy",
 			"cost": 0,
+			"effects": {},
+			"exclusive": "",
 			"id": "accuracy_shoot_set",
 			"kind": "trait",
 			"name": "Shoot Set",
@@ -66,11 +81,16 @@
 				0.0,
 				0.0
 			],
-			"text": "Faster, flatter set for an immediate attack"
+			"requires": [],
+			"standalone": false,
+			"text": "Faster, flatter set for an immediate attack",
+			"weight": 1
 		},
 		{
 			"attribute": "accuracy",
 			"cost": 0,
+			"effects": {},
+			"exclusive": "",
 			"id": "accuracy_back_set",
 			"kind": "planned",
 			"name": "Back Set",
@@ -82,11 +102,16 @@
 				0.0,
 				110.0
 			],
-			"text": "Planned: concealed set behind the setter."
+			"requires": [],
+			"standalone": false,
+			"text": "Planned: concealed set behind the setter.",
+			"weight": 1
 		},
 		{
 			"attribute": "endurance",
 			"cost": 0,
+			"effects": {},
+			"exclusive": "",
 			"id": "endurance_rolling_receive",
 			"kind": "trait",
 			"name": "Rolling Receive",
@@ -98,11 +123,16 @@
 				0.0,
 				0.0
 			],
-			"text": "Dive receive that rolls out, cheaper recovery"
+			"requires": [],
+			"standalone": false,
+			"text": "Dive receive that rolls out, cheaper recovery",
+			"weight": 1
 		},
 		{
 			"attribute": "endurance",
 			"cost": 0,
+			"effects": {},
+			"exclusive": "",
 			"id": "endurance_pancake",
 			"kind": "planned",
 			"name": "Pancake",
@@ -114,11 +144,18 @@
 				0.0,
 				110.0
 			],
-			"text": "Planned: floor-sliding save."
+			"requires": [],
+			"standalone": false,
+			"text": "Planned: floor-sliding save.",
+			"weight": 1
 		},
 		{
 			"attribute": "power",
 			"cost": 0,
+			"effects": {
+				"spike_velocity": 10.0
+			},
+			"exclusive": "power_start",
 			"id": "new_trait",
 			"kind": "trait",
 			"name": "Big Hitter",
@@ -130,15 +167,18 @@
 				630.0,
 				0.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "+10 Spike Velocity.",
-			"exclusive": "power_start",
-			"effects": {
-				"spike_velocity": 10
-			}
+			"weight": 1
 		},
 		{
 			"attribute": "endurance",
 			"cost": 0,
+			"effects": {
+				"second_wind": 23.0
+			},
+			"exclusive": "",
 			"id": "new_trait_2",
 			"kind": "trait",
 			"name": "Second Wind",
@@ -150,14 +190,18 @@
 				160.0,
 				0.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "Passive: When you become Winded, gain 23% of your maximum Stamina back. (CD: 30s)",
-			"effects": {
-				"second_wind": 23
-			}
+			"weight": 1
 		},
 		{
 			"attribute": "power",
 			"cost": 0,
+			"effects": {
+				"flow_attack_velocity": 20.0
+			},
+			"exclusive": "",
 			"id": "new_trait_3",
 			"kind": "trait",
 			"name": "Flow Hitter",
@@ -169,14 +213,18 @@
 				540.0,
 				110.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "Flow: Your next attack consumes all Flow and gains +20 Spike Velocity.",
-			"effects": {
-				"flow_attack_velocity": 20
-			}
+			"weight": 1
 		},
 		{
 			"attribute": "power",
 			"cost": 0,
+			"effects": {
+				"platform_quality": 6.0
+			},
+			"exclusive": "",
 			"id": "new_trait_4",
 			"kind": "trait",
 			"name": "Transition Hitter",
@@ -189,14 +237,18 @@
 				720.0,
 				110.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "+6 Platform Quality.",
-			"effects": {
-				"platform_quality": 6
-			}
+			"weight": 1
 		},
 		{
 			"attribute": "power",
 			"cost": 0,
+			"effects": {
+				"serve_velocity": 6.0
+			},
+			"exclusive": "",
 			"id": "new_trait_5",
 			"kind": "trait",
 			"name": "Topspin Serve",
@@ -209,14 +261,16 @@
 				120.0,
 				110.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "+6 Serve Velocity. Your serves drop more sharply.",
-			"effects": {
-				"serve_velocity": 6
-			}
+			"weight": 1
 		},
 		{
 			"attribute": "power",
 			"cost": 0,
+			"effects": {},
+			"exclusive": "",
 			"id": "new_trait_6",
 			"kind": "trait",
 			"name": "Com-Pepp-Itor",
@@ -228,11 +282,19 @@
 				300.0,
 				110.0
 			],
-			"text": "+5 HP stolen upon a successful Pepper."
+			"requires": [],
+			"standalone": false,
+			"text": "+5 HP stolen upon a successful Pepper.",
+			"weight": 1
 		},
 		{
 			"attribute": "power",
 			"cost": 0,
+			"effects": {
+				"revenge_jump_power": 10.0,
+				"revenge_spike_velocity": 15.0
+			},
+			"exclusive": "",
 			"id": "new_trait_7",
 			"kind": "trait",
 			"name": "Revenger",
@@ -245,15 +307,16 @@
 				590.0,
 				430.0
 			],
+			"requires": [],
+			"standalone": true,
 			"text": "Upon Receiving an Attack, if that Receive lowered your Flow, your next Jump gains +10 Jump Power and your next Attack gains +15 Spike Velocity.",
-			"effects": {
-				"revenge_jump_power": 10,
-				"revenge_spike_velocity": 15
-			}
+			"weight": 3
 		},
 		{
 			"attribute": "power",
 			"cost": 0,
+			"effects": {},
+			"exclusive": "",
 			"id": "new_trait_8",
 			"kind": "trait",
 			"name": "Pepper Patroller",
@@ -266,11 +329,18 @@
 				300.0,
 				220.0
 			],
-			"text": "Temporarily gain +10 Acceleration after a successful Pepper."
+			"requires": [],
+			"standalone": false,
+			"text": "Temporarily gain +10 Acceleration after a successful Pepper.",
+			"weight": 1
 		},
 		{
 			"attribute": "power",
 			"cost": 0,
+			"effects": {
+				"serve_velocity": 6.0
+			},
+			"exclusive": "",
 			"id": "new_trait_9",
 			"kind": "trait",
 			"name": "Jump Topspin",
@@ -283,14 +353,19 @@
 				120.0,
 				220.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "+6 Serve Velocity. Your Serve Toss goes higher and farther, and you can perform a Spike Approach after a Serve Toss to complete the Serve while midair.",
-			"effects": {
-				"serve_velocity": 6
-			}
+			"weight": 1
 		},
 		{
 			"attribute": "power",
 			"cost": 0,
+			"effects": {
+				"back_attack_velocity": 8.0,
+				"platform_quality": 4.0
+			},
+			"exclusive": "",
 			"id": "new_trait_10",
 			"kind": "trait",
 			"name": "Back Attacker",
@@ -303,15 +378,18 @@
 				720.0,
 				220.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "+4 Platform Quality, and up to +8 Spike Velocity when approaching further from the net.",
-			"effects": {
-				"platform_quality": 4,
-				"back_attack_velocity": 8
-			}
+			"weight": 1
 		},
 		{
 			"attribute": "power",
 			"cost": 0,
+			"effects": {
+				"jump_stamina_threshold": 15.0
+			},
+			"exclusive": "",
 			"id": "new_trait_11",
 			"kind": "trait",
 			"name": "Never Stay Down",
@@ -325,165 +403,199 @@
 				780.0,
 				520.0
 			],
-			"text": "Your Jumps always reach their maximum height even at diminished Stamina, until 15% Stamina remains.",
-			"effects": {
-				"jump_stamina_threshold": 15
-			}
+			"requires": [],
+			"standalone": true,
+			"text": "Your Jumps always reach their maximum height even at diminished Stamina or Charge, until 15% Stamina remains.",
+			"weight": 3
 		},
 		{
+			"attribute": "endurance",
+			"cost": 0,
+			"effects": {
+				"charge_tolerance": 10.0
+			},
+			"exclusive": "",
 			"id": "endurance_charge_tolerance",
+			"kind": "trait",
 			"name": "Charge Tolerance",
-			"attribute": "endurance",
-			"kind": "trait",
 			"needs": {
-				"endurance": 68
+				"endurance": 68.0
 			},
 			"parent": "",
-			"cost": 0,
 			"pos": [
-				320,
-				0
+				320.0,
+				0.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "Charge mismatches develop severity 10% more slowly; does not create a charge match.",
-			"effects": {
-				"charge_tolerance": 10
-			}
+			"weight": 1
 		},
 		{
+			"attribute": "accuracy",
+			"cost": 0,
+			"effects": {
+				"platform_quality": 6.0
+			},
+			"exclusive": "",
 			"id": "accuracy_platform_quality",
+			"kind": "trait",
 			"name": "Platform Quality",
-			"attribute": "accuracy",
-			"kind": "trait",
 			"needs": {
-				"accuracy": 68
+				"accuracy": 68.0
 			},
 			"parent": "",
-			"cost": 0,
 			"pos": [
-				210,
-				0
+				210.0,
+				0.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "+6 Platform Quality: more overlap between receiving quality zones, without changing charge.",
-			"effects": {
-				"platform_quality": 6
-			}
+			"weight": 1
 		},
 		{
+			"attribute": "endurance",
+			"cost": 0,
+			"effects": {
+				"recovery": 12.0
+			},
+			"exclusive": "",
 			"id": "endurance_fast_recovery",
+			"kind": "trait",
 			"name": "Fast Recovery",
-			"attribute": "endurance",
-			"kind": "trait",
 			"needs": {
-				"endurance": 70
+				"endurance": 70.0
 			},
 			"parent": "",
-			"cost": 0,
 			"pos": [
-				0,
-				240
+				0.0,
+				240.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "12% faster recovery from Knee, Fall, Blown Away and Dive.",
-			"effects": {
-				"recovery": 12
-			}
+			"weight": 1
 		},
 		{
+			"attribute": "endurance",
+			"cost": 0,
+			"effects": {
+				"stamina_recovery": 15.0
+			},
+			"exclusive": "",
 			"id": "endurance_stamina_recovery",
+			"kind": "trait",
 			"name": "Stamina Recovery",
-			"attribute": "endurance",
-			"kind": "trait",
 			"needs": {
-				"endurance": 70
+				"endurance": 70.0
 			},
 			"parent": "",
-			"cost": 0,
 			"pos": [
-				180,
-				240
+				180.0,
+				240.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "15% faster Stamina regeneration; fatigue status durations are unchanged.",
-			"effects": {
-				"stamina_recovery": 15
-			}
+			"weight": 1
 		},
 		{
-			"id": "endurance_exertion_efficiency",
-			"name": "Exertion Efficiency",
 			"attribute": "endurance",
+			"cost": 0,
+			"effects": {
+				"exertion_efficiency": 12.0
+			},
+			"exclusive": "",
+			"id": "endurance_exertion_efficiency",
 			"kind": "trait",
+			"name": "Exertion Efficiency",
 			"needs": {
-				"endurance": 70
+				"endurance": 70.0
 			},
 			"parent": "",
-			"cost": 0,
 			"pos": [
-				360,
-				240
+				360.0,
+				240.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "12% lower ordinary action Stamina expenditure.",
-			"effects": {
-				"exertion_efficiency": 12
-			}
+			"weight": 1
 		},
 		{
-			"id": "accuracy_steady_platform",
-			"name": "Steady Platform",
 			"attribute": "accuracy",
+			"cost": 0,
+			"effects": {
+				"receive_control": 10.0
+			},
+			"exclusive": "",
+			"id": "accuracy_steady_platform",
+			"kind": "trait",
+			"name": "Steady Platform",
 			"needs": {
-				"accuracy": 70
+				"accuracy": 70.0
 			},
 			"parent": "accuracy_platform_quality",
 			"pos": [
-				210,
-				110
+				210.0,
+				110.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "+10% Receive Control: less incoming influence on an uncontrolled dig. Does not grant a charge match.",
-			"effects": {
-				"receive_control": 10
-			},
-			"kind": "trait",
-			"cost": 0,
-			"exclusive": ""
+			"weight": 1
 		},
 		{
-			"id": "endurance_soft_platform",
-			"name": "Soft Platform",
 			"attribute": "endurance",
+			"cost": 0,
+			"effects": {
+				"receive_absorption": 12.0
+			},
+			"exclusive": "",
+			"id": "endurance_soft_platform",
+			"kind": "trait",
+			"name": "Soft Platform",
 			"needs": {
-				"endurance": 70
+				"endurance": 70.0
 			},
 			"parent": "endurance_charge_tolerance",
 			"pos": [
-				520,
-				110
+				520.0,
+				110.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "+12% Receive Absorption: reduces residual impact pace on poor receives, especially low contacts.",
-			"effects": {
-				"receive_absorption": 12
-			},
-			"kind": "trait",
-			"cost": 0,
-			"exclusive": ""
+			"weight": 1
 		},
 		{
-			"id": "accuracy_guided_dig",
-			"name": "Guided Dig",
 			"attribute": "accuracy",
+			"cost": 0,
+			"effects": {
+				"receive_redirection": 12.0
+			},
+			"exclusive": "",
+			"id": "accuracy_guided_dig",
+			"kind": "trait",
+			"name": "Guided Dig",
 			"needs": {
-				"accuracy": 72
+				"accuracy": 72.0
 			},
 			"parent": "accuracy_steady_platform",
 			"pos": [
-				210,
-				220
+				210.0,
+				220.0
 			],
+			"requires": [],
+			"standalone": false,
 			"text": "+12% Receive Redirection: reduces late placement error and scatter on uncontrolled receives.",
-			"effects": {
-				"receive_redirection": 12
-			},
-			"kind": "trait",
-			"cost": 0,
-			"exclusive": ""
+			"weight": 1
 		}
-	]
+	],
+	"rules": {
+		"capacity": 6,
+		"deep_bag_slots": 2,
+		"forks": "exclusive"
+	}
 }

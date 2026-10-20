@@ -30,6 +30,7 @@ func run() -> void:
 	station.start()
 	for index in range(6):
 		station.serves_sent = index
+		station.force_next_feed = index
 		station.serve()
 		station.tick(station.TOSS_SECONDS)
 		var origin: Vector3 = lab.ball.position

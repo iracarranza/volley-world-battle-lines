@@ -2,7 +2,9 @@ extends Node3D
 
 # Provisional, world-space drills using the same movement and action contacts.
 const BOX_START := Vector3(-36, 0, 13)
-const SPIKE_START := Vector3(-16, 0, 10)
+# The ball hangs half a metre from the Net on the home side, in line with the approach; the runway ends beneath it.
+const SPIKE_BALL_Z := 0.5
+const SPIKE_START := Vector3(-16, 0, 3.5)
 # A tower of one-way platforms (you pass up through them and land on top), a few metres across. Every layer is climbed with an
 # attack jump: run the length of the deck below, hold Space, and release at the charge that layer asks for. A longer hold gives a
 # higher jump (a release at no charge is 0.6 of the standing leap, a full hold 1.2), and each layer is higher above the one below than
@@ -19,12 +21,14 @@ const STANDING_FACTOR := 0.60
 # Which side of a platform is solid: from above only. A platform is passable until the feet are on or over its top.
 const ONE_WAY_MARGIN := 0.02
 const ApproachRun := preload("res://scripts/approach_run.gd")
-const SPIKE_GOAL := Vector3(-16, 0.105, -4)
+const SPIKE_GOAL := Vector3(-16, 0.105, -6.9)
 const SPIKE_HEIGHT_OFFSET := 1.40
 const SPIKE_WIDTH := 6.0
-const RUNWAY_START := Vector3(-16, 0.035, 10.5)
-const RUNWAY_END := Vector3(-16, 0.035, 7.5)
+const RUNWAY_START := Vector3(-16, 0.035, 4.0)
+const RUNWAY_END := Vector3(-16, 0.035, 1.0)
 const GOAL_RADIUS := 2.8
+# A smaller circle inside the gold one that moves for every spike: landing in it is worth one more point.
+const BONUS_RADIUS := 1.0
 const SPIKES_REQUIRED := 3
 enum State { IDLE, ACTIVE, RETURNING, COMPLETE, FAILED }
 var lab: Node3D
@@ -44,6 +48,10 @@ var attack_one_way: Array = []
 var attack_tops: Array = []
 var built_for := ""
 var spike_goal: MeshInstance3D
+var spike_bonus: MeshInstance3D
+var spike_bonus_center := Vector2.ZERO      # in the drill's own coordinates (x, z)
+var spike_points := 0
+var spike_rng := RandomNumberGenerator.new()
 # Where the two drills sit in the world. Zero in the Contact Lab; a hosting scene moves them (lab.box_origin, lab.spike_origin). Everything
 # below is written in each drill's own coordinates.
 var box_anchor := Vector3.ZERO
@@ -68,7 +76,7 @@ func setup(owner_lab: Node3D) -> void:
 	lab.world_builder.world_label("BOX JUMP / ONE-WAY TOWER", Vector3(-36, 0.15, 17) + box_anchor, 34, lab.GOLD)
 	lab.world_builder.world_label("I START / LAND ON 1–4 IN ORDER / EVERY LAYER IS AN ATTACK JUMP", BOX_START + box_anchor, 24, lab.GOLD)
 	lab.world_builder.world_label("CHARGE ATTACK / RUN THE DECK / HOLD SPACE LONGER FOR EACH LAYER, RELEASE TO JUMP", Vector3(TOWER_X, 0.15, 9.2) + box_anchor, 20, Color("ffb46e"))
-	lab.world_builder.box(spike_root, Vector3(SPIKE_WIDTH, 0.03, 25), Vector3(-16, -0.015, 5), Color("493b3c"))
+	lab.world_builder.box(spike_root, Vector3(SPIKE_WIDTH, 0.03, 32), Vector3(-16, -0.015, 1.5), Color("493b3c"))
 	lab.world_builder.world_label("SPIKE TRAINER / 3 JUMP HITS", Vector3(-16, 0.15, 16) + spike_anchor, 34, Color("ffb46e"))
 	lab.world_builder.world_label("I START / JUMP + ATTACK INTO GOLD TARGET", SPIKE_START + Vector3(0, 0.1, 3) + spike_anchor, 24, Color("ffb46e"))
 	# A floor runway with start/plant stripes and the long-short-inward rhythm.
@@ -83,6 +91,9 @@ func setup(owner_lab: Node3D) -> void:
 	lab.world_builder.world_label("PLANT / JUMP", RUNWAY_END + Vector3(0, 0.1, -0.3) + spike_anchor, 20, lab.GOLD)
 	spike_goal = lab.world_builder.ring(GOAL_RADIUS, lab.GOLD)
 	spike_goal.position = SPIKE_GOAL + Vector3.UP * 0.02 + spike_anchor
+	spike_bonus = lab.world_builder.ring(BONUS_RADIUS, Color("fff2a8"))
+	spike_bonus.position = spike_goal.position + Vector3.UP * 0.01
+	spike_bonus.visible = false
 	for x in range(-29, -6, 2):
 		lab.world_builder.box(box_root if x < -22 else spike_root, Vector3(0.6, 0.025, 0.14), Vector3(x, 0.025, 14), lab.GOLD)
 	lab.world_builder.world_label("← SPIKE TRAINER / BOX JUMP", Vector3(-7, 0.1, 13) + spike_anchor, 25, lab.GOLD)
@@ -247,7 +258,17 @@ func start_spike() -> void:
 	box_state = State.IDLE
 	clear_preparation()
 	spike_progress = 0
+	spike_points = 0
 	load_spike()
+
+# A new spot for the small circle, anywhere it fits entirely inside the gold one.
+func move_bonus_circle() -> void:
+	var angle := spike_rng.randf_range(0.0, TAU)
+	var reach := (GOAL_RADIUS - BONUS_RADIUS) * sqrt(spike_rng.randf())
+	spike_bonus_center = Vector2(SPIKE_GOAL.x + cos(angle) * reach, SPIKE_GOAL.z + sin(angle) * reach)
+	if is_instance_valid(spike_bonus):
+		spike_bonus.position = Vector3(spike_bonus_center.x, 0.03, spike_bonus_center.y) + spike_anchor
+		spike_bonus.visible = true
 
 func load_spike() -> void:
 	spike_state = State.ACTIVE
@@ -259,14 +280,15 @@ func load_spike() -> void:
 	lab.contacts = 0
 	lab.side_contacts.assign([0, 0])
 	lab.contact_memory.assign([0.0, 0.0, 0.0, 0.0])
-	lab.ball.position = Vector3(-16 + [0.0, -0.6, 0.6][spike_progress], lab.athlete.reach() + SPIKE_HEIGHT_OFFSET, 7) + spike_anchor
+	lab.ball.position = Vector3(-16 + [0.0, -0.6, 0.6][spike_progress], lab.athlete.reach() + SPIKE_HEIGHT_OFFSET, SPIKE_BALL_Z) + spike_anchor
+	move_bonus_circle()
 	lab.ball_velocity = Vector3.ZERO
 	lab.ball_shot = {}
 	lab.shadow.position = Vector3(lab.ball.position.x, 0.03, lab.ball.position.z)
 	lab.ball_active = true
 	lab.outgoing = false
 	lab.trail_points.clear()
-	detail = "SPIKE %d / 3 / suspended ball: jump, confirm Attack, land in gold target" % (spike_progress + 1)
+	detail = "SPIKE %d / 3 / %d points / jump, confirm Attack, land in the gold circle (+1 more in the small one)" % [spike_progress + 1, spike_points]
 	lab._message(detail)
 
 func tick(dt: float) -> void:
@@ -301,6 +323,8 @@ func tick(dt: float) -> void:
 		box_markers[i].visible = box_state != State.ACTIVE or i == box_progress
 	for i in range(attack_markers.size()):
 		attack_markers[i].visible = box_state != State.ACTIVE or FIRST_ATTACK + i == box_progress
+	if is_instance_valid(spike_bonus):
+		spike_bonus.visible = spike_state in [State.ACTIVE, State.RETURNING]
 	if running():
 		if not in_spike_zone():
 			fail_spike("Left Spike Trainer area / I to retry")
@@ -329,12 +353,14 @@ func on_ball_down() -> void:
 		fail_spike("Spike missed gold target / I to retry")
 		return
 	spike_progress += 1
+	var in_bonus := offset.distance_to(spike_bonus_center - Vector2(SPIKE_GOAL.x, SPIKE_GOAL.z)) <= BONUS_RADIUS
+	spike_points += 2 if in_bonus else 1
 	lab.ball_active = false
 	lab.athlete.hp = minf(100, lab.athlete.hp + 5)
 	if spike_progress == SPIKES_REQUIRED:
 		spike_state = State.COMPLETE
 		reward(30, 20, 10)
-		detail = "SPIKE TRAINER COMPLETE / +30 lab XP / +20 HP / +10 STA / I to repeat"
+		detail = "SPIKE TRAINER COMPLETE / %d of 6 points / +30 lab XP / +20 HP / +10 STA / I to repeat" % spike_points
 		lab._message(detail)
 	else:
 		load_spike()
@@ -355,6 +381,7 @@ func reset() -> void:
 	spike_state = State.IDLE
 	box_progress = 0
 	spike_progress = 0
+	spike_points = 0
 	detail = "I to start nearby drill"
 
 func hud_text() -> String:

@@ -49,5 +49,20 @@ func run() -> void:
 	check(R.resolve("fall_roll") == "knocked_away" and R.resolve("fall_slide") == "collapse" and R.resolve("knee") == "knee", "The resolver's older event names map to the new animations")
 	check(float(R.at("collapse", R.duration("collapse") * 0.45, 1.0, Vector2.ZERO, rig).pitch) < -1.2, "Collapse puts the body level on hands and knees")
 	check(R.at("blown_away", 0.4, 1.0, Vector2.ZERO, rig).pitch > 1.5, "Blown away ends up on the back")
+	# Shrug and blown away follow the contact side, and are symmetric down the middle
+	var shrug_at: float = R.duration("shrug") * 0.16
+	var right_contact: Dictionary = R.at("shrug", shrug_at, 1.0, Vector2.ZERO, rig, 1.0)
+	var left_contact: Dictionary = R.at("shrug", shrug_at, -1.0, Vector2.ZERO, rig, 1.0)
+	var middle: Dictionary = R.at("shrug", shrug_at, 1.0, Vector2.ZERO, rig, 0.0)
+	check(float(right_contact.flat["shoulder_pitch:Right"]) > float(right_contact.flat["shoulder_pitch:Left"]) + 10.0, "A shrug from the right lifts the right shoulder more")
+	check(float(left_contact.flat["shoulder_pitch:Left"]) > float(left_contact.flat["shoulder_pitch:Right"]) + 10.0, "A shrug from the left lifts the left shoulder more")
+	check(is_equal_approx(float(middle.flat["shoulder_pitch:Left"]), float(middle.flat["shoulder_pitch:Right"])), "A shrug down the middle is symmetric")
+	var mid_left: Dictionary = R.at("shrug", shrug_at, -1.0, Vector2.ZERO, rig, 0.0)
+	check(absf(float(middle.flat["shoulder_pitch:Right"]) - float(mid_left.flat["shoulder_pitch:Right"])) < 0.01, "The symmetric version does not depend on the side")
+	var blown_at: float = R.duration("blown_away") * 0.08
+	var blown_r: Dictionary = R.at("blown_away", blown_at, 1.0, Vector2.ZERO, rig, 1.0)
+	var blown_l: Dictionary = R.at("blown_away", blown_at, -1.0, Vector2.ZERO, rig, 1.0)
+	check(float(blown_r.flat.thoracic_twist) > 5.0 and is_equal_approx(float(blown_r.flat.thoracic_twist), -float(blown_l.flat.thoracic_twist)), "Blown away twists away from the side it was hit on")
+	check(float(blown_r.flat["shoulder_pitch:Right"]) > float(blown_r.flat["shoulder_pitch:Left"]) + 10.0, "The near arm is flung higher")
 	print("floor_recovery: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)

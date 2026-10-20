@@ -204,25 +204,43 @@ static func meets_path(config: Dictionary, id: String) -> bool:
 static func has_picks(config: Dictionary) -> bool:
 	return config.has("picks")
 
-# Nodes the athlete could pick now: requirements met along the path, parent already picked, not locked out by an exclusive
-# branch already chosen. Planned nodes cannot be picked.
-static func trait_options(config: Dictionary) -> Array[String]:
+# Capacity a build has: the tree's base plus the Deep Bag innate's slots.
+static func trait_capacity(config: Dictionary) -> int:
+	return trait_book().capacity_for(config.get("innates", []))
+
+static func capacity_used(config: Dictionary) -> int:
+	return trait_book().capacity_used(config.get("picks", []))
+
+# Why a node cannot be picked now, or "" if it can: "planned", "ratings", "needs" (a prerequisite not taken), "locked" (an exclusive fork
+# already went the other way) or "capacity" (the build is full).
+static func pick_blocker(config: Dictionary, id: String) -> String:
 	var book = trait_book()
 	var picks: Array = config.get("picks", [])
+	var i: int = book.find(id)
+	if i < 0 or book.nodes[i].kind == "planned" or not book.problems(book.nodes[i]).is_empty():
+		return "planned"
+	if picks.has(id):
+		return "picked"
+	for picked in picks:
+		if book.conflicts(id, String(picked)):
+			return "locked"
+	if not meets_path(config, id):
+		return "ratings"
+	for needed in book.prereqs(id):
+		if not picks.has(needed):
+			return "needs"
+	var trial := picks.duplicate()
+	trial.append(id)
+	if book.capacity_used(trial) > trait_capacity(config):
+		return "capacity"
+	return ""
+
+# Nodes the athlete could pick now: requirements met along the path, every prerequisite taken, not locked out by an exclusive fork already
+# chosen, and room for it. Planned nodes cannot be picked.
+static func trait_options(config: Dictionary) -> Array[String]:
 	var out: Array[String] = []
-	for node in book.nodes:
-		if node.kind == "planned" or picks.has(node.id) or not book.problems(node).is_empty():
-			continue
-		if node.parent != "" and not picks.has(node.parent):
-			continue
-		if not meets_path(config, node.id):
-			continue
-		var locked := false
-		for picked in picks:
-			if book.conflicts(node.id, String(picked)):
-				locked = true
-				break
-		if not locked:
+	for node in trait_book().nodes:
+		if pick_blocker(config, node.id) == "":
 			out.append(node.id)
 	return out
 
@@ -249,7 +267,7 @@ static func unpick_trait(config: Dictionary, id: String) -> void:
 	var book = trait_book()
 	var keep: Array = []
 	for picked in config.get("picks", []):
-		if not book.path_of(String(picked)).has(id):
+		if not book.ancestry(String(picked)).has(id):
 			keep.append(picked)
 	config["picks"] = keep
 
@@ -265,6 +283,9 @@ static func prune_picks(config: Dictionary) -> void:
 				unpick_trait(config, String(picked))
 				changed = true
 				break
+	# Over capacity (Deep Bag dropped, or a node's weight raised): the newest picks go first, with whatever is built on them.
+	while capacity_used(config) > trait_capacity(config) and not config.picks.is_empty():
+		unpick_trait(config, String(config.picks[config.picks.size() - 1]))
 
 # Provisional rule: a Trait is owned once its Attribute requirements are met, unless the athlete has chosen picks.
 static func owned_trait_ids(config: Dictionary) -> Array[String]:

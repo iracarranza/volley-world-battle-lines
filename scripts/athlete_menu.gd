@@ -28,6 +28,7 @@ var height_picker: OptionButton
 var tree_view: Control
 var tree_detail: Label
 var pick_button: Button
+var capacity_label: Label
 var editor_tabs: TabContainer
 var preview_panel: Control
 var shown_node := {}
@@ -185,6 +186,8 @@ func _build_editor(parent: Node) -> void:
 	tree_scroll.add_child(tree_view)
 	tree_view.node_selected.connect(_show_node)
 	var detail := panel(trait_page, Vector2(230, 0))
+	capacity_label = label("", 14, GOLD)
+	detail.add_child(capacity_label)
 	tree_detail = label("", 14)
 	tree_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tree_detail.custom_minimum_size.x = 200
@@ -510,6 +513,7 @@ func _refresh_heights() -> void:
 
 func _refresh_traits() -> void:
 	tree_view.rebuild(draft)
+	capacity_label.text = "BUILD CAPACITY  %d / %d" % [Store.capacity_used(draft), Store.trait_capacity(draft)]
 	if tree_detail.text.is_empty():
 		tree_detail.text = "Select a node."
 
@@ -563,8 +567,11 @@ func _toggle_innate(innate: String) -> void:
 	status.text = ""
 	if not Store.height_allowed(Store.height_inches(float(draft.height)), chosen):
 		_apply_height(Store.DEFAULT_INCHES)
+	# Losing Deep Bag can leave the build over capacity: the newest picks go first.
+	Store.prune_picks(draft)
 	_refresh_summary()
 	_refresh_attributes()
+	_refresh_traits()
 	_refresh_innates()
 
 func _refresh_innates() -> void:

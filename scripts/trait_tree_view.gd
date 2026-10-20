@@ -72,13 +72,11 @@ static func state_of(draft: Dictionary, node: Dictionary) -> String:
 		return "picked"
 	if node.kind == "planned":
 		return "planned"
-	for picked in picks:
-		if book.conflicts(node.id, String(picked)):
-			return "blocked"
-	if not Store.meets_path(draft, node.id):
-		return "locked"
-	if node.parent != "" and not picks.has(node.parent):
-		return "locked_parent"
+	match Store.pick_blocker(draft, node.id):
+		"locked": return "blocked"
+		"ratings": return "locked"
+		"needs": return "locked_parent"
+		"capacity": return "full"
 	return "available"
 
 func rebuild(draft: Dictionary) -> void:
@@ -117,7 +115,8 @@ static func _status_text(state: String) -> String:
 		"picked": return "PICKED"
 		"available": return "AVAILABLE"
 		"locked": return "LOCKED: RATINGS"
-		"locked_parent": return "LOCKED: PICK THE TRAIT ABOVE FIRST"
+		"locked_parent": return "LOCKED: TAKE WHAT IT BUILDS ON FIRST"
+		"full": return "NO ROOM: BUILD CAPACITY IS FULL"
 		"blocked": return "LOCKED OUT BY YOUR OTHER BRANCH"
 		_: return "PLANNED"
 
@@ -130,7 +129,7 @@ func _node(info: Dictionary, top_left: Vector2, state: String) -> Button:
 	b.position = top_left
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_font_size_override("font_size", 12)
-	var colors := {"picked": [Color("17434a"), TEAL], "available": [Color("3a3320"), GOLD], "locked": [Color("1a2733"), Color("4a6173")], "locked_parent": [Color("1a2733"), Color("4a6173")], "blocked": [Color("2a1a22"), Color("7a4a58")], "planned": [Color("141d27"), Color("5d7385")]}
+	var colors := {"picked": [Color("17434a"), TEAL], "available": [Color("3a3320"), GOLD], "locked": [Color("1a2733"), Color("4a6173")], "locked_parent": [Color("1a2733"), Color("4a6173")], "blocked": [Color("2a1a22"), Color("7a4a58")], "full": [Color("2a2418"), Color("8a7a4a")], "planned": [Color("141d27"), Color("5d7385")]}
 	var pair: Array = colors[state]
 	for style_name in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
@@ -140,7 +139,7 @@ func _node(info: Dictionary, top_left: Vector2, state: String) -> Button:
 		style.set_corner_radius_all(8)
 		style.set_content_margin_all(4)
 		b.add_theme_stylebox_override(style_name, style)
-	b.add_theme_color_override("font_color", pair[1] if state in ["locked", "locked_parent", "blocked", "planned"] else Color("e8f5f7"))
+	b.add_theme_color_override("font_color", pair[1] if state in ["locked", "locked_parent", "blocked", "planned", "full"] else Color("e8f5f7"))
 	b.add_theme_color_override("font_hover_color", Color.WHITE)
 	# Let presses reach the view as well, so a drag that starts on a node still scrolls.
 	b.mouse_filter = Control.MOUSE_FILTER_PASS

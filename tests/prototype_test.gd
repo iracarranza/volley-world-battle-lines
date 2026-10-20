@@ -70,7 +70,7 @@ func run() -> void:
 	lab.ball.position = Vector3(0, 1, 0.1)
 	lab.ball_velocity = Vector3(0, 0, -12)
 	lab._tick_ball(0.02)
-	check(not lab.ball_active and lab.feedback.begins_with("Net fault"), "Swept crossing must catch fast Net faults")
+	check(not lab.ball_active and lab.feedback.begins_with("UNDER-NET FAULT"), "Swept crossing catches a ball passing beneath the webbing")
 	lab._reset()
 	lab.contacts = 3
 	lab.ball_active = true
@@ -219,7 +219,7 @@ func run() -> void:
 		check(absf(a.leap(1.0,1.0)-effective_height) < 0.001,"Build jump height uses neutral baseline and tiered Jump Power charge")
 	for height in [0.3, 1.0, 1.6]:
 		for power in [0.0, 0.25, 0.5, 0.75, 1.0]:
-			var legacy: Dictionary = lab.Flight.solve_flight(5.0 + lab.ReceiveCharge.CONTROL_CHARGE * 5.5, 60.0, height - 0.105)
+			var legacy: Dictionary = lab.Flight.solve_flight(5.0 + lab.ReceiveCharge.CONTROL_CHARGE * 5.5, lab.BUMP_ANGLE, height - 0.105)
 			var velocity: Vector3 = lab._shot_velocity(Vector3(0, height, 5), 0, power)
 			var flight_time: float = (velocity.y + sqrt(velocity.y * velocity.y + 2.0 * lab.GRAVITY * (height - 0.105))) / lab.GRAVITY
 			var horizontal_speed := Vector2(velocity.x, velocity.z).length()
@@ -238,6 +238,7 @@ func run() -> void:
 			lab.side_contacts[0] = action
 			if action == 3:
 				bot.incoming_action = 2 # Block responds to an attack, not a serve.
+				lab.ball_shot = lab.ReceiveCharge.shot("attack",0.65,"player")
 				lab.ball.position = Vector3(0, 3.6, 2)
 				lab.ball_velocity = Vector3(0, 0, -6)
 				lab.side_contacts[0] = 0
@@ -253,7 +254,8 @@ func run() -> void:
 		check(not bot.actors[action + (4 if action == 3 else 0)].visible and bot.active_action == -1, "Disabled bot must disappear and relinquish intercept")
 		lab._reset()
 	bot.toggle(3)
-	check(not bot.settings[3].enabled, "Home blocker cannot be enabled")
+	check(bot.settings[3].enabled, "Home blocker can now be enabled")
+	bot.toggle(3)
 	bot.toggle(0, true)
 	check(bot.settings[(0) + 4].enabled and not bot.settings[0].enabled, "Away receiver toggles independently")
 	bot.toggle(0, true)

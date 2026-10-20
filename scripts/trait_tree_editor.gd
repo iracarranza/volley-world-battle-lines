@@ -28,6 +28,9 @@ var cost_row: Control
 var group_row: Control
 var group_edit: LineEdit
 var reach_label: Label
+var weight_spin: SpinBox
+var standalone_check: CheckBox
+var requires_menu: MenuButton
 var parent_pick: OptionButton
 var need_checks := {}
 var need_spins := {}
@@ -150,6 +153,27 @@ func _ready() -> void:
 	group_edit.custom_minimum_size.x = 150
 	group_edit.text_changed.connect(func(_t): _read_form())
 	group_row.add_child(group_edit)
+	var capacity_row := HBoxContainer.new()
+	form.add_child(capacity_row)
+	capacity_row.add_child(Style.label("Capacity weight", 14, Style.INK_MUTED))
+	weight_spin = SpinBox.new()
+	weight_spin.min_value = 1
+	weight_spin.max_value = 3
+	weight_spin.value_changed.connect(func(_v): _read_form())
+	capacity_row.add_child(weight_spin)
+	standalone_check = CheckBox.new()
+	standalone_check.text = "Standalone"
+	standalone_check.tooltip_text = "Not part of the page's starting choice (a capstone, say)"
+	standalone_check.toggled.connect(func(_on): _read_form())
+	capacity_row.add_child(standalone_check)
+	var requires_row := HBoxContainer.new()
+	form.add_child(requires_row)
+	requires_row.add_child(Style.label("Also requires nodes", 14, Style.INK_MUTED))
+	requires_menu = MenuButton.new()
+	requires_menu.text = "none"
+	requires_menu.get_popup().hide_on_checkable_item_selection = false
+	requires_menu.get_popup().id_pressed.connect(_toggle_requirement)
+	requires_row.add_child(requires_menu)
 	form.add_child(Style.label("ATTRIBUTE RESTRICTIONS", 12, Style.ACCENT))
 	for key in Store.ATTRIBUTES:
 		var row := HBoxContainer.new()
@@ -265,6 +289,9 @@ func _refresh_form() -> void:
 		kind_pick.select(Book.KINDS.find(node.kind))
 		cost_spin.value = node.cost
 		group_edit.text = String(node.get("exclusive", ""))
+		weight_spin.value = int(node.get("weight", 1))
+		standalone_check.set_pressed_no_signal(bool(node.get("standalone", false)))
+		_fill_requires(node)
 		parent_pick.clear()
 		parent_pick.add_item("(standalone)")
 		parent_pick.set_item_metadata(0, "")
@@ -322,6 +349,40 @@ func _refresh_effects(node: Dictionary) -> void:
 			_refresh_effects(node)
 		))
 
+# The menu lists every other node, from any page, with a tick on the ones this node also requires.
+func _fill_requires(node: Dictionary) -> void:
+	var popup := requires_menu.get_popup()
+	popup.clear()
+	var count := 0
+	for other in book.nodes:
+		if other.id == node.id or other.kind == "planned":
+			continue
+		popup.add_check_item("%s  (%s)" % [other.name if other.name != "" else other.id, Book.SHORT.get(other.attribute, "?")])
+		var index := popup.item_count - 1
+		popup.set_item_metadata(index, other.id)
+		popup.set_item_checked(index, node.get("requires", []).has(other.id))
+		count += int(popup.is_item_checked(index))
+	requires_menu.text = "none" if count == 0 else "%d required" % count
+
+func _toggle_requirement(index: int) -> void:
+	var node := _selected_node()
+	if node.is_empty():
+		return
+	var popup := requires_menu.get_popup()
+	var id := String(popup.get_item_metadata(index))
+	popup.set_item_checked(index, not popup.is_item_checked(index))
+	var list: Array = node.get("requires", [])
+	if popup.is_item_checked(index):
+		if not list.has(id):
+			list.append(id)
+	else:
+		list.erase(id)
+	node["requires"] = list
+	requires_menu.text = "none" if list.is_empty() else "%d required" % list.size()
+	dirty = true
+	_update_notes()
+	canvas.queue_redraw()
+
 func _read_form() -> void:
 	if refreshing:
 		return
@@ -332,6 +393,8 @@ func _read_form() -> void:
 	node.text = text_edit.text
 	node.kind = Book.KINDS[kind_pick.selected]
 	node.cost = int(cost_spin.value)
+	node.weight = int(weight_spin.value)
+	node.standalone = standalone_check.button_pressed
 	node.exclusive = group_edit.text.strip_edges() if node.parent == "" or String(node.parent) == "" else ""
 	node.parent = String(parent_pick.get_item_metadata(parent_pick.selected)) if parent_pick.selected >= 0 else ""
 	var needs := {}
@@ -411,6 +474,11 @@ func _draw_canvas() -> void:
 			title += "  %d AP" % int(node.cost)
 		canvas.draw_string(font, rect.position + Vector2(8, 18), title, HORIZONTAL_ALIGNMENT_LEFT, NODE_SIZE.x - 14, 13, Style.INK)
 		canvas.draw_string(font, rect.position + Vector2(8, 36), _primary_text(node), HORIZONTAL_ALIGNMENT_LEFT, NODE_SIZE.x - 14, 12, color)
+		if int(node.get("weight", 1)) > 1 or not node.get("requires", []).is_empty() or bool(node.get("standalone", false)):
+			var badge := "W%d" % int(node.get("weight", 1))
+			if not node.get("requires", []).is_empty():
+				badge += " +%d req" % node.requires.size()
+			canvas.draw_string(font, rect.position + Vector2(NODE_SIZE.x - 70, 14), badge, HORIZONTAL_ALIGNMENT_RIGHT, 64, 10, Color("ffce73"))
 		canvas.draw_string(font, rect.position + Vector2(NODE_SIZE.x - 52, 36), "%d AP" % book.reach_cost([node.id]), HORIZONTAL_ALIGNMENT_RIGHT, 46, 11, Color("ffce73") if book.reachable_at_base(node.id) else Style.INK_MUTED)
 		var also: String = book.also_requires(node)
 		if also != "":

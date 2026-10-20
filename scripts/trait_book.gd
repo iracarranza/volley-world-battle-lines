@@ -9,6 +9,14 @@ extends RefCounted
 # a trait in one locks every other branch in the group, and a branch is its root plus everything below it. Nodes below the root
 # connect freely. A node with no parent and no `exclusive` is standalone (a capstone, say) and is never locked.
 #
+# Capacity and forks (decided 2026-10-19): an athlete's build holds `rules.capacity` points of capacity, plus `rules.deep_bag_slots` with the
+# Deep Bag innate. Only the frontier counts: a picked node that is not a prerequisite of another picked node. Its `weight` (1 to 3) is what it
+# costs, because a deeper node incorporates its prerequisites (Model C: ancestors' effects stay, they just do not take capacity). Every fork is
+# exclusive while rules.forks is "exclusive": of the children of one node only one branch can be taken, and of the roots on a page only one
+# (a root has no parent and no `requires`; `standalone` exempts a node, for a capstone). `requires` lists extra prerequisites, from any page.
+#
+# node adds: weight (1..3), requires [ids], standalone
+#
 # Reach cost: ratings are thresholds, not purchases, so owning a node needs the highest requirement in each Attribute along its path
 # from the root, and the cost is those maxima above the base rating, summed, in AP.
 const Store := preload("res://scripts/athlete_store.gd")
@@ -19,6 +27,7 @@ const COLUMN_GAP := 150.0
 const ROW_GAP := 110.0
 
 var nodes: Array = []
+var rules := {"capacity": 6, "deep_bag_slots": 2, "forks": "exclusive"}
 
 # The nodes the game already has, laid out in a column per page.
 static func seeded() -> Array:
@@ -28,11 +37,11 @@ static func seeded() -> Array:
 		var row := 0
 		for entry in Store.TREE[key]:
 			var id := "%s_%s" % [key, String(entry.name).to_snake_case()]
-			out.append({"id": id, "name": entry.name, "text": entry.text, "kind": "trait", "attribute": key, "needs": entry.needs.duplicate(), "parent": previous, "cost": 0, "pos": [0.0, row * ROW_GAP], "exclusive": ""})
+			out.append({"id": id, "name": entry.name, "text": entry.text, "kind": "trait", "attribute": key, "needs": entry.needs.duplicate(), "parent": previous, "cost": 0, "pos": [0.0, row * ROW_GAP], "exclusive": "", "weight": 1, "requires": [], "standalone": false})
 			previous = id
 			row += 1
 		var planned: Dictionary = Store.PLANNED[key]
-		out.append({"id": "%s_%s" % [key, String(planned.name).to_snake_case()], "name": planned.name, "text": planned.text, "kind": "planned", "attribute": key, "needs": {key: Store.BASE_RATING + Store.STAT_RANGE}, "parent": previous, "cost": 0, "pos": [0.0, row * ROW_GAP], "exclusive": ""})
+		out.append({"id": "%s_%s" % [key, String(planned.name).to_snake_case()], "name": planned.name, "text": planned.text, "kind": "planned", "attribute": key, "needs": {key: Store.BASE_RATING + Store.STAT_RANGE}, "parent": previous, "cost": 0, "pos": [0.0, row * ROW_GAP], "exclusive": "", "weight": 1, "requires": [], "standalone": false})
 	return out
 
 func load_book(path: String = PATH) -> void:
@@ -44,21 +53,31 @@ func load_book(path: String = PATH) -> void:
 		nodes = []
 		for raw in parsed.nodes:
 			nodes.append(_clean(raw))
+		if parsed.get("rules") is Dictionary:
+			for key in parsed.rules:
+				rules[key] = parsed.rules[key]
 
 func save_book(path: String = PATH) -> bool:
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		return false
-	file.store_string(JSON.stringify({"nodes": nodes}, "\t"))
+	file.store_string(JSON.stringify({"nodes": nodes, "rules": rules}, "\t"))
 	return true
+
+static func _strings(value) -> Array:
+	var out := []
+	if value is Array:
+		for item in value:
+			out.append(str(item))
+	return out
 
 static func _clean(raw: Dictionary) -> Dictionary:
 	var needs := {}
 	for key in raw.get("needs", {}):
 		needs[key] = float(raw.needs[key])
 	var pos: Array = raw.get("pos", [0, 0])
-	return {"id": str(raw.get("id", "")), "name": str(raw.get("name", "")), "text": str(raw.get("text", "")), "kind": str(raw.get("kind", "trait")), "attribute": str(raw.get("attribute", "")), "needs": needs, "parent": str(raw.get("parent", "")), "effects": raw.get("effects",{}).duplicate(true), "cost": int(raw.get("cost", 0)), "pos": [float(pos[0]), float(pos[1])], "exclusive": str(raw.get("exclusive", ""))}
+	return {"id": str(raw.get("id", "")), "name": str(raw.get("name", "")), "text": str(raw.get("text", "")), "kind": str(raw.get("kind", "trait")), "attribute": str(raw.get("attribute", "")), "needs": needs, "parent": str(raw.get("parent", "")), "effects": raw.get("effects",{}).duplicate(true), "cost": int(raw.get("cost", 0)), "pos": [float(pos[0]), float(pos[1])], "exclusive": str(raw.get("exclusive", "")), "weight": clampi(int(raw.get("weight", 1)), 1, 3), "requires": _strings(raw.get("requires", [])), "standalone": bool(raw.get("standalone", false))}
 
 func find(id: String) -> int:
 	for i in range(nodes.size()):
@@ -80,7 +99,7 @@ func unique_id(name: String) -> String:
 
 # A blank node on a page, optionally hanging off a parent. It starts invalid on purpose until it is filled in.
 func add_node(attribute: String, pos: Vector2, parent: String = "") -> Dictionary:
-	var node := {"id": unique_id("new trait"), "name": "", "text": "", "kind": "trait", "attribute": attribute, "needs": {}, "parent": parent, "cost": 0, "pos": [pos.x, pos.y], "exclusive": ""}
+	var node := {"id": unique_id("new trait"), "name": "", "text": "", "kind": "trait", "attribute": attribute, "needs": {}, "parent": parent, "cost": 0, "pos": [pos.x, pos.y], "exclusive": "", "weight": 1, "requires": [], "standalone": false}
 	nodes.append(node)
 	return node
 
@@ -93,17 +112,11 @@ func remove_node(id: String) -> void:
 	for n in nodes:
 		if n.parent == id:
 			n.parent = removed.parent   # children move up to the removed node's parent, or become standalone
+		if n.get("requires", []).has(id):
+			n.requires.erase(id)
 
 func would_cycle(id: String, new_parent: String) -> bool:
-	var cursor := new_parent
-	var guard := 0
-	while cursor != "" and guard < 1000:
-		if cursor == id:
-			return true
-		var i := find(cursor)
-		cursor = nodes[i].parent if i >= 0 else ""
-		guard += 1
-	return false
+	return new_parent != "" and (new_parent == id or ancestry(new_parent).has(id))
 
 # Problems that stop a node being valid. Empty means fine.
 func problems(node: Dictionary) -> Array[String]:
@@ -130,6 +143,14 @@ func problems(node: Dictionary) -> Array[String]:
 		out.append("Innates need an AP cost.")
 	if String(node.get("exclusive", "")) != "" and node.parent != "":
 		out.append("Only the first node of a branch can be in an exclusive group.")
+	var weight := int(node.get("weight", 1))
+	if weight < 1 or weight > 3:
+		out.append("Capacity weight must be 1 to 3.")
+	for required in node.get("requires", []):
+		if find(String(required)) < 0:
+			out.append("A required node no longer exists.")
+		elif String(required) == String(node.id) or ancestry(String(required)).has(String(node.id)):
+			out.append("Requirement makes a loop.")
 	if node.parent != "":
 		var parent_index := find(node.parent)
 		if parent_index < 0:
@@ -185,20 +206,67 @@ func path_of(id: String) -> Array:
 		guard += 1
 	return out
 
+# Everything a node stands on: itself, its parent chain and its extra requirements, recursively.
+func ancestry(id: String) -> Array:
+	var out := []
+	var queue := [id]
+	while not queue.is_empty():
+		var current: String = queue.pop_back()
+		if out.has(current) or find(current) < 0:
+			continue
+		out.append(current)
+		var node: Dictionary = nodes[find(current)]
+		if node.parent != "":
+			queue.append(node.parent)
+		for required in node.get("requires", []):
+			queue.append(String(required))
+	return out
+
+# The direct prerequisites: the parent and the extra requirements.
+func prereqs(id: String) -> Array:
+	var node: Dictionary = nodes[find(id)]
+	var out := []
+	if node.parent != "" and find(node.parent) >= 0:
+		out.append(node.parent)
+	for required in node.get("requires", []):
+		if find(String(required)) >= 0 and not out.has(String(required)):
+			out.append(String(required))
+	return out
+
 func group_of(id: String) -> String:
 	var root := root_of(id)
 	var i := find(root)
 	return String(nodes[i].get("exclusive", "")) if i >= 0 else ""
 
-# Two nodes lock each other out when they are in different branches of the same exclusive group.
+# The fork a node sits at, or "": its explicit group, else (when every fork is exclusive) its parent, or its page for a root.
+func fork_key(node: Dictionary) -> String:
+	if String(node.get("exclusive", "")) != "" and node.parent == "":
+		return "group:" + String(node.exclusive)
+	if String(rules.get("forks", "exclusive")) != "exclusive" or bool(node.get("standalone", false)):
+		return ""
+	if node.parent != "":
+		return "fork:" + String(node.parent)
+	if node.get("requires", []).is_empty():
+		return "page:" + String(node.attribute)
+	return ""
+
+# Two nodes lock each other out when they sit under different branches of one exclusive fork.
 func conflicts(a: String, b: String) -> bool:
-	var group := group_of(a)
-	return group != "" and group == group_of(b) and root_of(a) != root_of(b)
+	var below_a := ancestry(a)
+	var below_b := ancestry(b)
+	for x in below_a:
+		var key_x := fork_key(nodes[find(x)])
+		if key_x == "":
+			continue
+		for y in below_b:
+			if x != y and not below_b.has(x) and not below_a.has(y) and fork_key(nodes[find(y)]) == key_x:
+				return true
+	return false
 
 # The highest requirement in each Attribute along the path to a node (and the node's own).
 func path_needs(id: String) -> Dictionary:
 	var out := {}
-	for step in path_of(id):
+	for step in ancestry(id):
 		var node: Dictionary = nodes[find(step)]
 		for key in node.needs:
 			out[key] = maxf(float(out.get(key, 0.0)), float(node.needs[key]))
@@ -220,16 +288,16 @@ func reachable_at_base(id: String, ap_budget: int = Store.AP_BUDGET) -> bool:
 	return reach_cost([id]) <= ap_budget
 
 # Problems with a set of picked nodes: a parent not picked, two locked-out branches, or more AP than the budget.
-func selection_problems(ids: Array, ap_budget: int = Store.AP_BUDGET) -> Array[String]:
+func selection_problems(ids: Array, ap_budget: int = Store.AP_BUDGET, capacity: int = -1) -> Array[String]:
 	var out: Array[String] = []
 	for id in ids:
 		var i := find(String(id))
 		if i < 0:
 			out.append("Unknown node %s." % id)
 			continue
-		var parent: String = nodes[i].parent
-		if parent != "" and not ids.has(parent):
-			out.append("%s needs %s taken first." % [nodes[i].name, nodes[find(parent)].name if find(parent) >= 0 else parent])
+		for needed in prereqs(String(id)):
+			if not ids.has(needed):
+				out.append("%s needs %s taken first." % [nodes[i].name, nodes[find(needed)].name])
 	for a in range(ids.size()):
 		for b in range(a + 1, ids.size()):
 			if conflicts(String(ids[a]), String(ids[b])):
@@ -237,6 +305,8 @@ func selection_problems(ids: Array, ap_budget: int = Store.AP_BUDGET) -> Array[S
 	var cost := reach_cost(ids)
 	if cost > ap_budget:
 		out.append("Needs %d AP; the budget is %d." % [cost, ap_budget])
+	if capacity >= 0 and capacity_used(ids) > capacity:
+		out.append("Uses %d capacity; the limit is %d." % [capacity_used(ids), capacity])
 	return out
 
 # Exclusive groups and the branch roots in each.
@@ -257,3 +327,34 @@ func warnings(node: Dictionary) -> Array[String]:
 	if group != "" and groups().get(group, []).size() < 2:
 		out.append("Group \"%s\" has only one branch, so it locks nothing." % group)
 	return out
+
+# --- Capacity -----------------------------------------------------------------------------------
+
+# The picked nodes that no other picked node builds on: the build's current Traits.
+func frontier(picks: Array) -> Array:
+	var out := []
+	for id in picks:
+		if find(String(id)) < 0:
+			continue
+		var built_on := false
+		for other in picks:
+			if other != id and find(String(other)) >= 0 and prereqs(String(other)).has(String(id)):
+				built_on = true
+				break
+		if not built_on:
+			out.append(String(id))
+	return out
+
+func weight_of(id: String) -> int:
+	var i := find(id)
+	return clampi(int(nodes[i].get("weight", 1)), 1, 3) if i >= 0 else 0
+
+func capacity_used(picks: Array) -> int:
+	var total := 0
+	for id in frontier(picks):
+		total += weight_of(String(id))
+	return total
+
+# Capacity for an athlete with these innates.
+func capacity_for(innates: Array) -> int:
+	return int(rules.get("capacity", 6)) + (int(rules.get("deep_bag_slots", 2)) if "Deep Bag" in innates else 0)

@@ -1,16 +1,28 @@
 {
-	"mirror": true,
+	"mirror": false,
 	"channels": {
-		"hip": -10,
-		"knee": -30,
 		"abduction": 20,
 		"hip_hinge": -20,
 		"hip_shift": 15,
 		"lumbar_flexion": -15,
+		"lumbar_twist": 6,
 		"thoracic_flexion": -12,
+		"thoracic_twist": 18,
 		"neck_flexion": -25,
-		"shoulder_pitch": 120,
-		"shoulder_roll": 50,
+		"neck_twist": -6
+	},
+	"left": {
+		"hip": -14,
+		"knee": -34,
+		"shoulder_pitch": 112,
+		"shoulder_roll": 42,
 		"elbow": 30
+	},
+	"right": {
+		"hip": -8,
+		"knee": -26,
+		"shoulder_pitch": 150,
+		"shoulder_roll": 62,
+		"elbow": 20
 	}
 }

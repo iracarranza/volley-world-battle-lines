@@ -15,6 +15,8 @@ const PoseSmoother := preload("res://scripts/pose_smoother.gd")
 const SpikeStage := preload("res://scripts/spike_stage.gd")
 const SetStage := preload("res://scripts/set_stage.gd")
 const WingPose := preload("res://scripts/wing_pose.gd")
+const Locomotion := preload("res://scripts/lab/athlete_locomotion.gd")
+const SpineRig := preload("res://scripts/spine_rig.gd")
 const Approach = preload("res://scripts/approach_run.gd")
 const ViewMode = LabCamera.ViewMode
 const ROLL_TIME := 0.9
@@ -37,6 +39,12 @@ var spike_swing_yaw := 0.0
 var pose_smoother := PoseSmoother.new()
 var pose_smoothing := true
 var pose_frame_dt := 0.0
+# Hips and legs follow the direction of travel while the head keeps to the cursor (see athlete_locomotion.gd).
+var locomotion := Locomotion.new()
+var locomotion_state := {}
+var locomotion_frame := -1
+var locomotion_enabled := true
+var locomotion_hips := {"left": 0.0, "right": 0.0}
 var pose_last_frame := -1
 var dive_flight_time := 0.5
 var dive_world_direction := Vector3.ZERO
@@ -56,6 +64,7 @@ var floor_recovery_time := -1.0
 var floor_recovery_scale := 1.0     # DI penalty factor: 0.65 helped to 1.35 contrary, stretches or shortens the animation
 var floor_recovery_lock := 0.0
 var floor_recovery_side := 1.0
+var floor_recovery_lateral := 1.0   # how far off the middle the contact was: 0 gives the symmetric version of a sided recovery
 var floor_recovery_root := Vector2.ZERO
 var floor_recovery_flat := {}
 var floor_slide_decel := 0.0
@@ -82,25 +91,46 @@ func update() -> void:
 	var receive_ready := not lab.motion.jumped and (lab.motion.jump_charge < 0 or receive_mobile) and ((lab.armed and lab.locked_action == 0) or (lab.charging and lab.selected == 0))
 	var travel_heading := wrapf(atan2(-lab.player.velocity.x, -lab.player.velocity.z) - lab.camera_rig.facing_yaw, -PI, PI) if speed > 0.1 else 0.0
 	var follow_receive := receive_pose_remaining > 0 and not lab.motion.jumped
-	var receive_weight := 1.0 if receive_ready else smoothstep(0, 0.18, receive_pose_remaining)
-	var gait := Pose.base(lab.body, lab.motion.gait_cycle, speed if not lab.motion.jumped and (lab.motion.jump_charge < 0 or receive_mobile) else 0.0, travel_heading, receive_ready or follow_receive, receive_weight)
+	# A prepared receive does not run with the platform out: it comes up as the athlete slows, or as the ball gets close.
+	var run_weight := 0.0 if lab.motion.jumped else smoothstep(0.55, 0.85, speed / maxf(lab.athlete.speed(), 0.1))
+	var near_ball := 0.0
+	if lab.ball_active:
+		near_ball = smoothstep(3.6, 2.2, Vector2(lab.ball.position.x - lab.player.position.x, lab.ball.position.z - lab.player.position.z).length())
+	var platform_factor := 1.0 - run_weight * (1.0 - near_ball)
+	var receive_weight := (1.0 if receive_ready else smoothstep(0, 0.18, receive_pose_remaining)) * platform_factor
+	var loco_on := locomotion_enabled and not lab.motion.jumped and lab.motion.jump_charge < 0 and not ((receive_ready or follow_receive) and platform_factor > 0.5) and roll_lock <= 0.0 and dive_recovery_time < 0.0 and floor_recovery_time < 0.0 and self.set_phase() <= -1.5
+	locomotion_state = step_locomotion(loco_on)
+	var loco_weight := float(locomotion_state.weight)
+	var gait_heading := lerp_angle(travel_heading, float(locomotion_state.heading), loco_weight) if loco_weight > 0.0 else travel_heading
+	var gait := Pose.base(lab.body, lab.motion.gait_cycle, speed if not lab.motion.jumped and (lab.motion.jump_charge < 0 or receive_mobile) else 0.0, gait_heading, receive_ready or follow_receive, receive_weight)
+	locomotion_hips = {"left": float(gait.left_hip_degrees), "right": float(gait.right_hip_degrees)}
+	if loco_on and loco_weight > 0.0:
+		Locomotion.apply_legs(lab.legs, locomotion_state.legs)
 	lab.body.get_node("Torso").rotation.y = 0
 	lab.body.get_node("Head").rotation.y = 0
+	# 0 standing, 1 travelling. In the air the raised pose always holds.
+	var travel_weight := 0.0 if lab.motion.jumped else smoothstep(0.35, 1.4, speed)
+	var raise_weight := 1.0 - travel_weight
 	for i in range(2):
 		lab.legs[i].position.x = -lab.visual_hip_x if i == 0 else lab.visual_hip_x
 		if lab.motion.jumped:
 			lab.legs[i].rotation.x = -0.25
 			lab.legs[i].get_node("Knee").rotation_degrees.x = -20.0
 		if not lab.motion.generic_jump and lab.selected != 0 and (lab.armed or lab.motion.jumped):
-			lab.arms[i].rotation.x = -2.7
+			# Hands go up for a prepared action but come back down into the walk swing while the athlete is travelling,
+			# and a raised arm is straight: the walk's elbow bend belongs to a swinging arm only.
+			lab.arms[i].rotation.x = lerpf(lab.arms[i].rotation.x, -2.7, raise_weight)
+			lab.arms[i].get_node("Elbow").rotation_degrees.x = lerpf(lab.arms[i].get_node("Elbow").rotation_degrees.x, 0.0, raise_weight)
 		elif lab.armed:
 			lab.arms[i].rotation.x = -0.8
 
 	if lab.motion.jump_charge < 0 and ((lab.armed and lab.locked_action == 2) or (lab.motion.jumped and lab.motion.airborne_action == 2)):
 		var dominant := 0 if lab.dominant_hand == "Left" else 1
-		lab.arms[dominant].rotation.x = -2.95
-		lab.arms[dominant].rotation.z = 0.35 if lab.dominant_hand == "Left" else -0.35
-		lab.arms[1 - dominant].rotation.x = -1.3
+		lab.arms[dominant].rotation.x = lerpf(lab.arms[dominant].rotation.x, -2.95, raise_weight)
+		lab.arms[dominant].rotation.z = lerpf(lab.arms[dominant].rotation.z, 0.35 if lab.dominant_hand == "Left" else -0.35, raise_weight)
+		lab.arms[1 - dominant].rotation.x = lerpf(lab.arms[1 - dominant].rotation.x, -1.3, raise_weight)
+		for arm in lab.arms:
+			arm.get_node("Elbow").rotation_degrees.x = lerpf(arm.get_node("Elbow").rotation_degrees.x, 0.0, raise_weight)
 	lab.body.position.y = 0.0
 	if (lab.motion.generic_jump or lab.motion.approach_action in [1,3]) and lab.motion.jump_charge >= 0:
 		lab.body.position.y = -0.22 * lab.motion.jump_charge
@@ -144,7 +174,7 @@ func update() -> void:
 			if lab.ball_active and Geometry.contains(shape, lab._local_contact_position()):
 				receive_pose_contact = lab._local_contact_position()
 			receive_posture = ReceivePlatform.posture(shape, receive_pose_contact, speed)
-		ReceivePose.apply(lab.body, receive_posture, receive_pose_contact, 1.0 if receive_ready or lab.motion.jumped else receive_weight)
+		ReceivePose.apply(lab.body, receive_posture, receive_pose_contact, 1.0 if lab.motion.jumped else receive_weight)
 	var diving_now := lab.motion.jumped and lab.motion.airborne_action == 0
 	var preparing_dive := not lab.motion.jumped and lab.motion.jump_charge >= 0 and lab.motion.approach_action == 0 and lab.motion.approach_bound
 	if (diving_now or (preparing_dive and lab.motion.approach_bound)) and roll_lock <= 0:
@@ -177,7 +207,17 @@ func update() -> void:
 		apply_floor_recovery()
 	var set_phase := set_phase()
 	if set_phase > -1.5 and roll_lock <= 0.0 and dive_recovery_time < 0.0 and floor_recovery_time < 0.0 and not (diving_now or preparing_dive):
-		SetStage.apply_data(lab.body, set_phase, lab.motion.jumped and lab.motion.airborne_action == 1, -1.0 if lab.dominant_hand == "Left" else 1.0)
+		var set_jump: bool = lab.motion.jumped and lab.motion.airborne_action == 1
+		var set_flat := SetStage.data_pose(set_phase, set_jump, -1.0 if lab.dominant_hand == "Left" else 1.0)
+		if travel_weight > 0.0:
+			# A ground set keeps its hands (shoulders, elbows, forearms); everything else stays with the walk cycle.
+			var walk: Dictionary = PoseLibrary.read_rig(lab.body)
+			for key in set_flat:
+				if walk.has(key) and not (key.begins_with("shoulder_") or key.begins_with("elbow") or key.begins_with("forearm_")):
+					set_flat[key] = lerpf(float(set_flat[key]), float(walk[key]), travel_weight)
+		PoseLibrary.apply(lab.body, PoseLibrary.from_flat(set_flat, false), 1.0)
+	if loco_on and loco_weight > 0.001:
+		apply_locomotion_spine(locomotion_state)
 	smooth_pose(pose_source(diving_now, preparing_dive, receive_ready or follow_receive))
 	var wing_pose := "tucked"
 	var wing_weight := 0.0
@@ -202,6 +242,32 @@ func update() -> void:
 
 # Where the set is: -2 when the body is not setting. Hands up and ready while a set is armed, the push and
 # extension after contact, and through the air for a jump set (contact at the top).
+# Steps the locomotion layer once per rendered frame, however many times the pose is rebuilt in it.
+func step_locomotion(enabled: bool) -> Dictionary:
+	var frame := Engine.get_process_frames()
+	var dt := pose_frame_dt if frame != locomotion_frame else 0.0
+	locomotion_frame = frame
+	return locomotion.update(dt, {"facing_yaw": dive_base_yaw, "velocity": lab.player.velocity, "wish": lab.directional_input.value(), "enabled": enabled, "hips": locomotion_hips})
+
+# The spine for a turned pelvis: hips turned to the direction of travel, lumbar, chest and neck turned back so the head faces the cursor.
+func apply_locomotion_spine(state: Dictionary) -> void:
+	var torso := lab.body.get_node("Torso") as Node3D
+	SpineRig.pose(lab.body, {"hip_hinge": -rad_to_deg(torso.rotation.x) + float(state.lean), "hip_yaw": float(state.hip_yaw), "lumbar_twist": float(state.lumbar_twist), "thoracic_twist": float(state.thoracic_twist), "neck_twist": float(state.neck_twist)})
+	torso.rotation = Vector3.ZERO
+	lab.body.get_node("Head").rotation.y = 0.0
+
+# The hands gather as the ball comes in, so there is motion to watch before the set instead of a pose that was simply there: from the ready
+# stance when the ball is far to gathered at the forehead as it arrives. With no ball coming, the gather holds.
+func anticipated_gather() -> float:
+	if not lab.ball_active:
+		return SetStage.GATHER_PHASE
+	var to_athlete: Vector3 = lab.player.position + Vector3.UP * lab.athlete.reach() - lab.ball.position
+	var closing: float = lab.ball_velocity.dot(to_athlete.normalized())
+	if closing <= 0.5:
+		return SetStage.GATHER_PHASE
+	var arrives_in: float = to_athlete.length() / closing
+	return lerpf(-0.72, SetStage.GATHER_PHASE, smoothstep(1.0, 0.12, arrives_in))
+
 func set_phase() -> float:
 	if lab.motion.jumped and lab.motion.airborne_action == 1:
 		var f := clampf(set_air_time / maxf(set_flight_time, 0.001), 0.0, 1.0)
@@ -212,7 +278,7 @@ func set_phase() -> float:
 	if since >= 0.0 and since < 0.5 and int(lab.last_contact_result.get("action", -1)) == 1:
 		return SetStage.follow_phase(since)
 	if lab.armed and lab.locked_action == 1:
-		return -0.16
+		return anticipated_gather()
 	return -2.0
 
 # Which animation is driving the body right now. A change in this is what gets smoothed.
@@ -364,6 +430,7 @@ func on_receive_resolved(event: Dictionary) -> void:
 	var coord: Vector3 = outcome.get("platform_coord", Vector3.ZERO)
 	floor_recovery_name = recovery
 	floor_recovery_side = FloorRecovery.side_of(coord.x, lab.dominant_hand)
+	floor_recovery_lateral = clampf(absf(coord.x) / FloorRecovery.LATERAL_FULL, 0.0, 1.0)
 	floor_recovery_scale = clampf(float(outcome.get("penalty_factor", 1.0)), 0.65, 1.35)
 	floor_recovery_root = Vector2(lab.body.rotation.x, lab.body.rotation.z)
 	floor_recovery_flat = PoseLibrary.read_rig(lab.body)
@@ -411,7 +478,7 @@ func tick_floor_recovery(dt: float) -> void:
 
 func apply_floor_recovery() -> void:
 	var seconds := floor_recovery_time / floor_recovery_scale
-	var state := FloorRecovery.at(floor_recovery_name, seconds, floor_recovery_side, floor_recovery_root, floor_recovery_flat)
+	var state := FloorRecovery.at(floor_recovery_name, seconds, floor_recovery_side, floor_recovery_root, floor_recovery_flat, floor_recovery_lateral)
 	FloorRecovery.apply(lab.body, state)
 
 

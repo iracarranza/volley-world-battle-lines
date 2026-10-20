@@ -88,13 +88,13 @@ func run() -> void:
 		if lab.motion.approach_bound:
 			break
 	lab.motion.takeoff()
-	check(lab.motion.approach_release_pending and not lab.motion.jumped, "Jump Set released mid-bound must buffer until the next plant")
+	check(not lab.motion.approach_release_pending and not lab.motion.approach_bound and lab.motion.jumped, "Direct Jump Set launches on release without a bound or buffered plant")
 	for frame in range(50):
 		lab._physics_process(1.0 / 60.0)
 		await physics_frame
 		if lab.motion.jumped:
 			break
-	check(lab.motion.jumped and lab.motion.airborne_action == 1 and lab.player.velocity.y > 0, "Buffered Jump Set must launch on landing")
+	check(lab.motion.jumped and lab.motion.airborne_action == 1 and lab.player.velocity.y > 0, "Direct Jump Set retains its upward action flight")
 	lab._reset()
 	await settle(lab)
 	lab.selected = 0

@@ -18,6 +18,7 @@ const FILE := "res://data/poses/floor_recoveries.json"
 const BLOWN_SPEED := 18.0      # m/s of incoming ball at contact
 const BLOWN_QUALITY := 0.6
 const KNEE_QUALITY := 0.85
+const LATERAL_FULL := 0.45    # |platform x| at which a contact counts as fully to one side
 const MIDLINE := 0.35         # |contact_x| as a fraction of the platform reach that counts as down the middle
 
 # The receive resolver's event names for two of them are older than their animations.
@@ -77,7 +78,9 @@ static func _flat(name: String, mirror: bool) -> Dictionary:
 
 # Joint pose, body pitch and roll at `seconds`, the stage reached and progress. `side` is +1 right, -1 left;
 # `from_root` and `from_flat` are the body as it was when the recovery began.
-static func at(name: String, seconds: float, side: float, from_root: Vector2, from_flat: Dictionary) -> Dictionary:
+# `lateral` (0..1) is how far off the middle the contact was. Recoveries marked "lateral" are authored for a contact on the right and
+# mirrored for the left; at 0 they are the symmetric version, so a ball down the middle does not favour a side.
+static func at(name: String, seconds: float, side: float, from_root: Vector2, from_flat: Dictionary, lateral: float = 1.0) -> Dictionary:
 	var p := plan(name)
 	var stages: Array = p.stages
 	var total := float(p.seconds)
@@ -91,7 +94,14 @@ static func at(name: String, seconds: float, side: float, from_root: Vector2, fr
 		times.append(float(stage.t) * total)
 		pitches.append(float(stage.root.pitch))
 		rolls.append(float(stage.root.roll) * (side if directional else 1.0))
-		flats.append(_flat(String(stage.pose), mirror))
+		var oriented := _flat(String(stage.pose), mirror)
+		if bool(p.get("lateral", false)) and lateral < 0.999:
+			var turned := Dive.mirrored(oriented)
+			var blended := {}
+			for key in oriented:
+				blended[key] = lerpf((float(oriented[key]) + float(turned.get(key, oriented[key]))) * 0.5, float(oriented[key]), clampf(lateral, 0.0, 1.0))
+			oriented = blended
+		flats.append(oriented)
 	var flat := {}
 	for key in flats[flats.size() - 1]:
 		var channel := String(key).get_slice(":", 0)

@@ -6,6 +6,10 @@ const BOTTOM := 1.534
 const TOP := 2.4575
 const TAPE_BOTTOM := 2.4025
 const HALF_DEPTH := 0.04
+var origin := Vector3.ZERO
+var height_offset := 0.0
+var web_half_width := 4.5
+var tape_half_width := HALF_WIDTH
 var pocket := false
 var entry_side := 1.0
 var compression := 0.0
@@ -41,6 +45,20 @@ static func slab_hit(from: Vector3,to: Vector3,minimum: Vector3,maximum: Vector3
 	return lo
 
 func step(previous: Vector3,position: Vector3,velocity: Vector3,dt: float,charge: float) -> Dictionary:
+	var offset := origin+Vector3.UP*height_offset
+	var result := _step_local(previous-offset,position-offset,velocity,dt,charge)
+	result.position += offset
+	result["pocket"] = pocket
+	result["net_origin"] = origin
+	result["net_bottom"] = BOTTOM+height_offset
+	result["net_half_width"] = web_half_width
+	return result
+
+func touches_body(from: Vector3,to: Vector3,height: float = 1.7,radius: float = MIDLINE_RADIUS) -> bool:
+	var offset := origin+Vector3.UP*height_offset
+	return body_touches(from-offset,to-offset,radius,height,web_half_width,tape_half_width)
+
+func _step_local(previous: Vector3,position: Vector3,velocity: Vector3,dt: float,charge: float) -> Dictionary:
 	var result := {"position":position,"velocity":velocity,"contact":"","crossed":false}
 	if clear_side == 0 and absf(previous.z) > HALF_DEPTH+RADIUS:
 		clear_side = signf(previous.z)
@@ -48,11 +66,11 @@ func step(previous: Vector3,position: Vector3,velocity: Vector3,dt: float,charge
 	if pocket:
 		advance_pocket(result,dt)
 	else:
-		var tape := slab_hit(previous,position,Vector3(-HALF_WIDTH-RADIUS,TAPE_BOTTOM-RADIUS,-HALF_DEPTH-RADIUS),Vector3(HALF_WIDTH+RADIUS,TOP+RADIUS,HALF_DEPTH+RADIUS)) if tape_cooldown <= 0 else -1.0
-		var web := slab_hit(previous,position,Vector3(-4.5-RADIUS,BOTTOM-RADIUS,-HALF_DEPTH-RADIUS),Vector3(4.5+RADIUS,TAPE_BOTTOM+RADIUS,HALF_DEPTH+RADIUS))
+		var tape := slab_hit(previous,position,Vector3(-tape_half_width-RADIUS,TAPE_BOTTOM-RADIUS,-HALF_DEPTH-RADIUS),Vector3(tape_half_width+RADIUS,TOP+RADIUS,HALF_DEPTH+RADIUS)) if tape_cooldown <= 0 else -1.0
+		var web := slab_hit(previous,position,Vector3(-web_half_width-RADIUS,BOTTOM-RADIUS,-HALF_DEPTH-RADIUS),Vector3(web_half_width+RADIUS,TAPE_BOTTOM+RADIUS,HALF_DEPTH+RADIUS))
 		if tape >= 0 and (web < 0 or tape <= web+0.00001):
 			var point := previous.lerp(position,tape)
-			var nearest := Vector3(clampf(point.x,-HALF_WIDTH,HALF_WIDTH),clampf(point.y,TAPE_BOTTOM,TOP),clampf(point.z,-HALF_DEPTH,HALF_DEPTH))
+			var nearest := Vector3(clampf(point.x,-tape_half_width,tape_half_width),clampf(point.y,TAPE_BOTTOM,TOP),clampf(point.z,-HALF_DEPTH,HALF_DEPTH))
 			var normal := (point-nearest).normalized()
 			if normal.length_squared() < 0.01:
 				normal = Vector3(0,0,signf(previous.z) if previous.z != 0 else -signf(velocity.z))
@@ -101,20 +119,23 @@ func advance_pocket(result: Dictionary,dt: float) -> void:
 	if compression <= 0 and normal_speed < 0:
 		pocket = false
 		position.z = entry_side*(HALF_DEPTH+RADIUS+0.003)
-	elif pocket_time >= 0.45 or position.y < BOTTOM-RADIUS or absf(position.x) > 4.5+RADIUS:
+	elif pocket_time >= 0.45 or position.y < BOTTOM-RADIUS or absf(position.x) > web_half_width+RADIUS:
 		pocket = false
 		position.z = entry_side*(HALF_DEPTH+RADIUS+0.003)
 		velocity.z = entry_side*minf(absf(normal_speed)*0.2,0.8)
 	result.position = position
 	result.velocity = velocity
 
-static func body_touches(from: Vector3,to: Vector3,radius: float = 0.27,height: float = 1.7) -> bool:
+# A player faults only when the vertical midline of their body touches the net: a shoulder or an arm brushing it does not count.
+const MIDLINE_RADIUS := 0.02
+
+static func body_touches(from: Vector3,to: Vector3,radius: float = MIDLINE_RADIUS,height: float = 1.7,web_width: float = 4.5,tape_width: float = HALF_WIDTH) -> bool:
 	# Sweep the vertical body capsule against the actual net band, including edges.
 	var t := clampf(-from.z/(to.z-from.z),0,1) if absf(to.z-from.z) > 0.000001 else 0.0
 	for position in [from,to,from.lerp(to,t)]:
 		var low: float = position.y+radius
 		var high: float = position.y+height-radius
-		for band in [[4.5,BOTTOM,TAPE_BOTTOM],[HALF_WIDTH,TAPE_BOTTOM,TOP]]:
+		for band in [[web_width,BOTTOM,TAPE_BOTTOM],[tape_width,TAPE_BOTTOM,TOP]]:
 			var dx := maxf(absf(position.x)-float(band[0]),0)
 			var dy := maxf(maxf(float(band[1])-high,low-float(band[2])),0)
 			var dz := maxf(absf(position.z)-HALF_DEPTH,0)

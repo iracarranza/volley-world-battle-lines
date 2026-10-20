@@ -19,7 +19,7 @@ func stand(lab: Node3D, position_in_world: Vector3) -> void:
 	lab.player.position = position_in_world
 	await steps(lab, 12)
 func hit(lab: Node3D, from_point: Vector3, to_point: Vector3) -> bool:
-	var query := PhysicsRayQueryParameters3D.create(from_point, to_point, 1, [lab.player.get_rid()])
+	var query := PhysicsRayQueryParameters3D.create(from_point, to_point, 3, [lab.player.get_rid()])
 	return not lab.get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 func run() -> void:
 	# The Contact Lab scene is untouched: still its own script, still its own blockout, no map.
@@ -47,7 +47,7 @@ func run() -> void:
 	await process_frame
 	check(lab.player.position.z < start_z - 2.0, "the lab's movement walks the athlete toward the net (z %.1f to %.1f)" % [start_z, lab.player.position.z])
 	# The Middle Net is the lab's own, at the origin, with the lab's court; the other four are the map's, at their own heights.
-	check(hit(lab, Vector3(0, 1.0, -3), Vector3(0, 1.0, 3)), "the Middle Net is the lab's net at the origin")
+	check(hit(lab, Vector3(0, 2.0, -3), Vector3(0, 2.0, 3)), "the Middle Net has a physical webbing band at the origin")
 	check(lab.court_half_width > 2.0 and lab.court_half_depth > 4.0, "the Middle Net uses the lab's court sizing (half width %.2f)" % lab.court_half_width)
 	var heights := {}
 	for net in Layout.nets():
@@ -56,7 +56,7 @@ func run() -> void:
 		var x: float = net.position.x
 		var below: bool = hit(lab, Vector3(x, float(net.height) - 0.1, -3), Vector3(x, float(net.height) - 0.1, 3))
 		var above: bool = hit(lab, Vector3(x, float(net.height) + 0.1, -3), Vector3(x, float(net.height) + 0.1, 3))
-		check(below and not above, "%s is a wall exactly %.2f m tall" % [net.id, net.height])
+		check(below and not above, "%s has the authored net height %.2f m" % [net.id, net.height])
 		heights[net.id] = net.height
 	check(heights.top > heights.bottom and heights.pit_east == heights.pit_west, "the lane Nets differ in height and the Pit Nets are the standard")
 	# The lab's blockout lanes are gone; the map's lanes are there.
@@ -106,12 +106,13 @@ func run() -> void:
 	check(station.in_zone() and Layout.zone_at(lab.player.position).contains("JUNGLE"), "the Serve Receive station is in the east Blue jungle (%s)" % Layout.zone_at(lab.player.position))
 	station.start()
 	station.state = station.State.WAITING
+	station.force_next_feed = 0
 	station.serve()
 	check(lab.ball.position.distance_to(Vector3(16, 0, station.SERVE_BASELINE_Z) + station.origin) < 3.0, "the serve machine tosses from its new place (%s)" % str(lab.ball.position))
 	station.strike_feed()
 	var arrival: Vector3 = lab.ball.position + lab.ball_velocity * station.serve_duration + Vector3.DOWN * lab.GRAVITY * station.serve_duration * station.serve_duration * 0.5
 	check(arrival.distance_to(station.target_world(0)) < 0.05, "the feed lands on the station's own target in the world (%s vs %s)" % [str(arrival), str(station.target_world(0))])
-	var scoring_spot := Vector3(17.0, 0.0, 3.0)   # inside the 2-point quarter, in the station's own coordinates
+	var scoring_spot := Vector3(17.0, 0.0, 1.8)   # inside the 2-point quarter, in the station's own coordinates
 	check(station.landing_points(scoring_spot + station.origin) == 2 and station.landing_points(scoring_spot) == 0, "scoring reads the court where the station is now, not where it used to be")
 	station.stop()
 	lab.ball_active = false

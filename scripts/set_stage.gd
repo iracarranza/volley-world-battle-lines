@@ -37,7 +37,7 @@ static func apply(body: Node3D, phase: float, hand: float = 1.0, posture: String
 const GATHER_PHASE := -0.16
 const CONTACT_PHASE := 0.04
 const FOLLOW_SECONDS := 0.5
-const FOLLOW_BLEND := 0.12
+const FOLLOW_BLEND := 0.20
 
 static func follow_phase(since: float) -> float:
 	var base := lerpf(CONTACT_PHASE, 0.88, clampf(since / FOLLOW_SECONDS, 0.0, 1.0))

@@ -11,7 +11,7 @@ func run() -> void:
 	var bots = lab.training_bots
 	check(not lab.hud.bot_panel.visible, "Bot menu starts hidden")
 	lab.hud.toggle_bot_menu()
-	check(lab.hud.bot_panel.visible, "Bot menu opens")
+	check(lab.bot_menu.panel.visible, "Bot menu opens")
 	bots.toggle(1)
 	lab.ball_active = true
 	lab.ball.position = Vector3(0, 5, 5)
@@ -23,6 +23,7 @@ func run() -> void:
 	bots.set_contact_order(1, 1)
 	check(bots.active_action == 1, "Setter can be assigned first contact")
 	lab.player.position = Vector3(4, 0, 5)
+	bots.set_mode(1, 1)   # placing no longer makes a helper static, so choose static first
 	bots.place_at_player(1)
 	check(bots.active_action == 1 and bots.motion.plans.has(1), "Static setter attempts a jump despite a distant unreachable flight")
 	var fixed: Vector3 = bots.actors[1].position

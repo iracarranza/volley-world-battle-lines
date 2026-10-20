@@ -2,7 +2,9 @@
 
 # Map build plan
 
-Status: **phase 1 (graybox) is built as a separate scene** (`map_graybox.tscn`, see section 9). Phases 2 onward are not started. Reads `docs/map-spec.md` (topology) and `docs/laning-and-objectives.md` (rules). Numbers marked
+Current runtime: the title now opens a playable map with the three primary nets, shared lab controls, and configurable bot rosters. See [map play](map-play.md) for the implemented scope; the objective/falling/Coach rules below remain future design.
+
+Original planning status: **phase 1 (graybox) is built as a separate scene** (`map_graybox.tscn`, see section 9). Reads `docs/map-spec.md` (topology) and `docs/laning-and-objectives.md` (rules). Numbers marked
 *placeholder* are my proposals, not decisions.
 
 ## 1. Verdict

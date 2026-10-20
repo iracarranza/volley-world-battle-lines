@@ -13,7 +13,7 @@ const Blender := preload("res://scripts/pose_blender.gd")
 const FILE := "res://data/poses/dive_recovery.json"
 const FALLBACK_MS := 220.0
 # Channels whose positive direction is "to the character's left": mirrored with the pose.
-const LEFT_POSITIVE := ["lumbar_bend", "lumbar_twist", "thoracic_bend", "thoracic_twist", "neck_bend", "neck_twist"]
+const LEFT_POSITIVE := ["hip_yaw", "lumbar_bend", "lumbar_twist", "thoracic_bend", "thoracic_twist", "neck_bend", "neck_twist"]
 
 static var _plan := {}
 

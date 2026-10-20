@@ -1,5 +1,7 @@
 extends Node3D
 const Settings := preload("res://scripts/bot_settings.gd")
+const Vitals := preload("res://scripts/bot_vitals.gd")
+var athletes: Array[LabAthlete] = []
 var settings: Array[Settings] = [Settings.new(), Settings.new(), Settings.new()]
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
@@ -50,12 +52,13 @@ func setup(owner_lab: Node3D) -> void:
 	aim_random.randomize()
 	charge_random.randomize()
 	for index in range(3):
+		athletes.append(Vitals.create(lab.training_bots.physique))
 		var actor := Node3D.new()
 		add_child(actor)
 		actors.append(actor)
 		actor.set_meta("team", "away")
 		actor.position = SPOTS[index]
-		var rig := Visual.build(lab, actor, "Avi" if index == 0 else "Feli", {"palette_index": index, "marking": "none"}, lab.training_bots.physique.build)
+		var rig := Visual.build(lab, actor, "Avi" if index == 0 else "Feli", {"palette_index": index, "marking": "none"}, athletes[index].build)
 		rigs.append(rig)
 		var volume := Node3D.new()
 		actor.add_child(volume)
@@ -64,6 +67,15 @@ func setup(owner_lab: Node3D) -> void:
 		ring.position = SPOTS[index] + Vector3.UP * 0.04
 		lab.world_builder.world_label(LABELS[index] + " / SERVE TO BEGIN", SPOTS[index] + Vector3(0, 2.5, 0), 26, Color("b49fee"))
 		actor.rotation.y = PI
+
+func athlete_for(index: int) -> LabAthlete:
+	return athletes[index]
+
+func refresh_for_rally() -> void:
+	for athlete in athletes: Vitals.refresh(athlete)
+
+func spend_stamina(cost: float) -> void:
+	Vitals.spend(athlete_for(partner),cost,lab.contact_flow,"pepper_%d" % partner)
 
 func set_charge_accuracy(index: int, value: float) -> void:
 	settings[index].charge_accuracy = clampf(value, 0, 100)
@@ -103,6 +115,7 @@ func try_start(previous: Vector3) -> bool:
 		var t := clampf((center - previous).dot(delta) / maxf(delta.length_squared(), 0.000001), 0, 1)
 		if (previous + delta * t).distance_to(center) <= RADIUS:
 			partner = index
+			Vitals.refresh(athlete_for(partner))
 			stage = 0
 			player_contacts = 0
 			exchanges = 0
@@ -118,7 +131,7 @@ func try_start(previous: Vector3) -> bool:
 
 func shape() -> Dictionary:
 	var rig := rigs[partner]
-	var physique = lab.training_bots.physique
+	var physique = athlete_for(partner)
 	var scale: float = physique.build.height / rig.rig_height
 	var definition := Geometry.definition(stage, physique.build.height, physique.reach(), false, 1, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale))
 	if stage == 0:
@@ -145,7 +158,7 @@ func plan() -> void:
 	if d < 0 and stage == 1:
 		# A low but valid set can use the shoulder/chin extension rather than
 		# silently converting every low receive into another receive.
-		height = ground.y + float(lab.training_bots.physique.build.height) * 0.80
+		height = ground.y + float(athlete_for(partner).build.height) * 0.80
 		d = lab.ball_velocity.y * lab.ball_velocity.y + 2 * lab.GRAVITY * (lab.ball.position.y - height)
 	if d < 0:
 		if stage == 0:
@@ -174,12 +187,13 @@ func plan() -> void:
 	var desired := point - anchor(definition).rotated(Vector3.UP, approach_yaw)
 	var offset := Vector2(desired.x - ground.x, desired.z - ground.z).limit_length(radius)
 	move_target = Vector3(ground.x + offset.x, ground.y, ground.z + offset.y)
-	jump_height = clampf(desired.y - ground.y, 0.25, 1.7*lab.training_bots.physique.leap(1,1,lab.contact_flow.jump_bonus("pepper_%d"%partner))/(lab.training_bots.physique.JUMP_HEIGHT_MULTIPLIER*(0.20+65.0*0.007))) if stage in [1, 2] else 0
+	jump_height = clampf(desired.y - ground.y, 0.25, 1.7*athlete_for(partner).leap(1,1,lab.contact_flow.jump_bonus("pepper_%d"%partner))/(athlete_for(partner).JUMP_HEIGHT_MULTIPLIER*(0.20+65.0*0.007))) if stage in [1, 2] else 0
 	if stage in [1,2]:
 		lab.contact_flow.consume_jump("pepper_%d"%partner)
-	rise_time = minf(sqrt(2 * maxf(jump_height, 0.01) / lab.GRAVITY)/lab.training_bots.physique.explosiveness_rate(), remaining)
+		spend_stamina(athlete_for(partner).jump_stamina_cost())
+	rise_time = minf(sqrt(2 * maxf(jump_height, 0.01) / lab.GRAVITY)/athlete_for(partner).explosiveness_rate(), remaining)
 	planned = true
-	preparation.begin(partner, stage, lab.ball_shot, remaining, settings[partner].charge_accuracy, charge_random,lab.training_bots.physique.cushioning_bonus(),lab.training_bots.physique.low_stamina_factor())
+	preparation.begin(partner, stage, lab.ball_shot, remaining, settings[partner].charge_accuracy, charge_random,athlete_for(partner).cushioning_bonus(),athlete_for(partner).low_stamina_factor())
 	_show_volume(definition)
 
 func _show_volume(definition: Dictionary) -> void:
@@ -220,11 +234,13 @@ func on_player_contact(action: int, quality: float) -> void:
 	plan()
 
 func tick(dt: float) -> bool:
+	for index in range(athletes.size()): athletes[index].recover(dt,not (index == partner and planned))
 	dt *= lab.moc.actor_scale("pepper_%d" % partner)
 	for index in range(3):
 		preparation.tick(index, dt)
 	if not active():
 		return false
+	if planned: spend_stamina(dt*3.0)
 	var actor := actors[partner]
 	if is_instance_valid(lab.contact_flow):
 		actor.position += lab.contact_flow.displacement("pepper_%d" % partner,dt)
@@ -241,9 +257,9 @@ func tick(dt: float) -> bool:
 	remaining -= dt
 	var before := actor.position
 	var horizontal_target := Vector3(move_target.x, actor.position.y, move_target.z)
-	actor.position = actor.position.move_toward(horizontal_target, MOVE_SPEED * dt)
+	actor.position = actor.position.move_toward(horizontal_target, MOVE_SPEED * (0.55 if athlete_for(partner).exhausted else 1.0) * dt)
 	var travelled := Vector2(actor.position.x - before.x, actor.position.z - before.z).length()
-	movement_cycle += travelled / maxf(lab.training_bots.physique.stride() * 2, 0.1) * TAU
+	movement_cycle += travelled / maxf(athlete_for(partner).stride() * 2, 0.1) * TAU
 	if stage not in [1, 2] or remaining > rise_time:
 		actor.rotation.y = lerp_angle(actor.rotation.y, approach_yaw, 1 - exp(-dt * 12))
 	elif not attack_facing_locked:
@@ -288,7 +304,7 @@ func tick(dt: float) -> bool:
 	var request := ContactRequest.new()
 	request.action = stage
 	request.response_seed = exchanges + 1
-	request.athlete = lab.training_bots.physique
+	request.athlete = athlete_for(partner)
 	request.actor_id = "pepper_%d" % partner
 	request.shape = definition
 	request.local_point = (lab.ball.position - actor.position).rotated(Vector3.UP, -actor.rotation.y)
@@ -321,7 +337,7 @@ func tick(dt: float) -> bool:
 		duration = maxf(0.16, Vector2(target.x - origin.x, target.z - origin.z).length() / 24.0)
 	lab.ball_velocity = (target - origin) / duration + Vector3.UP * lab.GRAVITY * duration * 0.5
 	if stage != 2:
-		lab.ball_velocity *= lab.training_bots.physique.low_stamina_factor()
+		lab.ball_velocity *= athlete_for(partner).low_stamina_factor()
 	if stage != 0:
 		lab.ball_velocity *= Preparation.output_factor(lab.contact_flow.attack_charge(float(prepared.locked_charge),"pepper_%d"%partner,lab.ball.position) if stage == 2 else float(prepared.locked_charge))
 	if stage == 2:
@@ -343,6 +359,7 @@ func tick(dt: float) -> bool:
 	var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actor.rotation.y, -PI, PI) if stage == 2 else 0.0
 	animation.contact(rig, stage, local_contact, posture, swing_yaw, assessment.get("rescue", false))
 	_animate(0, 0)
+	spend_stamina(athlete_for(partner).contact_cost(stage,1).x)
 	last_delivery = {"action": stage, "quality": assessment.quality, "required_action": player_action, "target": target, "origin": origin, "velocity": lab.ball_velocity, "duration": duration, "aim": last_aim, "preparation": preparation.evidence(partner), "incoming_shot": incoming_shot, "charge_match": assessment.get("charge_match", {}), "receive_outcome":assessment.get("receive_outcome",{})}
 	last_delivery.make_read_only()
 	preparation.finish(partner)
@@ -367,4 +384,4 @@ func _animate(dt: float, speed: float) -> void:
 	if stage == 0 and not Geometry.contains(shape(), point):
 		point = shape().center
 	var posture := Geometry.ReceivePlatform.posture(shape(), point, speed) if stage == 0 else "planted"
-	animation.update(rigs[partner], dt, {"action": stage, "charge": float(preparation.state_for(partner).charge), "planned": planned, "airborne": airborne, "remaining": remaining, "rise": rise_time, "contact_point": point, "posture": posture, "speed": speed, "cycle": movement_cycle, "floor_y": SPOTS[partner].y,"transition_rate":lab.training_bots.physique.transition_rate()})
+	animation.update(rigs[partner], dt, {"action": stage, "charge": float(preparation.state_for(partner).charge), "planned": planned, "airborne": airborne, "remaining": remaining, "rise": rise_time, "contact_point": point, "posture": posture, "speed": speed, "cycle": movement_cycle, "floor_y": SPOTS[partner].y,"transition_rate":athlete_for(partner).transition_rate()})

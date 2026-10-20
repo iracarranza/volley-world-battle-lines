@@ -64,13 +64,18 @@ func press() -> void:
 		return
 	if lab.ball_active or lab.motion.jumped or lab.motion.jump_charge >= 0:
 		return
+	lab.prepare_serve_context()
+	if not lab.training_bots.ready_to_serve():
+		lab._message("Wait for bots to clear the net")
+		return
+	lab.refresh_bot_rally()
 	lab.camera_rig.update_aim()
 	lab.animation.update()
 	lab.ball_shot = {}
 	state = State.TOSS
 	toss_time = 0
 	evidence = {}
-	main_court = absf(lab.player.position.x) <= 6 and lab.player.position.z > 0.35 and lab.player.position.z <= 15
+	main_court = absf(lab.player.position.x-lab.court_center.x) <= lab.court_half_width+1.5 and absf(lab.player.position.z) > 0.35 and absf(lab.player.position.z) <= lab.court_half_depth+6
 	lab.armed = false
 	lab.charging = false
 	lab.contacts = 0
@@ -174,8 +179,8 @@ func basic_strike() -> void:
 	var incoming: Vector3 = lab.ball_velocity
 	input_held = false
 	# A completed basic channel chooses a legal target, while preserving lateral aim.
-	if main_court and not lab.training_bots.settings[(0) + 4].enabled:
-		lab.training_bots.toggle(0, true)
+	if main_court and not lab.training_bots.is_enabled(0,-lab.player.position.z):
+		lab.training_bots.ensure_receiver(lab.player.position.z < 0)
 	lab._resize_court()
 	state = State.SWING
 	swing_time = SWING_DURATION
@@ -187,7 +192,7 @@ func basic_strike() -> void:
 	var depth: float = lab.court_half_depth
 	var width: float = lab.court_half_width
 	var depth_fraction := clampf(0.65+0.4*(lab.athlete.effective_serve_charge(lab._default_charge())-lab._default_charge())+0.08*lab.athlete.flow/100.0,0.4,0.9)
-	var target := Vector3(clampf(origin.x + forward.x / maxf(0.15, -forward.z * side) * (absf(origin.z) + depth * depth_fraction), -width + 0.4, width - 0.4), 0.105, -side * depth * depth_fraction)
+	var target := Vector3(clampf(origin.x + forward.x / maxf(0.15, -forward.z * side) * (absf(origin.z) + depth * depth_fraction), lab.court_center.x-width+0.4, lab.court_center.x+width-0.4), 0.105, -side * depth * depth_fraction)
 	var apex := maxf(4.3, origin.y + 1.5)
 	var duration := 0.0
 	var velocity := Vector3.ZERO
@@ -199,7 +204,7 @@ func basic_strike() -> void:
 		var fraction := clampf(origin.z / (origin.z - target.z), 0, 1)
 		var crossing_time := duration * fraction
 		net_height = origin.y + velocity.y * crossing_time - lab.GRAVITY * crossing_time * crossing_time * 0.5
-		if net_height >= 2.43 + lab.Geometry.BALL_RADIUS + 0.2:
+		if net_height >= lab.net_height + lab.Geometry.BALL_RADIUS + 0.2:
 			break
 		apex += 0.5
 	lab.ball_velocity = velocity
@@ -216,8 +221,8 @@ func _finish_strike(incoming: Vector3, sweet: bool) -> void:
 	lab.attempts += 1
 	lab.athlete.spend(4)
 	if main_court:
-		if not lab.training_bots.settings[(0) + 4].enabled:
-			lab.training_bots.toggle(0, true)
+		if not lab.training_bots.is_enabled(0,-lab.player.position.z):
+			lab.training_bots.ensure_receiver(lab.player.position.z < 0)
 		lab._resize_court()
 		lab.training_bots.replan()
 	lab._emit_external_impact("player_serve", 4, incoming, {"hit": true, "sweet": sweet})

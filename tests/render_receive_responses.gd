@@ -20,6 +20,7 @@ func run() -> void:
 		lab.player.position = Vector3(16, 0.03, 10)
 		lab.station.start()
 		lab.station.serves_sent = 5
+		lab.station.force_next_feed = 5
 		lab.station.serve()
 		lab.station.strike_feed()
 		var feed_origin: Vector3 = lab.ball.position

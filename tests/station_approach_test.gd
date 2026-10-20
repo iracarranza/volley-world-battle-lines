@@ -53,6 +53,7 @@ func run() -> void:
 	lab.athlete.stamina = 90
 	var xp_before: int = drill.earned_xp
 	for serve_index in range(8):
+		drill.force_next_feed = serve_index % 6
 		drill.serve()
 		drill.tick(drill.TOSS_SECONDS)
 		lab.locked_charge = float(lab.ball_shot.charge) + 0.05
@@ -72,6 +73,7 @@ func run() -> void:
 					lab._contact()
 					break
 		check(drill.points == serve_index and drill.state == drill.State.RETURNING, "Physical receive waits for landing before scoring")
+		drill.cleared = true   # this test places the receiver where the ball is, so the height barrier is covered in serve_receive_scoring_test
 		drill.on_ball_down(Vector3(14, 0.105, 2))
 	check(drill.state == drill.State.COMPLETE and drill.earned_xp == xp_before + 25, "Eight landing points must award completion and lab XP")
 	check(lab.athlete.hp > 35, "Completion must grant the resource reward after contact costs")

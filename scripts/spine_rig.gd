@@ -10,6 +10,9 @@ extends RefCounted
 # skinned to the chain in script (vertices blended between neighbouring joints by height),
 # so the body curves instead of folding at a seam. Everything else rides on a joint rigidly.
 #
+# hip_yaw turns the whole pelvis about the vertical: the legs, their sockets, the tail and everything above the hips, which the
+# twist joints then counter-rotate to keep the chest and head where the caller wants them.
+#
 # Angles are degrees; hip_shift is centimetres, positive forward. Flexion is positive forward, bend is positive to the character's
 # left, twist is positive turning left.
 const MESH_SPINE := ["Torso", "Singlet"]
@@ -24,7 +27,7 @@ const THORACIC_AT := 0.72
 const BLEND_BAND := 0.10
 
 const ZERO := {
-	"hip_shift": 0.0, "hip_hinge": 0.0, "lumbar_flexion": 0.0, "lumbar_bend": 0.0, "lumbar_twist": 0.0,
+	"hip_yaw": 0.0, "hip_shift": 0.0, "hip_hinge": 0.0, "lumbar_flexion": 0.0, "lumbar_bend": 0.0, "lumbar_twist": 0.0,
 	"thoracic_flexion": 0.0, "thoracic_bend": 0.0, "thoracic_twist": 0.0,
 	"neck_flexion": 0.0, "neck_bend": 0.0, "neck_twist": 0.0,
 }
@@ -63,10 +66,12 @@ static func capture(body: Node3D) -> void:
 		rest.anchors.neck = Vector3(neck.position.x, neck.position.y + box.position.y, neck.position.z)
 		rest.anchors.neck_top = Vector3(neck.position.x, neck.position.y + box.end.y, neck.position.z)
 	rest["legs_z"] = {}
+	rest["legs_x"] = {}
 	for side in ["LeftLeg", "RightLeg"]:
 		var leg := body.get_node_or_null(side) as Node3D
 		if leg != null:
 			rest.legs_z[side] = leg.position.z
+			rest.legs_x[side] = leg.position.x
 	for child in body.get_children():
 		if child is Node3D and not NOT_SPINE.has(String(child.name)):
 			rest.nodes[String(child.name)] = {"position": child.position, "basis": child.basis}
@@ -90,6 +95,12 @@ static func release(body: Node3D) -> void:
 	if not body.has_meta("spine_rest") or not body.has_meta("spine_key"):
 		return
 	var rest: Dictionary = body.get_meta("spine_rest")
+	# Take the pelvis turn off the legs before anything reads their angles.
+	var yaw: float = deg_to_rad(float(body.get_meta("spine_angles", {}).get("hip_yaw", 0.0)))
+	if not is_zero_approx(yaw):
+		for side in rest.legs_z:
+			var leg := body.get_node(side) as Node3D
+			leg.basis = Basis(Vector3.UP, -yaw) * leg.basis
 	for path in rest.nodes:
 		var node := body.get_node_or_null(path) as Node3D
 		if node != null:
@@ -102,6 +113,7 @@ static func release(body: Node3D) -> void:
 			node.mesh = rest.meshes[path].mesh
 	for side in rest.legs_z:
 		(body.get_node(side) as Node3D).position.z = rest.legs_z[side]
+		(body.get_node(side) as Node3D).position.x = rest.legs_x.get(side, (body.get_node(side) as Node3D).position.x)
 	body.remove_meta("spine_key")
 	body.remove_meta("spine_xf")
 	body.remove_meta("spine_angles")
@@ -111,7 +123,8 @@ static func release(body: Node3D) -> void:
 static func chain(rest: Dictionary, angles: Dictionary) -> Dictionary:
 	var anchors: Dictionary = rest.anchors
 	var shift := Transform3D(Basis(), Vector3(0.0, 0.0, -0.01 * float(angles.get("hip_shift", 0.0))))
-	var hinge := shift * _about(anchors.hip, Basis(Vector3.RIGHT, -deg_to_rad(float(angles.get("hip_hinge", 0.0)))))
+	var turn := _about(anchors.hip, Basis(Vector3.UP, deg_to_rad(float(angles.get("hip_yaw", 0.0)))))
+	var hinge := shift * turn * _about(anchors.hip, Basis(Vector3.RIGHT, -deg_to_rad(float(angles.get("hip_hinge", 0.0)))))
 	var lumbar := hinge * _about(anchors.lumbar, _joint(float(angles.get("lumbar_flexion", 0.0)), float(angles.get("lumbar_bend", 0.0)), float(angles.get("lumbar_twist", 0.0))))
 	var thorax := lumbar * _about(anchors.thoracic, _joint(float(angles.get("thoracic_flexion", 0.0)), float(angles.get("thoracic_bend", 0.0)), float(angles.get("thoracic_twist", 0.0))))
 	var head := thorax * _about(anchors.neck, _joint(float(angles.get("neck_flexion", 0.0)), float(angles.get("neck_bend", 0.0)), float(angles.get("neck_twist", 0.0))))
@@ -142,8 +155,14 @@ static func pose(body: Node3D, angles: Dictionary) -> void:
 	var xf := chain(rest, angles)
 	var anchors: Dictionary = rest.anchors
 	# The hips carry the legs' sockets with them. Foot planting is the caller's job.
+	var yaw := deg_to_rad(float(angles.get("hip_yaw", 0.0)))
 	for side in rest.legs_z:
-		(body.get_node(side) as Node3D).position.z = rest.legs_z[side] - 0.01 * float(angles.get("hip_shift", 0.0))
+		var leg := body.get_node(side) as Node3D
+		var socket := Vector3(rest.legs_x.get(side, leg.position.x), leg.position.y, rest.legs_z[side] - 0.01 * float(angles.get("hip_shift", 0.0)))
+		if not is_zero_approx(yaw):
+			socket = anchors.hip + Basis(Vector3.UP, yaw) * (socket - anchors.hip)
+			leg.basis = Basis(Vector3.UP, yaw) * leg.basis
+		leg.position = socket
 	for path in rest.nodes:
 		var node := body.get_node_or_null(path) as Node3D
 		if node == null or MESH_SPINE.has(path) or MESH_NECK.has(path):

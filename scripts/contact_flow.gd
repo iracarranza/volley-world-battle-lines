@@ -54,7 +54,7 @@ func setup(owner_lab: Node3D) -> void:
 	lab = owner_lab
 	seen_fatigue = lab.athlete.fatigue_epoch
 	actors["player"] = lab.player
-	for slot in range(8):
+	for slot in range(lab.training_bots.actors.size()):
 		actors["training_bot_%d" % slot] = lab.training_bots.actors[slot]
 	for index in range(3):
 		actors["pepper_%d" % index] = lab.pepper.actors[index]
@@ -115,7 +115,12 @@ func amount(actor_id: String) -> float:
 	return lab.athlete.flow if actor_id == "player" else float(values.get(actor_id,0))
 
 func profile(actor_id: String):
-	return lab.athlete if actor_id in ["player","player_serve"] else lab.training_bots.physique
+	if actor_id in ["player","player_serve"]: return lab.athlete
+	if actor_id.begins_with("training_bot_"):
+		return lab.training_bots.athlete_for(int(actor_id.trim_prefix("training_bot_")))
+	if actor_id.begins_with("pepper_"):
+		return lab.pepper.athlete_for(int(actor_id.trim_prefix("pepper_")))
+	return lab.training_bots.physique
 
 func attack_charge(charge: float, actor_id: String, origin: Vector3 = Vector3.ZERO) -> float:
 	var athlete = profile(actor_id)
@@ -164,6 +169,7 @@ func record(event: Dictionary) -> void:
 	var delta := change_for(event)
 	if actor_id == "player" and (_fatigue_changed() or lab.athlete.exhausted):
 		delta = 0.0
+	if profile(actor_id).exhausted: delta = 0.0
 	var before := amount(actor_id)
 	var after := clampf(before+delta,0,CAP)
 	values[actor_id] = after
@@ -221,6 +227,19 @@ func tick_visuals() -> void:
 		aura.global_position = actor.global_position+Vector3.UP*height*0.55
 		aura.scale = Vector3.ONE*height/1.86
 		aura.material_override.set_shader_parameter("flow",flow)
+
+func clear_actor(actor_id: String) -> void:
+	# A dismissed/reused roster place must not inherit its previous athlete's state.
+	values[actor_id] = 0.0
+	idle_seconds[actor_id] = 0.0
+	impulses.erase(actor_id)
+	pending_attacks.erase(actor_id)
+	pending_jumps.erase(actor_id)
+	last_changes.erase(actor_id)
+	if auras.has(actor_id): auras[actor_id].hide()
+	if actor_id == "player":
+		lab.athlete.flow = 0.0
+		lab.athlete.jump_power_bonus = 0.0
 
 func clear() -> void:
 	impulses.clear()

@@ -82,23 +82,27 @@ func _ready() -> void:
 	var menu_box := VBoxContainer.new()
 	menu_box.add_theme_constant_override("separation", 14)
 	panel.add_child(menu_box)
-	menu_box.add_child(Style.label("CONTACT LAB", 12, Style.ACCENT))
+	menu_box.add_child(Style.label("PLAY", 12, Style.ACCENT))
 	menu_box.add_child(Style.label("Where to next?", 25, Style.INK, true, true))
 	menu_box.add_child(HSeparator.new())
-	menu_box.add_child(Style.nav_button("01   ENTER CONTACT LAB", _enter_lab))
-	menu_box.add_child(Style.nav_button("02   ATHLETES", _open_menu))
-	menu_box.add_child(Style.nav_button("03   TRAIT TREE EDITOR", _open_trait_editor))
-	menu_box.add_child(Style.nav_button("04   QUIT", func(): get_tree().quit()))
+	menu_box.add_child(Style.nav_button("01   ENTER MAP", _enter_map))
+	menu_box.add_child(Style.nav_button("02   CONTACT LAB", _enter_lab))
+	menu_box.add_child(Style.nav_button("03   ATHLETES", _open_menu))
+	menu_box.add_child(Style.nav_button("04   TRAIT TREE EDITOR", _open_trait_editor))
+	menu_box.add_child(Style.nav_button("05   QUIT", func(): get_tree().quit()))
 	_refresh_selected()
 
 func _refresh_selected() -> void:
 	var config := Store.selected_config()
 	if config.is_empty():
 		selected_label.text = "None selected"
-		selected_detail.text = "The lab will use the default Rookie."
+		selected_detail.text = "Play will use the default Rookie."
 	else:
 		selected_label.text = str(config.name)
 		selected_detail.text = "%s  /  Level %d  /  %s" % [config.role, int(config.get("level", 1)), Store.height_label(Store.height_inches(float(config.height)))]
+
+func _enter_map() -> void:
+	get_tree().change_scene_to_file("res://map_graybox.tscn")
 
 func _enter_lab() -> void:
 	get_tree().change_scene_to_file("res://main.tscn")

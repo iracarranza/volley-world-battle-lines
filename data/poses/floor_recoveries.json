@@ -46,7 +46,7 @@
 		"blown_away": {
 			"seconds": 1.35,
 			"travel": 0.42,
-			"mirror": false,
+			"mirror": true,
 			"stages": [
 				{
 					"name": "hit",
@@ -102,13 +102,14 @@
 						"roll": 0.0
 					}
 				}
-			]
+			],
+			"lateral": true
 		},
 		"shrug": {
 			"seconds": 0.7,
 			"travel": 0.6,
 			"travel_direction": "back",
-			"mirror": false,
+			"mirror": true,
 			"stages": [
 				{
 					"name": "shrug",
@@ -146,7 +147,8 @@
 						"roll": 0.0
 					}
 				}
-			]
+			],
+			"lateral": true
 		},
 		"knocked_away": {
 			"seconds": 0.95,

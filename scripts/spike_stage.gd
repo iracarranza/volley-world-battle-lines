@@ -24,13 +24,21 @@ const CHEST_TURN_LIMIT := 10.0
 const LOADED := -0.30
 const STRIKE_SECONDS := 0.14
 const FOLLOW_SECONDS := 0.30
+# A ball struck before the strike has finished (a click right as the ball is in reach) used to snap the arm from the loaded pose to contact in
+# one frame. The arm now carries on through the rest of the strike in this long, and the follow-through starts from contact.
+const CATCH_SECONDS := 0.09
 
 static func phase_for(air_time: float, flight_time: float, swing_time: float = -1.0, hit_time: float = -1.0) -> float:
 	if swing_time < 0.0:
 		var f := clampf(air_time / maxf(flight_time, 0.001), 0.0, 1.0)
 		return lerpf(Spike.PLANT_END, LOADED, smoothstep(0.0, 0.45, f))
 	if hit_time >= 0.0:
-		return lerpf(0.0, Spike.FOLLOW_END, clampf((swing_time - hit_time) / FOLLOW_SECONDS, 0.0, 1.0))
+		var since := swing_time - hit_time
+		var struck_at := lerpf(LOADED, 0.0, pow(clampf(hit_time / STRIKE_SECONDS, 0.0, 1.0), 2.0))   # where the arm had got to when the ball was struck
+		if since < CATCH_SECONDS and struck_at < -0.001:
+			return lerpf(struck_at, 0.0, smoothstep(0.0, 1.0, since / CATCH_SECONDS))
+		var after := since - (CATCH_SECONDS if struck_at < -0.001 else 0.0)
+		return lerpf(0.0, Spike.FOLLOW_END, clampf(after / FOLLOW_SECONDS, 0.0, 1.0))
 	var t := clampf(swing_time / STRIKE_SECONDS, 0.0, 1.0)
 	# The arm accelerates into the ball.
 	return lerpf(LOADED, 0.0, t * t)
@@ -121,7 +129,7 @@ static func _aim(flat: Dictionary, phase: float, hand: float, strike: String, st
 	flat["shoulder_rotation:%s" % strike] = float(flat["shoulder_rotation:%s" % strike]) + rad_to_deg(yaw * 1.10) * float(sign_turn[strike_index]) * weight
 	flat["thoracic_twist"] = float(flat["thoracic_twist"]) + rad_to_deg(yaw * 0.35) * weight
 	var across := clampf(yaw * hand / 0.6, -1.0, 1.0)
-	flat["shoulder_roll:%s" % strike] = float(flat["shoulder_roll:%s" % strike]) - across * 46.0 * (reach*0.40+follow*0.60)
+	flat["shoulder_roll:%s" % strike] = float(flat["shoulder_roll:%s" % strike]) + across * 46.0 * (reach*0.40+follow*0.60)
 	flat["thoracic_twist"] = float(flat["thoracic_twist"]) + clampf(yaw / 0.6, -1.0, 1.0) * 14.0 * follow
 
 static func apply(body: Node3D, phase: float, hand: float, power: float = 0.5, attack_type: String = "Power swing", context: Dictionary = {}) -> void:
