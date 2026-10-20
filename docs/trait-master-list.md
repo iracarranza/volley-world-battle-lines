@@ -164,7 +164,7 @@ Base-athlete rule: each attribute has at least two introductory lines that make 
 Three sources feed an athlete after creation:
 
 1. **Automatic attribute growth by position, per level.** Wall (MB) +2 END, Playmaker (S) +2 ACC, Anchor (L) +2 SPD, All-Rounder (OH) +1 to every attribute. These are free rating points, not AP.
-2. **Freely allocable AP per level, which differs by position through its innate.** Fast Study (OP) gives +3 AP on level-up. The base amount for a position without such an innate is not yet fixed.
+2. **Freely allocable AP per level, which differs by position through its innate.** Rising Star (OP) gives +3 AP on level-up. The base amount for a position without such an innate is not yet fixed.
 3. **AP from Nets falling** (`docs/laning-and-objectives.md`): every member of the winning team gets 2 (Primary), 3 (Secondary) or 4 (Tertiary), and allies near the fall share double the Net's value (4, 6 or 8; the first Net of the match adds 2). A team that takes all three Primaries, three Secondaries and the Tertiary earns up to 19 AP per member from global awards in one match, before local shares.
 
 Level cap is 20, so there are 19 level-ups. Growth alone reaches these ratings by level 20 (rating 65 plus growth, capped at 99):
@@ -191,3 +191,14 @@ Level cap is 20, so there are 19 level-ups. Growth alone reaches these ratings b
 - The experience curve (how many matches per level), to turn the per-match Net AP into a level estimate.
 - The claim limit, and whether Deep Bag is +1 or +2.
 - Whether auxiliary stats such as Platform Quality share a cap across traits, or each trait caps itself.
+
+## 8. Debug progression in the athlete builder (2026-10-20)
+
+The builder's Attributes tab has a "Debug: simulate match progression" switch. It adds no new rules; it applies the economy of section 7 so builds can be tried without playing a match:
+
+- **Level** (-1, +1, +5, MAX, RESET): applies the position's growth per level to the ratings (recorded as free `growth`, never counted as AP) and adds allocable AP (`BASE_AP_PER_LEVEL`, provisional 0, plus Rising Star's +3 for Opposites). Level down resets progression first, then re-levels.
+- **Net fall**: Primary 2, Secondary 3, Tertiary 4 global AP, plus a local share (double the value, +2 for the first Net, split evenly among allies near the fall, rounded down) when "N near" is chosen. **Full match** gives all three Primaries, three Secondaries and the Tertiary (19 AP global).
+- **Grant AP** for anything else.
+- A progressed athlete may allocate to 99 (creation stops at 77); free growth cannot be lowered away. Stored on the athlete as `level`, `growth`, `bonus_ap`, `net_ap` and `progressed`.
+
+The Store functions (`level_up`, `set_level`, `award_net`, `simulate_match`, `grant_ap`, `reset_progression`) are what the in-match Coach shop will call later; nothing in the debug panel is specific to it.

@@ -168,6 +168,7 @@ func _build_editor(parent: Node) -> void:
 	attribute_box.add_theme_constant_override("h_separation", 24)
 	attribute_box.add_theme_constant_override("v_separation", 14)
 	attributes_page.add_child(attribute_box)
+	_build_debug(attributes_page)
 	var trait_page := HBoxContainer.new()
 	trait_page.name = "TRAIT TREE"
 	trait_page.add_theme_constant_override("separation", 12)
@@ -361,8 +362,104 @@ func _refresh_roster() -> void:
 	if editing < 0:
 		roster_box.add_child(label("Editing a new athlete", 12, GOLD))
 
+# Debug mode: simulate the progression a match would give (levels, Net-fall AP) so builds can be tried without playing one.
+var debug_check: CheckBox
+var debug_box: VBoxContainer
+var debug_readout: Label
+var debug_net_kind: OptionButton
+var debug_nearby: OptionButton
+var debug_first: CheckBox
+
+func _build_debug(parent: Node) -> void:
+	debug_check = CheckBox.new()
+	debug_check.text = "Debug: simulate match progression"
+	debug_check.toggled.connect(func(on: bool):
+		debug_box.visible = on
+		_refresh_debug())
+	parent.add_child(debug_check)
+	debug_box = VBoxContainer.new()
+	debug_box.add_theme_constant_override("separation", 6)
+	debug_box.visible = false
+	parent.add_child(debug_box)
+	var level_row := HBoxContainer.new()
+	level_row.add_theme_constant_override("separation", 6)
+	level_row.add_child(label("LEVEL", 14))
+	for step in [-1, 1, 5]:
+		level_row.add_child(button("%+d" % step, func(): _debug_level(int(draft.get("level", 1)) + step), 44))
+	level_row.add_child(button("MAX", func(): _debug_level(Store.LEVEL_CAP), 56))
+	level_row.add_child(button("RESET", func(): _debug_reset(), 70))
+	debug_box.add_child(level_row)
+	var net_row := HBoxContainer.new()
+	net_row.add_theme_constant_override("separation", 6)
+	net_row.add_child(label("NET FALL", 14))
+	debug_net_kind = OptionButton.new()
+	for kind in ["Primary", "Secondary", "Tertiary"]:
+		debug_net_kind.add_item(kind)
+	net_row.add_child(debug_net_kind)
+	debug_nearby = OptionButton.new()
+	debug_nearby.add_item("global only")
+	for count in range(1, 6):
+		debug_nearby.add_item("%d near" % count)
+	net_row.add_child(debug_nearby)
+	debug_first = CheckBox.new()
+	debug_first.text = "first Net of match"
+	net_row.add_child(debug_first)
+	net_row.add_child(button("AWARD", func(): _debug_net(), 80))
+	net_row.add_child(button("FULL MATCH", func(): _debug_match(), 110))
+	debug_box.add_child(net_row)
+	var ap_row := HBoxContainer.new()
+	ap_row.add_theme_constant_override("separation", 6)
+	ap_row.add_child(label("GRANT AP", 14))
+	for amount in [1, 5, 10]:
+		ap_row.add_child(button("+%d" % amount, func(): _debug_ap(amount), 52))
+	ap_row.add_child(button("-1", func(): _debug_ap(-1), 44))
+	debug_box.add_child(ap_row)
+	debug_readout = label("", 13, DIM)
+	debug_box.add_child(debug_readout)
+
+func _debug_changed() -> void:
+	Store.prune_picks(draft)
+	_refresh_summary()
+	_refresh_attributes()
+	_refresh_traits()
+	_refresh_innates()
+	_refresh_debug()
+
+func _debug_level(target: int) -> void:
+	Store.set_level(draft, target)
+	_debug_changed()
+
+func _debug_reset() -> void:
+	Store.reset_progression(draft)
+	_debug_changed()
+
+func _debug_net() -> void:
+	var kind: String = String(debug_net_kind.get_item_text(debug_net_kind.selected)).to_lower()
+	var award: Dictionary = Store.award_net(draft, kind, debug_nearby.selected, debug_first.button_pressed)
+	status.text = "%s Net: +%d AP (%d global, %d local)." % [kind.capitalize(), award.total, award.global, award.local]
+	_debug_changed()
+
+func _debug_match() -> void:
+	var total: int = Store.simulate_match(draft, debug_nearby.selected)
+	status.text = "Winning match: +%d AP from Nets." % total
+	_debug_changed()
+
+func _debug_ap(amount: int) -> void:
+	Store.grant_ap(draft, amount)
+	_debug_changed()
+
+func _refresh_debug() -> void:
+	if debug_readout == null:
+		return
+	var growth: Dictionary = draft.get("growth", {})
+	var parts: Array[String] = []
+	for key in Store.ATTRIBUTES:
+		if int(growth.get(key, 0)) > 0:
+			parts.append("%s +%d" % [Store.ATTRIBUTE_NAMES[key], int(growth[key])])
+	debug_readout.text = "Level %d of %d. AP: %d earned (%d from Nets), %d spent, %d free. Free growth: %s." % [int(draft.get("level", 1)), Store.LEVEL_CAP, int(draft.get("bonus_ap", 0)), int(draft.get("net_ap", 0)), Store.ap_spent(draft), _free_points(), ", ".join(parts) if not parts.is_empty() else "none"]
+
 func _free_points() -> int:
-	return Store.AP_BUDGET - Store.ap_spent(draft)
+	return Store.ap_budget(draft) - Store.ap_spent(draft)
 
 func _refresh_summary() -> void:
 	_refresh_heights()
@@ -378,6 +475,7 @@ func _refresh_summary() -> void:
 			summary_row.add_child(label("|", 18, Color("3c5568")))
 		var color := TEAL if index == 0 else (GOLD if index == 2 else Color("d8e8ed"))
 		summary_row.add_child(label(parts[index], 18, color))
+	_refresh_debug()
 
 func _offsets(key: String) -> Array:
 	return draft.offsets[key]
@@ -393,7 +491,7 @@ func _refresh_attributes() -> void:
 	for child in attribute_box.get_children():
 		attribute_box.remove_child(child)
 		child.queue_free()
-	attribute_intro.text = "Spend %d starting AP on Attributes and Innates. +1 Attribute costs 1 AP (65 to 77)." % Store.AP_BUDGET
+	attribute_intro.text = "Spend %d AP on Attributes and Innates. +1 Attribute costs 1 AP (65 to %d)." % [Store.ap_budget(draft), Store.rating_cap(draft)]
 	for key in Store.ATTRIBUTES:
 		var rating := int(draft[key])
 		var group := VBoxContainer.new()
@@ -447,7 +545,7 @@ func _refresh_attributes() -> void:
 
 func _step_attribute(key: String, direction: int) -> void:
 	var value := int(draft[key]) + direction
-	if value < Store.BASE_RATING or value > Store.MAX_RATING:
+	if value < Store.rating_floor(draft, key) or value > Store.rating_cap(draft):
 		return
 	if direction > 0 and _free_points() <= 0:
 		status.text = "No AP remaining."
@@ -476,7 +574,7 @@ func _step_stat(key: String, index: int, direction: int) -> void:
 func _apply_height(inches: int) -> void:
 	var trial := draft.duplicate()
 	trial.height = inches * 0.0254
-	if not Store.height_allowed(inches, draft.get("innates", [])) or Store.ap_spent(trial) > Store.AP_BUDGET:
+	if not Store.height_allowed(inches, draft.get("innates", [])) or Store.ap_spent(trial) > Store.ap_budget(draft):
 		height_picker.select(Store.height_inches(float(draft.height)) - Store.MIN_INCHES)
 		status.text = "That height is not available."
 		return
@@ -506,7 +604,7 @@ func _refresh_heights() -> void:
 			"giant": text += "   GIANT"
 		var trial := draft.duplicate()
 		trial.height = inches * 0.0254
-		var blocked := not Store.height_allowed(inches, draft.get("innates", [])) or Store.ap_spent(trial) > Store.AP_BUDGET
+		var blocked := not Store.height_allowed(inches, draft.get("innates", [])) or Store.ap_spent(trial) > Store.ap_budget(draft)
 		height_picker.set_item_text(index, text)
 		height_picker.set_item_disabled(index, blocked and inches != current)
 	height_picker.select(current - Store.MIN_INCHES)
@@ -522,7 +620,7 @@ func _show_node(info: Dictionary) -> void:
 	var text := "%s\n\n%s" % [info.title, info.status]
 	if str(info.get("needs", "")) != "":
 		text += "\nRequires: " + str(info.needs)
-		text += "\nReach cost: %d AP of %d" % [int(info.get("cost", 0)), Store.AP_BUDGET]
+		text += "\nReach cost: %d AP of %d" % [int(info.get("cost", 0)), Store.ap_budget(draft)]
 	if str(info.get("exclusive", "")) != "":
 		text += "\nChoosing a trait in this branch locks the other starting branch."
 	var parents: Array = info.get("parents", [])
@@ -571,7 +669,7 @@ func _toggle_innate(innate: String) -> void:
 			candidate.erase("Giant")
 		var trial := draft.duplicate()
 		trial.innates = candidate
-		if Store.ap_spent(trial) > Store.AP_BUDGET:
+		if Store.ap_spent(trial) > Store.ap_budget(draft):
 			status.text = "Not enough AP for %s." % innate
 			return
 		chosen = candidate
@@ -646,7 +744,7 @@ func _new_athlete() -> void:
 	_refresh_all()
 
 func _commit() -> bool:
-	if Store.ap_spent(draft) > Store.AP_BUDGET:
+	if Store.ap_spent(draft) > Store.ap_budget(draft):
 		status.text = "Over the AP budget."
 		return false
 	if str(draft.name).strip_edges().is_empty():

@@ -43,7 +43,7 @@ const INNATES := {
 }
 const POSITION_INNATES := {
 	"MB": {"name": "Wall", "text": "Minimal HP cost on Blocks; faster Block Jump charge. +2 END growth."},
-	"OP": {"name": "Fast Study", "text": "Gains AP more effectively: +3 free AP on level-up."},
+	"OP": {"name": "Rising Star", "text": "Gains AP more effectively: +3 free AP on level-up."},
 	"OH": {"name": "All-Rounder", "text": "Broader growth: +1 to every Attribute on level-up."},
 	"S": {"name": "Playmaker", "text": "Minimal HP cost on Sets, including aim adjustment. +2 ACC growth."},
 	"L": {"name": "Anchor", "text": "Minimal HP and Stamina cost on Receives. +2 SPD growth."},
@@ -170,10 +170,112 @@ static func sync_statistics(config: Dictionary) -> void:
 		for i in range(STATS[parent].size()):
 			config.statistics[str(STATS[parent][i]).to_snake_case()] = clampf(float(config.get(parent,65))+(float(offsets[i]) if i < offsets.size() else 0),50,99)
 
+# --- Progression after creation (docs/trait-master-list.md section 7, docs/laning-and-objectives.md). Used by the builder's debug mode
+# until levelling and Net rewards exist in a match. Creation is untouched: a fresh athlete has no growth and no bonus AP.
+const LEVEL_CAP := 20
+const BASE_AP_PER_LEVEL := 0 # Provisional: the designer has not fixed the base AP per level; only Rising Star's +3 is specified.
+const NET_AP := {"primary": 2, "secondary": 3, "tertiary": 4}
+const POSITION_GROWTH := {
+	"MB": {"endurance": 2}, "S": {"accuracy": 2}, "L": {"speed": 2},
+	"OH": {"power": 1, "speed": 1, "accuracy": 1, "endurance": 1},
+}
+const POSITION_AP := {"OP": 3}
+
+# AP an athlete may spend: the starting 12 plus whatever levelling and Nets have earned.
+static func ap_budget(config: Dictionary) -> int:
+	return AP_BUDGET + int(config.get("bonus_ap", 0))
+
+# Highest rating the allocation controls allow: creation stops at 77; a progressed athlete can go to 99.
+static func rating_cap(config: Dictionary) -> int:
+	return 99 if bool(config.get("progressed", false)) else MAX_RATING
+
+# Lowest an Attribute can be set to: its base plus the growth it already received.
+static func rating_floor(config: Dictionary, key: String) -> int:
+	return BASE_RATING + int(config.get("growth", {}).get(key, 0))
+
+# Level-ups: position growth is added to ratings (and recorded as free growth); allocable AP is added to the pool.
+static func level_up(config: Dictionary, count: int = 1) -> Dictionary:
+	var gained := {"levels": 0, "ap": 0, "growth": {}}
+	for _i in range(count):
+		var level := int(config.get("level", 1))
+		if level >= LEVEL_CAP:
+			break
+		config["level"] = level + 1
+		config["progressed"] = true
+		gained.levels += 1
+		var role := String(config.get("role", "OH"))
+		if not config.has("growth"):
+			config["growth"] = {}
+		for key in POSITION_GROWTH.get(role, {}):
+			var before := int(config[key])
+			config[key] = float(mini(99, before + int(POSITION_GROWTH[role][key])))
+			var applied := int(config[key]) - before
+			config.growth[key] = int(config.growth.get(key, 0)) + applied
+			gained.growth[key] = int(gained.growth.get(key, 0)) + applied
+		var ap: int = BASE_AP_PER_LEVEL + int(POSITION_AP.get(role, 0))
+		config["bonus_ap"] = int(config.get("bonus_ap", 0)) + ap
+		gained.ap += ap
+	return gained
+
+# AP one Net fall gives an athlete: the global award always, plus an even share (rounded down) of the local pool (double the Net's value,
+# +2 for the first Net of the match) when `nearby` allied players (counting the athlete) were near the fall. nearby 0 = not near.
+static func net_award(kind: String, nearby: int = 0, first_of_match: bool = false) -> Dictionary:
+	var value: int = int(NET_AP.get(kind, 0))
+	var local := 0
+	if nearby > 0:
+		local = int(floor(float(value * 2 + (2 if first_of_match else 0)) / float(nearby)))
+	return {"global": value, "local": local, "total": value + local}
+
+static func award_net(config: Dictionary, kind: String, nearby: int = 0, first_of_match: bool = false) -> Dictionary:
+	var award := net_award(kind, nearby, first_of_match)
+	config["bonus_ap"] = int(config.get("bonus_ap", 0)) + int(award.total)
+	config["progressed"] = true
+	config["net_ap"] = int(config.get("net_ap", 0)) + int(award.total)
+	return award
+
+# A winning team's whole match: three Primaries, three Secondaries and the Tertiary (19 AP global), the first Net adding its local bonus.
+static func simulate_match(config: Dictionary, nearby: int = 0) -> int:
+	var total := 0
+	var first := true
+	for kind in ["primary", "primary", "primary", "secondary", "secondary", "secondary", "tertiary"]:
+		total += int(award_net(config, kind, nearby, first).total)
+		first = false
+	return total
+
+static func grant_ap(config: Dictionary, amount: int) -> void:
+	config["bonus_ap"] = maxi(0, int(config.get("bonus_ap", 0)) + amount)
+	config["progressed"] = true
+
+# Back to a creation athlete: growth removed from ratings, bonus AP and level cleared, over-budget ratings lowered, picks pruned.
+static func reset_progression(config: Dictionary) -> void:
+	var growth: Dictionary = config.get("growth", {})
+	for key in ATTRIBUTES:
+		config[key] = float(clampi(int(config[key]) - int(growth.get(key, 0)), BASE_RATING, MAX_RATING))
+	config["level"] = 1
+	for key in ["growth", "bonus_ap", "progressed", "net_ap"]:
+		config.erase(key)
+	while ap_spent(config) > AP_BUDGET:
+		var top := ATTRIBUTES[0]
+		for key in ATTRIBUTES:
+			if float(config[key]) > float(config[top]):
+				top = key
+		config[top] = float(config[top]) - 1.0
+	if config.has("picks"):
+		prune_picks(config)
+
+# Move to a level directly: down resets first, then levels up, so the result is the same whatever the route.
+static func set_level(config: Dictionary, target: int) -> void:
+	target = clampi(target, 1, LEVEL_CAP)
+	if target < int(config.get("level", 1)):
+		reset_progression(config)
+	level_up(config, target - int(config.get("level", 1)))
+
 static func ap_spent(athlete: Dictionary) -> int:
 	var spent := 0
+	var growth: Dictionary = athlete.get("growth", {})
 	for key in ATTRIBUTES:
-		spent += maxi(0, int(athlete[key]) - BASE_RATING)
+		# Growth points from levelling are free rating points, not AP.
+		spent += maxi(0, int(athlete[key]) - BASE_RATING - int(growth.get(key, 0)))
 	spent += height_cost(height_inches(float(athlete.get("height", 1.86))))
 	for innate in athlete.get("innates", []):
 		spent += int(INNATES.get(innate, {}).get("cost", 0))
