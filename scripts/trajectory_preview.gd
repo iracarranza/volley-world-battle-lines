@@ -111,7 +111,7 @@ static func ribbon(result: Dictionary, camera: Vector3, mesh: ImmediateMesh = nu
 	var points: Array = result.points
 	if points.size() < 2:
 		return mesh
-	var readiness := 1.0 if result.contact_ready else 0.42
+	var readiness := 1.0 if result.contact_ready else 0.65
 	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
 	for index in range(points.size()-1):
 		var a: Vector3 = points[index]
@@ -124,11 +124,11 @@ static func ribbon(result: Dictionary, camera: Vector3, mesh: ImmediateMesh = nu
 		var end_progress := float(index+1)/(points.size()-1)
 		for glow in [true,false]:
 			var half_width := 0.11 if glow else 0.023
-			var alpha := (0.18 if glow else 0.92)*readiness
+			var alpha := (0.50 if glow else 1.0)*readiness
 			var tint: Color = result.get("color",Color("59d8ff"))
-			var color := tint if glow else tint.lerp(Color.WHITE,0.65)
-			var fade_a := (1.0-smoothstep(0.65,1,progress))*alpha
-			var fade_b := (1.0-smoothstep(0.65,1,end_progress))*alpha
+			var color := tint if glow else tint.lerp(Color.WHITE,0.18)
+			var fade_a := (1.0-smoothstep(0.80,1,progress))*alpha
+			var fade_b := (1.0-smoothstep(0.80,1,end_progress))*alpha
 			var offset_a := side*half_width*lerpf(1,0.55,progress)
 			var offset_b := side*half_width*lerpf(1,0.55,end_progress)
 			var corners := [a-offset_a,a+offset_a,b+offset_b,b-offset_b]
@@ -136,8 +136,8 @@ static func ribbon(result: Dictionary, camera: Vector3, mesh: ImmediateMesh = nu
 				mesh.surface_set_color(Color(color,fade_a if corner < 2 else fade_b))
 				mesh.surface_add_vertex(corners[corner])
 		if index % 7 == 3 and progress < 0.8:
-			var color: Color = Color(result.get("color",Color("59d8ff"))).lerp(Color.WHITE,0.35)
-			color.a = 0.8*readiness*(1-progress)
+			var color: Color = Color(result.get("color",Color("59d8ff"))).lerp(Color.WHITE,0.10)
+			color.a = 1.0*readiness*(1-progress)
 			for point in [a+tangent*0.14,a-tangent*0.06+side*0.12,a-tangent*0.06-side*0.12]:
 				mesh.surface_set_color(color)
 				mesh.surface_add_vertex(point)
