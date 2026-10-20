@@ -658,12 +658,15 @@ func tick_contact(dt: float) -> bool:
 		intercept = lab.ball.position
 	active_action = -1
 	active_slot = -1
-	var side: int = lab.side_index(intercept.z)
+	var side: int = int(slot_away(bot_slot))
 	var slot := bot_slot
-	if action != 3 and (lab.side_contacts[side] >= 3 or not responsible_for(slot,lab.side_contacts[side]+1,action)):
+	if action != 3 and lab.side_contacts[side] >= 3:
+		lab._finish_fault("Four-contact fault / Bot #%d" % (slot+1),int(slot_away(slot)))
+		return true
+	if action != 3 and not responsible_for(slot,lab.side_contacts[side]+1,action):
 		replan()
 		return false
-	if lab.block_serve_fault(action,lab.ball_shot,"Bot #%d" % (slot+1)): return true
+	if lab.block_serve_fault(action,lab.ball_shot,"Bot #%d" % (slot+1),int(slot_away(slot))): return true
 	lab.ball.position = intercept
 	if action != 3:
 		lab.side_contacts[side] += 1

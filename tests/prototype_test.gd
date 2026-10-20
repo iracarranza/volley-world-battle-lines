@@ -27,6 +27,8 @@ func run() -> void:
 	lab._reset()
 	lab._feed()
 	check(lab.ball_active and lab.attempts == 1, "Feed must create an active incoming ball")
+	# Keep this flight fixture on a full-depth court; mini-court feeds can land out.
+	lab.court_half_depth = 9.0
 	var landed := false
 	for i in range(240):
 		if not lab.ball_active:

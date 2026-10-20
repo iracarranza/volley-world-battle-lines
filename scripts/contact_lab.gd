@@ -131,6 +131,7 @@ var feed_timer := 2.5
 var auto_feed := false
 var paused := false
 var side_contacts: Array[int] = [0, 0]
+var rally_rules := preload("res://scripts/rally_rules.gd").new()
 var contacts := 0
 var attempts := 0
 var returns := 0
@@ -632,7 +633,7 @@ func _physics_process(dt: float) -> void:
 	motion.tick(dt, motion_scale)
 	var rally_live: bool = ball_active and not station.running() and not drills.running() and not pepper.active()
 	if rally_live and athlete_touches_net(previous_player_position,player.position):
-		_finish("NET FAULT / Athlete touched the net")
+		_finish_fault("NET FAULT / Athlete touched the net",side_index(previous_player_position.z))
 	elif not rally_live:
 		_hold_midline_off_net(previous_player_position)
 	camera_rig.update_aim()
@@ -647,7 +648,7 @@ func _physics_process(dt: float) -> void:
 			for slot in range(training_bots.actors.size()):
 				var actor: Node3D = training_bots.actors[slot]
 				if training_bots.slot_enabled(slot) and athlete_touches_net(actor.position,actor.position,training_bots.physique.build.height):
-					_finish("NET FAULT / %s bot touched the net" % ("Away" if training_bots.slot_away(slot) else "Home"))
+					_finish_fault("NET FAULT / %s bot touched the net" % ("Away" if training_bots.slot_away(slot) else "Home"),int(training_bots.slot_away(slot)))
 					break
 	elif auto_feed and not station.in_zone() and not station.running() and not drills.in_zone() and not drills.running():
 		feed_timer -= world_dt
@@ -737,6 +738,7 @@ func _feed() -> void:
 	ball.position = Vector3(court_center.x+(target.x-court_center.x)*0.6,3.6,-7.5)
 	var duration := 2.0
 	ball_velocity = (target - ball.position) / duration + Vector3.UP * (GRAVITY * duration * 0.5)
+	rally_rules.begin(1)
 	ball_shot = ReceiveCharge.shot("serve", 0.60, "debug_feed")
 	ball_active = true
 	outgoing = false
@@ -862,6 +864,8 @@ func _impact_event(actor_id: String, action: int, incoming: Vector3, assessment:
 	return event
 
 func _publish_impact(event: Dictionary) -> void:
+	if not station.running() and not drills.running() and not pepper.active():
+		rally_rules.touch(int(event.team))
 	clear_net_responses()
 	net_bounce_pending = false
 	net_response.clear_side = signf(ball.position.z)
@@ -885,7 +889,12 @@ func _emit_contact_impact(incoming_velocity: Vector3, assessment: Dictionary, in
 
 func _emit_external_impact(actor_id: String, action: int, incoming: Vector3, assessment: Dictionary, incoming_shot: Dictionary = {}) -> void:
 	var event := _impact_event(actor_id, action, incoming, assessment, incoming_shot)
+	if actor_id.begins_with("training_bot_"):
+		var slot := int(actor_id.trim_prefix("training_bot_"))
+		event.team = int(training_bots.slot_away(slot))
 	if actor_id == "player_serve":
+		event.team = side_index(player.position.z)
+		rally_rules.begin(event.team)
 		action_endlag = 0.22
 	_publish_impact(event.publish())
 
@@ -916,9 +925,9 @@ func _hold_midline_off_net(previous: Vector3) -> void:
 func side_index(z: float) -> int:
 	return 0 if z >= 0 else 1
 
-func block_serve_fault(action: int,shot: Dictionary,actor: String) -> bool:
+func block_serve_fault(action: int,shot: Dictionary,actor: String,fault_side: int = -1) -> bool:
 	if action != 3 or str(shot.get("kind","")) != "serve": return false
-	_finish("SERVE BLOCK FAULT / %s blocked a serve" % actor)
+	_finish_fault("SERVE BLOCK FAULT / %s blocked a serve" % actor,side_index(player.position.z) if fault_side < 0 else fault_side)
 	return true
 
 func _contact() -> void:
@@ -943,9 +952,9 @@ func _contact() -> void:
 	var is_block := locked_action == 3
 	if not is_block:
 		contacts += 1
-	var side := side_index(ball.position.z)
+	var side := side_index(player.position.z)
 	if not is_block and (pepper.player_contacts >= 3 if pepper.active() else (contacts > 3 or side_contacts[side] >= 3)):
-		_finish("Three-contact fault. Return the ball across the Net earlier.")
+		_finish_fault("Three-contact fault. Return the ball across the Net earlier.",side)
 		return
 	if pepper.active():
 		pepper.player_contacts += 1
@@ -1076,8 +1085,11 @@ func _tick_ball(dt: float) -> void:
 	ball_velocity = net_result.velocity
 	if previous.z*ball.position.z < 0 and not bool(net_result.pocket) and net_result.contact == "":
 		var crossing := previous.lerp(ball.position,previous.z/(previous.z-ball.position.z))
+		if not station.running() and not drills.running() and not pepper.active() and absf(crossing.x-court_center.x)+Geometry.VISUAL_BALL_RADIUS > net_response.web_half_width:
+			_finish_fault("OUTSIDE-ANTENNA FAULT / Ball crossed outside the net",rally_rules.last_touch_side)
+			return
 		if absf(crossing.x-Vector3(net_result.net_origin).x) <= float(net_result.net_half_width) and crossing.y < float(net_result.net_bottom)-NetResponse.RADIUS:
-			_finish("UNDER-NET FAULT / Ball crossed beneath the webbing")
+			_finish_fault("UNDER-NET FAULT / Ball crossed beneath the webbing",rally_rules.last_touch_side)
 			return
 	if net_result.crossed:
 		contact_flow.net_cross()
@@ -1101,7 +1113,9 @@ func _tick_ball(dt: float) -> void:
 			ball.position = solid.position + solid.normal * Geometry.BALL_RADIUS
 			var landing_velocity := ball_velocity
 			var landing_shot := ball_shot
-			_finish("Ball down / Pepper ended" if pepper.active() else "Serve hit the ground or obstacle / E to toss again")
+			var end_message := "Ball down / Pepper ended" if pepper.active() else "Ball down or obstacle / E to toss again"
+			var point_result := rally_rules.landing(solid.position,court_center,court_half_width,court_half_depth,Geometry.VISUAL_BALL_RADIUS) if Vector3(solid.normal).y > 0.65 and Vector3(solid.position).y < 0.15 else rally_rules.out()
+			_finish(end_message,point_result)
 			if Vector3(solid.normal).y > 0.65: ground_balls.land(self,solid.position,landing_velocity,landing_shot)
 			return
 	if ball.position.y <= 0.105:
@@ -1125,23 +1139,31 @@ func _tick_ball(dt: float) -> void:
 			drills.on_ball_down()
 			ground_balls.land(self,landing_point,landing_velocity,landing_shot)
 			return
-		if outgoing and ball.position.z < 0 and ball.position.z >= -court_half_depth and absf(ball.position.x-court_center.x) <= court_half_width:
-			returns += 1
-			_finish("IN! Clean return across the Net. Next feed in 3 seconds.")
-		elif outgoing and ball.position.z < 0:
-			_finish("OUT. Reduce power or adjust your direction.")
+		var point_result := rally_rules.landing(landing_point,court_center,court_half_width,court_half_depth,Geometry.VISUAL_BALL_RADIUS)
+		if point_result.get("reason","") == "OUT":
+			_finish("OUT / Ball landed outside the court.",point_result)
 		else:
-			_finish("Ball down. Prepare under the flight and confirm in reach.")
+			if point_result.get("winner",-1) == 0 and rally_rules.last_touch_side == 0: returns += 1
+			_finish("Ball down. Next feed in 3 seconds.",point_result)
 		ground_balls.land(self,landing_point,landing_velocity,landing_shot)
 	if ball.position.length() > 120:
-		_finish("Out of the training area.")
+		_finish("Out of the training area.",rally_rules.out())
 	shadow.position = Vector3(ball.position.x, 0.03, ball.position.z)
 	trail_points.append(ball.position)
 	if trail_points.size() > 18:
 		trail_points.pop_front()
 	_draw_line(trail, trail_points)
 
-func _finish(message: String) -> void:
+func _finish_fault(message: String,side: int) -> void:
+	_finish(message,rally_rules.fault(side,message))
+
+func _finish_landing(point: Vector3,message: String) -> void:
+	_finish(message,rally_rules.landing(point,court_center,court_half_width,court_half_depth,Geometry.VISUAL_BALL_RADIUS))
+
+func _finish(message: String,point_result: Dictionary = {}) -> void:
+	if not station.running() and not drills.running() and not pepper.active():
+		rally_rules.record(point_result)
+		if not rally_rules.label().is_empty(): message += " / "+rally_rules.label()
 	block_state.land()
 	contact_flow.end_rally()
 	clear_net_responses()
@@ -1210,6 +1232,7 @@ func _update_preview(draw_trajectory: bool = true) -> void:
 	landing_marker.visible = ball_active
 
 func _reset() -> void:
+	rally_rules.begin()
 	block_state.land()
 	ground_balls.clear()
 	if is_instance_valid(ball): ball.show()
