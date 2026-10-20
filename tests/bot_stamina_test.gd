@@ -26,6 +26,10 @@ func run() -> void:
 	lab.ball_active = true
 	bots.replan()
 	check(bots.slot_enabled(first) and bots.actors[first].visible and not lab.is_benched(),"Exhausted bots remain active without benching the player")
+	lab.open_bot_menu()
+	lab.bot_menu.open_bot(first)
+	check("EXHAUSTED" in lab.bot_menu.vitals.text,"The inspector exposes that bot’s live fatigue state")
+	lab.bot_menu.toggle()
 	athlete.recover(6.9,true)
 	check(athlete.exhausted and athlete.stamina == 0,"Exhaustion locks bot regeneration at zero")
 	athlete.recover(0.2,true)

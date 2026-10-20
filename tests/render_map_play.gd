@@ -27,6 +27,7 @@ func run() -> void:
 	map.hud.update()
 	await capture("res://artifacts/map-play-net1.png")
 	map.open_bot_menu()
+	map.bot_menu.open_bot(0)
 	await capture("res://artifacts/map-play-bots.png")
 	map.queue_free()
 	await process_frame

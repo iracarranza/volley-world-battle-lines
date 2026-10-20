@@ -96,10 +96,11 @@ temporarily to make origin-based calculations work.
 Behavioral coverage includes `title_map_route_test`, `map_lab_test`,
 `map_bot_roster_test`, `map_court_play_test`, `map_bot_rally_test`, and existing serve, bot, net, MoC,
 movement and drill suites. `render_map_play` captures the title, Net 1 and roster
-menu for visual verification. The responsibility-system broad run passed 92/94
-suites (`artifacts/bot-responsibilities-final`); its two obsolete role/count
-assertions were corrected and passed in `artifacts/bot-final-followup`, alongside
-physical generic rally and MoC/serve checks. The automatic-receiver safeguard
-passed in `artifacts/bot-auto-receiver`. All 94 suites therefore have passing
-results across the broad run and targeted follow-ups. The inspector was rendered
-and visually checked in `artifacts/bot-responsibilities-visual/renders`.
+menu for visual verification. The latest broad run passed **96/97 suites**
+(`artifacts/block-fatigue-full`); the remaining prototype fixture was corrected
+to label its legal attack-block ball as an attack, and passes in
+`artifacts/block-fatigue-followup`. The added physical self-set/block regression
+passes in `artifacts/bot-self-set-block` and `artifacts/bot-vitals-motion`.
+All **98 current suites** have passing results across the broad run and targeted
+follow-ups. The selected-bot inspector and live Exhausted status are checked in
+`artifacts/bot-vitals-inspector`; its render was visually verified.
