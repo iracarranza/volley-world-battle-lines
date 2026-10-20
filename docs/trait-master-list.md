@@ -1,5 +1,12 @@
 # Trait master list and tree logic
 
+> Historical audit and proposals. The Model C inheritance, exclusive starting
+> choices, Lateral Speed, trait totals and build counts below describe an earlier
+> tree. Current successors consume their parents, starts are free within capacity,
+> and Reaction Speed replaces Lateral Speed. Use the [current trait rules in the
+> architecture guide](architecture.md#save-and-trait-rules), [attribute runtime](attribute-runtime.md)
+> and `data/trait_tree.json` for implemented behavior and authored values.
+
 State of `data/trait_tree.json` and the runtime on 2026-10-19, with an audit and proposals. **Nothing in the data was changed by this note.** Proposals are marked *(proposal)*; names and numbers in them are placeholders for the designer to accept or change. AP means reach cost: the highest requirement in each Attribute along the path from the branch's first node, above 65, summed. A base athlete has 12 AP.
 
 ## 0. Rules decided 2026-10-19 (implemented)

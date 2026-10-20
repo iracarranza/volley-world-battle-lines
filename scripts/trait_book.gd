@@ -10,8 +10,8 @@ extends RefCounted
 # connect freely. A node with no parent and no `exclusive` is standalone (a capstone, say) and is never locked.
 #
 # Three different relationships between nodes (decided 2026-10-19):
-#   parent    the node advances its parent's line. It incorporates it (Model C): the parent stays active but stops taking capacity, and the two
-#             are one branch of the parent's fork.
+#   parent    the node advances its parent's line. It consumes the parent: only the successor applies effects and takes capacity,
+#             and the two are one branch of the parent's fork.
 #   requires  the node needs another node owned, from any page, without advancing it. The required node keeps its own capacity and its own
 #             effects, and takes part in no fork of the requiring node. Used for hybrids (Hybrid Server) and advanced Traits.
 #   needs     attribute ratings, independent of both.
@@ -31,9 +31,9 @@ extends RefCounted
 # Successors do not inherit (decided 2026-10-19): a node that builds on another consumes it, and only current Traits apply. So a successor's
 # `effects` and text are written as running totals; a node with several parents carries a different total from each (`carried`).
 #
-# A node reachable from several lines (Rhythm Hitter, from Big Hitter or Tough Arms) lists its first line in `parent` and the others in
-# `merges`: a node that needs every one of them taken and consumes them all when claimed (Trickster, from Broad Range ACC and Anticipation).
-# `alt_parents`: any one of them being taken is enough. Taking a node builds on every one of its parents that is taken.
+# A node reachable from several alternative lines (Rhythm Hitter, from Big Hitter or Tough Arms) lists its first line in `parent`
+# and the others in `alt_parents`: any one is enough, and `via` selects which owned parent it consumes.
+# `merges` lists every source of a node that requires and consumes them all (Trickster, from Broad Range ACC and Anticipation).
 #
 # Reach cost: ratings are thresholds, not purchases, so owning a node needs the highest requirement in each Attribute along its path
 # from the root, and the cost is those maxima above the base rating, summed, in AP.
@@ -531,16 +531,20 @@ func consumed_parents(id: String, picks: Array, via: Dictionary = {}) -> Array:
 
 # The picked nodes that nothing else has consumed: the build's current Traits. Only these apply and only these cost capacity.
 func frontier(picks: Array, via: Dictionary = {}) -> Array:
-	var out := []
+	# Resolve each picked node's consumption once, rather than repeating the
+	# same parent walks for every candidate. Keep the original pick order below.
+	var consumed := {}
+	var known := {}
 	for id in picks:
 		if find(String(id)) < 0:
 			continue
-		var built_on := false
-		for other in picks:
-			if other != id and find(String(other)) >= 0 and consumed_parents(String(other), picks, via).has(String(id)):
-				built_on = true
-				break
-		if not built_on:
+		known[String(id)] = true
+		for parent in consumed_parents(String(id), picks, via):
+			if String(parent) != String(id):
+				consumed[String(parent)] = true
+	var out := []
+	for id in picks:
+		if known.has(String(id)) and not consumed.has(String(id)):
 			out.append(String(id))
 	return out
 

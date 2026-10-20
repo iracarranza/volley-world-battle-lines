@@ -15,7 +15,9 @@ const BUILDS = [
 var build: Dictionary = BUILDS[0].duplicate()
 var jump_power_bonus := 0.0
 var second_wind_cooldown := 0.0
-var _effect_key := ""
+var _effect_book_id := 0
+var _effect_ids: Array[String] = []
+var _effect_via: Dictionary = {}
 var _effects: Dictionary = {}
 var flow := 0.0
 var fatigue_epoch := 0
@@ -42,9 +44,13 @@ func trait_effect(name: String) -> float:
 	if not Mechanics.EFFECTS.has(name):
 		return 0.0
 	var book = Store.trait_book()
-	var key := str(trait_ids)+str(trait_via)+str(book.get_instance_id())
-	if key != _effect_key:
-		_effect_key = key
+	var book_id: int = book.get_instance_id()
+	# Compare values without allocating serialized strings on every runtime read.
+	# Copies are essential: callers also mutate picks and via in place.
+	if book_id != _effect_book_id or trait_ids != _effect_ids or trait_via != _effect_via:
+		_effect_book_id = book_id
+		_effect_ids = trait_ids.duplicate()
+		_effect_via = trait_via.duplicate(true)
 		_effects = book.active_effects(trait_ids, trait_via)
 	return float(_effects.get(name,0))
 

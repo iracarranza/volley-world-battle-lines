@@ -75,8 +75,26 @@ builds. It does not guess the meaning of unlabeled old offsets.
 
 Trait ownership uses stable node IDs. Names are presentation labels. A name change
 must never deactivate a trait. Editing/saving the trait book invalidates the store
-cache; runtime effect caches use book identity and owned IDs. Legacy roster
+cache; runtime effect caches compare book identity, owned IDs and `trait_via`
+against saved copies, including in-place pick/parent-choice edits. Legacy roster
 migration is the boundary for automatic old threshold picks.
+
+All claimed IDs remain available for prerequisites, but only the *frontier*
+(traits not consumed by another claimed trait) contributes effects and capacity.
+A successor supplies its authored totals; ancestors do not automatically stack.
+`parent` advances a line; `alt_parents` offers alternative sources, with `via`
+selecting the consumed source (or the first owned source by default). `merges`
+lists sources that must all be owned and are all consumed. `requires` only gates
+ownership: those traits retain their own effects and capacity. `carried` adds the
+successor's authored contributions from its consumed source history.
+
+Current rules allow free starting choices within capacity, exclusive forks,
+6 capacity points (8 with Deep Bag), and one current Flow trait (two with Open
+Mind). Node weights determine capacity use. These are editable rules in
+`data/trait_tree.json`; the older [trait master list](trait-master-list.md) retains
+superseded inheritance rules and counts as design history. Authored descriptions
+and numeric fields can include planned mechanics: runtime effects are limited to
+the keys registered in `scripts/contact/mechanic_registry.gd`.
 
 Court helper `settings[slot]` contains all configurable behavior. Slots 0–3 are
 home Receive/Set/Attack/Block and 4–7 away; home Block stays disabled. Scene handles

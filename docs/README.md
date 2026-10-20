@@ -10,6 +10,7 @@
 - [Current MoC](moc-comparison.md): local slowdown modes and timing.
 - [Cleanup methodology](cleanup-methodology.md): workflow, tests and optimization evidence.
 - [Cleanup checkpoint](cleanup-checkpoint.md): continuation status and validation ledger.
+- [October 20 cleanup](cleanup-oct20-checkpoint.md): current cleanup window, measurements and validation.
 
 ## Design and implementation history
 

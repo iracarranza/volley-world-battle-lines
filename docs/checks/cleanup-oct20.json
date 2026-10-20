@@ -1,0 +1,120 @@
+{
+  "status": "window_closed_automation_paused",
+  "runs": {
+    "baseline": {
+      "passed": 101,
+      "total": 101,
+      "failed": [],
+      "results": "artifacts/cleanup-oct20/baseline/results.json"
+    },
+    "after-batch1": {
+      "passed": 102,
+      "total": 102,
+      "failed": [],
+      "results": "artifacts/cleanup-oct20/after-batch1/results.json"
+    },
+    "frontier-after": {
+      "passed": 8,
+      "total": 8,
+      "failed": [],
+      "results": "artifacts/cleanup-oct20/frontier-after/results.json"
+    },
+    "revision-smoke": {
+      "passed": 1,
+      "total": 1,
+      "failed": [],
+      "results": "artifacts/cleanup-oct20/revision-smoke/results.json"
+    },
+    "runner-report-smoke": {
+      "passed": 2,
+      "total": 2,
+      "failed": [],
+      "results": "artifacts/cleanup-oct20/runner-report-smoke/results.json"
+    },
+    "effect-before": {
+      "passed": 2,
+      "total": 2,
+      "results": "artifacts/cleanup-oct20/effect-before/results.json"
+    },
+    "effect-after": {
+      "passed": 10,
+      "total": 10,
+      "results": "artifacts/cleanup-oct20/effect-after/results.json"
+    },
+    "after-batch3": {
+      "passed": 103,
+      "total": 103,
+      "failed": [],
+      "results": "artifacts/cleanup-oct20/after-batch3/results.json"
+    },
+    "graphics-review": {
+      "passed": 3,
+      "total": 3,
+      "failed": [],
+      "results": "artifacts/cleanup-oct20/graphics-review/results.json"
+    }
+  },
+  "frontier_cpu_comparison": [
+    {
+      "picks": 0,
+      "before_median_us": 0.26,
+      "after_median_us": 0.44,
+      "same_frontier": true
+    },
+    {
+      "picks": 3,
+      "before_median_us": 87.06,
+      "after_median_us": 40.94,
+      "same_frontier": true
+    },
+    {
+      "picks": 5,
+      "before_median_us": 112.15,
+      "after_median_us": 45.46,
+      "same_frontier": true
+    },
+    {
+      "picks": 73,
+      "before_median_us": 36759.02,
+      "after_median_us": 858.55,
+      "same_frontier": true
+    }
+  ],
+  "benchmark_scope": "CPU microbenchmark; 5 batches of 100 calls; all-node case is stress selection, not valid build; not FPS or GPU evidence",
+  "python_runner_tests": {
+    "passed": 14,
+    "command": "python3 -m unittest discover -s tools -p '*_test.py'",
+    "log": "artifacts/cleanup-oct20/runner-report-after.log"
+  },
+  "effect_cpu_comparison": [
+    {
+      "picks": 0,
+      "before_median_us": 0.9924,
+      "after_median_us": 0.4964,
+      "same_effect": true
+    },
+    {
+      "picks": 1,
+      "before_median_us": 1.3413,
+      "after_median_us": 0.5137,
+      "same_effect": true
+    },
+    {
+      "picks": 5,
+      "before_median_us": 3.6467,
+      "after_median_us": 0.5408,
+      "same_effect": true
+    }
+  ],
+  "visual_review": {
+    "path": "artifacts/cleanup-oct20/graphics-review/renders",
+    "inspected": [
+      "trait-picks.png",
+      "stat-roster-six.png",
+      "pow-tree-full.png"
+    ],
+    "scope": "Roster allocation and visible trait picker/editor controls inspected. Editor capture is a partial viewport of wider tree, despite filename."
+  },
+  "closed_at": "2026-10-20T12:05:25Z",
+  "execution_note": "Verified work was completed in periodic batches through 04:35 Eastern; later heartbeat messages contain no additional recorded execution. Not five continuous hours of work."
+}

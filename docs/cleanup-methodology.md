@@ -113,5 +113,14 @@ Vendor assets and authored poses are unchanged. `git diff --check`, Python synta
 checks and Godot import complete the source checks.
 
 `--revision <commit>` runs a committed snapshot in the same isolated runner for
-comparison. Script errors terminate a suite early with a live log rather than
+comparison and discovers suites from that snapshot, including tests removed from
+the current checkout. Missing requested suites or an empty suite set are errors.
+Runner regression checks require no Godot:
+`python3 -m unittest discover -s tools -p '*_test.py'`.
+Script errors terminate a suite early with a live log rather than
 waiting for its timeout. Long traversal suites retain their normal 90-second budget.
+Each run clears the previous `results.json` before preparing its snapshot. Import
+errors/timeouts retain `import.log` and publish one failed `__import__` entry in
+the same results-list format. Successful runs publish their complete suite list
+atomically; an absent report means the run has not completed (or setup failed),
+not that zero suites passed. Use the runner's exit code alongside the report.
