@@ -76,6 +76,10 @@ static func flight(origin: Vector3,velocity: Vector3,gravity: float) -> Dictiona
 	return {"origin":origin,"velocity":velocity,"points":points,"duration":drawn_duration,"full_flight_time":full_time}
 
 static func projected_contact(shape: Dictionary, local: Vector3, action: int) -> Vector3:
+	if shape.has("base_geometry"):
+		var base_point := projected_contact(shape.base_geometry,Geometry.unscaled_point(shape,local),action)
+		var pivot: Vector3 = shape.geometry_pivot
+		return pivot+(base_point-pivot)*Vector3(shape.geometry_scale)
 	var center: Vector3 = shape.center
 	var point := local-center
 	match action:
@@ -93,9 +97,9 @@ static func projected_contact(shape: Dictionary, local: Vector3, action: int) ->
 			var radial := Vector2(point.x,maxf(0.03,point.y)).limit_length(float(shape.radius)*0.94)
 			return center+Vector3(radial.x,radial.y,clampf(point.z,-float(shape.depth)*0.44,float(shape.depth)*0.44))
 		3:
-			var column := float(shape.column_x)*(1.0 if point.x >= 0 else -1.0)
-			var radial := Vector2(point.x-column,point.z).limit_length(float(shape.column_radius)*0.9)
-			return center+Vector3(column+radial.x,clampf(point.y,-float(shape.size.y)*0.45,float(shape.size.y)*0.45),radial.y)
+			var y := clampf(local.y,float(shape.bottom)+0.02,float(shape.top)-0.02)
+			var width := Geometry.BlockField.width(shape,y)*0.94
+			return Vector3(clampf(local.x,-width,width),y,clampf(local.z,center.z-float(shape.size.z)*0.44,center.z+float(shape.size.z)*0.44))
 	return center
 
 static func ribbon(result: Dictionary, camera: Vector3, mesh: ImmediateMesh = null) -> ImmediateMesh:

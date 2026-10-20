@@ -88,6 +88,7 @@ var aim_marker: MeshInstance3D
 var reach_ring: MeshInstance3D
 const TrajectoryPreview := preload("res://scripts/trajectory_preview.gd")
 var last_trajectory_preview: Dictionary = {}
+var block_state := preload("res://scripts/block_state.gd").new()
 var ground_balls := preload("res://scripts/ground_ball.gd").new()
 var _preview_mesh := ImmediateMesh.new()
 var preview: MeshInstance3D
@@ -381,6 +382,7 @@ func ground_contact_locked() -> bool:
 	return (confirm_window > 0.0 or action_endlag > 0.0 or (is_instance_valid(serve) and serve.channeling())) and player.is_on_floor() and not motion.jumped and not motion.approach_bound
 
 func _confirm_action(window: float = -1.0) -> void:
+	if block_state.active and locked_action == 3 and not block_state.confirm(): return
 	if _check_bench():
 		return
 	if locked_action == 0:
@@ -413,22 +415,24 @@ func _update_hurtbox_visual(dt: float) -> void:
 		return
 	rescue_swing_remaining = maxf(0, rescue_swing_remaining - dt*athlete.transition_rate())
 	hurtbox_linger = maxf(0.0, hurtbox_linger - dt)
-	if confirm_window > 0:
+	if confirm_window > 0 or (block_state.active and hurtbox_action == 3):
+		if block_state.active: hurtbox_linger = 1
 		var definition := _hurtbox_definition(hurtbox_action)
 		hurtbox_root.rotation.y = _contact_yaw()
 		hurtbox_root.position = player.position + (definition.center as Vector3).rotated(Vector3.UP, _contact_yaw())
-	var age := confirm_duration - maxf(confirm_window, 0)
+	var age := block_state.confirmation_age if block_state.active and hurtbox_action == 3 else confirm_duration - maxf(confirm_window, 0)
 	sweet_visual_expired = age > Execution.sweet_end(hurtbox_action)
-	var phase := "sweet" if Execution.sweet_active(hurtbox_action, age) else ("windup" if age < Execution.sweet_start(hurtbox_action) else "rescue")
+	var phase := "sweet" if (age >= 0 and age < 0.5 if hurtbox_action == 3 else Execution.sweet_active(hurtbox_action, age)) else ("windup" if age < Execution.sweet_start(hurtbox_action) else "rescue")
 	if phase != sweet_visual_phase:
 		for child in hurtbox_view.active.get_children():
 			if child is MeshInstance3D:
 				if not child.has_meta("sweet_material"):
 					child.set_meta("sweet_material", child.material_override)
-				child.material_override = child.get_meta("sweet_material") if phase == "sweet" else hurtbox_view.phase_material(phase)
+				child.material_override = child.get_meta("sweet_material") if phase == "sweet" or hurtbox_action == 3 else hurtbox_view.phase_material(phase)
 		sweet_visual_phase = phase
 	if is_instance_valid(hurtbox_label):
 		hurtbox_label.text = ACTIONS[hurtbox_action] + (" / WINDUP" if phase == "windup" else (" / SWEET ACTIVE" if phase == "sweet" else " / RESCUE"))
+		if block_state.active and hurtbox_action == 3: hurtbox_label.text = "BLOCK / PRESS %.0f%%" % (100*pow(clampf(1-age/0.5,0,1),3)) if age >= 0 and age < 0.5 else "BLOCK / PASSIVE"
 		if hurtbox_action == 2 and phase == "rescue" and age < Execution.SPIKE_RESCUE_SECONDS:
 			hurtbox_label.text = "ATTACK / FORGIVING SPIKE"
 	if hurtbox_action == 0 and is_instance_valid(hurtbox_label):
@@ -456,6 +460,7 @@ func contact_request(action: int) -> ContactRequest:
 		request.auto_charge = true
 		request.auto_evidence = auto_preparation.sample(athlete,ball_shot,ball_velocity)
 		request.handling_charge = float(request.auto_evidence.handling_charge)
+	request.block_confirmation_age = block_state.confirmation_age if block_state.active else (confirm_duration-maxf(confirm_window,0) if confirm_window > 0 else -1.0)
 	request.confirmation_age = confirm_duration - maxf(confirm_window, 0) if confirm_duration > 0 else Execution.SWEET_DELAY
 	request.remembered = not Geometry.contains(request.shape, request.local_point) and contact_memory[action] > 0
 	request.facing = Vector3.FORWARD.rotated(Vector3.UP, _contact_yaw())
@@ -623,6 +628,7 @@ func _physics_process(dt: float) -> void:
 		_tick_benched(world_dt)
 		return
 	var previous_player_position := player.position
+	block_state.tick(dt)
 	motion.tick(dt, motion_scale)
 	var rally_live: bool = ball_active and not station.running() and not drills.running() and not pepper.active()
 	if rally_live and athlete_touches_net(previous_player_position,player.position):
@@ -650,7 +656,9 @@ func _physics_process(dt: float) -> void:
 	if not ball_active:
 		training_bots.tick_motion(world_dt)
 		pepper.tick(world_dt)
-	if confirm_window > 0:
+	if block_state.active:
+		confirm_window = 0
+	elif confirm_window > 0:
 		confirm_window = maxf(0, confirm_window - dt)
 		if confirm_window > 0 and ball_active and elapsed - last_contact > 0.22/athlete.transition_rate() and _can_contact():
 			_contact()
@@ -989,8 +997,11 @@ func _contact() -> void:
 	contact_memory = [0.0, 0.0, 0.0, 0.0]
 	last_contact = elapsed
 	outgoing = true
-	armed = false
-	auto_preparation.clear()
+	if locked_action == 3 and block_state.active:
+		block_state.latched = true
+	else:
+		armed = false
+		auto_preparation.clear()
 	_update_hurtbox_visual(0.0)
 	confirm_window = 0
 	trail_points.clear()
@@ -1004,24 +1015,30 @@ func _contact() -> void:
 		station.on_contact(locked_action, assessment.get("charge_match", {}).get("matched", true))
 	elif drills.running():
 		drills.on_contact(locked_action)
-	elif ball_active:
+	elif ball_active and not (locked_action == 3 and block_state.active):
 		_advance_action_after_contact()
 
 	_check_bench()
 
 func _try_swept_player_block(previous: Vector3, dt: float) -> bool:
-	if locked_action != 3 or not armed or confirm_window <= 0 or elapsed - last_contact <= 0.22/athlete.transition_rate():
-		return false
+	var passive := block_state.active
+	if locked_action != 3 or not armed or (not passive and confirm_window <= 0): return false
+	if passive:
+		var inside := Geometry.block_overlap(_hurtbox_definition(3),_local_contact_position(),0.06)
+		if block_state.latched and not inside: block_state.latched = false
+		if block_state.latched: return false
+	elif elapsed-last_contact <= 0.22/athlete.transition_rate(): return false
 	var endpoint := ball.position
 	var shape := _hurtbox_definition(3)
 	var samples := maxi(1, ceili(previous.distance_to(endpoint) / 0.025))
 	var initial_window := confirm_window
 	for sample in range(samples + 1):
 		var fraction := float(sample) / samples
-		if initial_window - dt * fraction <= 0:
+		if not passive and initial_window - dt * fraction <= 0:
 			break
 		var point := previous.lerp(endpoint, fraction)
-		if Geometry.contains(shape, (point - player.position).rotated(Vector3.UP, -_contact_yaw())):
+		var local := (point-player.position).rotated(Vector3.UP,-_contact_yaw())
+		if Geometry.contains(shape,local) and Geometry.block_approaching(shape,local,ball_velocity.rotated(Vector3.UP,-_contact_yaw())):
 			ball.position = point
 			confirm_window = initial_window - dt * fraction
 			var event_before := _contact_event_serial
@@ -1125,6 +1142,7 @@ func _tick_ball(dt: float) -> void:
 	_draw_line(trail, trail_points)
 
 func _finish(message: String) -> void:
+	block_state.land()
 	contact_flow.end_rally()
 	clear_net_responses()
 	net_bounce_pending = false
@@ -1192,6 +1210,7 @@ func _update_preview(draw_trajectory: bool = true) -> void:
 	landing_marker.visible = ball_active
 
 func _reset() -> void:
+	block_state.land()
 	ground_balls.clear()
 	if is_instance_valid(ball): ball.show()
 	if is_instance_valid(shadow): shadow.show()
@@ -1291,3 +1310,25 @@ func _cycle_build() -> void:
 
 func _build_ui() -> void:
 	hud.build()
+
+func begin_passive_block() -> void:
+	block_state.start()
+	locked_action = 3
+	armed = true
+	hurtbox_action = 3
+	confirmed_geometry = {}
+	var presentation := hurtbox_view.present(_raw_hurtbox_definition(3),3)
+	hurtbox_mesh = presentation.mesh
+	hurtbox_label = presentation.label
+	hurtbox_linger = 1
+	sweet_visual_phase = ""
+
+func end_passive_block() -> void:
+	if not block_state.active: return
+	block_state.land()
+	armed = false
+	charging = false
+	auto_preparation.clear()
+	confirm_window = 0
+	confirmed_geometry = {}
+	hurtbox_linger = 0

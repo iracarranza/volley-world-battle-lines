@@ -1,0 +1,60 @@
+extends RefCounted
+const Stats := preload("res://scripts/stat_tuning.gd")
+const Geometry := preload("res://scripts/contact_geometry.gd")
+const Snapshot := preload("res://scripts/contact/snapshot.gd")
+const PRESS_SECONDS := 0.5
+static func assess(request: RefCounted,spatial: Dictionary) -> Dictionary:
+	var result := spatial.duplicate(true)
+	var age: float = request.block_confirmation_age
+	var pulse := pow(clampf(1.0-age/PRESS_SECONDS,0,1),3) if age >= 0 else 0.0
+	var reference: float = Stats.reaction_cap(request.athlete.stat("reaction_speed"))*request.athlete.low_stamina_factor()
+	var capacity: float = reference*0.75*float(spatial.get("block_capacity",1))*(1.0+pulse*float(spatial.get("block_sweet_weight",1)))
+	var incoming_charge := maxf(0,float(request.incoming_shot.get("charge",request.incoming.length()/30.0)))
+	var tolerance: float = request.athlete.trait_effect("charge_tolerance")
+	var severity := smoothstep(0,maxf(0.05,0.35*(1.0+tolerance/100.0)),maxf(0,incoming_charge-capacity))
+	result["sweet"] = bool(result.hit) and pulse > 0.05 and float(spatial.get("block_sweet_weight",0)) > 0.75 and severity < 0.05
+	result["rescue"] = false
+	result["confirmation_age"] = age
+	result["block_response"] = {"capacity":capacity,"auto_reference":reference,"regional_factor":spatial.get("block_capacity",1),"confirmation_pulse":pulse,"incoming_charge":incoming_charge,"severity":severity,"region":spatial.get("block_region","CORE"),"height":spatial.get("block_height",0.8),"side":spatial.get("block_side",0),"sweet_weight":spatial.get("block_sweet_weight",1)}
+	result["charge_match"] = {"matched":severity <= 0.00001,"status":"undercharged" if severity > 0 else "matched","severity":severity,"incoming_charge":incoming_charge,"receive_charge":capacity,"minimum":incoming_charge,"maximum":INF}
+	return result
+
+static func resolve(request: RefCounted,assessment: Dictionary) -> Dictionary:
+	var response: Dictionary = assessment.block_response
+	var facing: Vector3 = request.facing.normalized()
+	var yaw := atan2(-facing.x,-facing.z)
+	var incoming: Vector3 = request.incoming.rotated(Vector3.UP,-yaw)
+	var height := float(response.height)
+	var side := float(response.side)
+	var edge := 1.0-float(response.regional_factor)
+	var severity := float(response.severity)
+	var timing := clampf(request.athlete.timing()/100.0,0,1)
+	var lift := lerpf(0.10,0.92,height)*edge
+	var normal := Vector3(side*(0.15+edge*0.9),lift,-maxf(0.05,1.0-height*edge*1.45)).normalized()
+	if incoming.dot(normal) > 0: normal = -normal
+	var reflected := incoming.bounce(normal)
+	var pace := incoming.length()
+	var flow := clampf(request.flow/100.0,0,1)
+	var controlled := Vector3(side*pace*edge*0.20,-(0.6+lerpf(0.8,4.0,timing)*float(response.sweet_weight)),-maxf(2.5,absf(incoming.z)*0.42))
+	controlled.y += incoming.y*0.25-0.8*flow
+	controlled *= 1.0-0.15*flow
+	var escape := reflected*(0.40+0.48*severity)
+	# Upper surfaces permit a roof/touch-out; lower ones shed force laterally.
+	escape.x += side*pace*edge*(0.25+0.30*severity)
+	escape.y += incoming.y*height*edge*0.25
+	var mix := clampf(edge+severity*0.65,0,1)
+	var outgoing := controlled.lerp(escape,mix)
+	var scatter: float = sin(float(request.response_seed)*1.73+incoming.y*0.21)*edge*(0.04+0.14*severity)/(1.0+request.athlete.ball_control()/100.0)
+	outgoing = outgoing.rotated(Vector3.UP,scatter)
+	if outgoing.length() < 1: outgoing = normal+Vector3.UP*0.1
+	var world := outgoing.rotated(Vector3.UP,yaw)
+	var point: Vector3 = request.local_point
+	var shape: Dictionary = request.shape
+	# Separate beyond the face in the actual departure direction, including roofs.
+	var horizontal := Vector3(outgoing.x,0,outgoing.z)
+	var departure := horizontal.normalized() if horizontal.length_squared() > 0.01 else normal
+	var sign_z := signf(departure.z)
+	var target_z := float(shape.center.z)+sign_z*(float(shape.size.z)*0.5+Geometry.BALL_RADIUS+0.02)
+	var offset := Vector3(0,0,target_z-point.z).rotated(Vector3.UP,yaw)
+	var charge := maxf(0,float(response.incoming_charge)*pow(world.length()/maxf(request.incoming.length(),18),2))
+	return {"velocity":world,"separation_offset":offset,"shot":Snapshot.freeze({"kind":"block","actor":request.actor_id,"charge":charge,"action_charge":request.charge,"delivery_quality":assessment.quality,"reference_speed":world.length(),"block_response":response})}

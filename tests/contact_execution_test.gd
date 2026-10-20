@@ -19,7 +19,7 @@ func run() -> void:
 		elif action == 2:
 			point += Geometry.sector_point(shape, 0.74, 67.5, 0)
 		elif action == 3:
-			point.x += shape.column_x
+			point = Vector3(shape.hand_x, shape.palm, shape.center.z)
 		sweet_points.append(point)
 		var spatial := Geometry.evaluate(shape, point)
 		var fresh := Execution.assess(spatial, 0.22, false, action)
@@ -64,10 +64,10 @@ func run() -> void:
 	var margin_result := Execution.assess(Geometry.evaluate(spike, margin), 0.22, false, 2)
 	check(margin_result.hit and not margin_result.rescue and not margin_result.sweet, "Moderate extra reach remains a non-sweet spike")
 	var block: Dictionary = lab._raw_hurtbox_definition(3)
-	check(block.column_x > block.column_radius, "Block columns have a physical gap")
+	check(Geometry.contains(block, Vector3(0, block.bottom + 0.2, block.center.z)), "Block triangle covers the front torso")
 	check(is_equal_approx(Geometry.BALL_RADIUS, 0.13125), "Ball contact radius is 25 percent larger")
-	check(Geometry.evaluate(block, block.center + Vector3(block.column_x, block.size.y * 0.49, 0)).zone == "SOUR SPOT", "Block fingertips are sour")
-	check(Geometry.evaluate(block, block.center + Vector3(block.column_x + block.column_radius * 0.95, 0, 0)).zone == "SOUR SPOT", "Block sides are sour")
+	check(Geometry.evaluate(block, block.center + Vector3(block.hand_x, block.size.y * 0.49, 0)).zone == "SOUR SPOT", "Block fingertips are sour")
+	check(Geometry.evaluate(block, block.center + Vector3(block.half_width, block.palm-block.center.y, 0)).zone == "SOUR SPOT", "Block sides are sour")
 	var set_shape: Dictionary = lab._raw_hurtbox_definition(1)
 	check(Geometry.contains(set_shape, Vector3(0.2, lab.athlete.build.height * 0.78, 0)), "Shoulder-height sets connect")
 	check(Geometry.evaluate(set_shape, Vector3(0, lab.athlete.build.height * 0.78, 0)).zone != "SWEET SPOT", "Low set extension is not sweet")

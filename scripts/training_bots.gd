@@ -96,7 +96,7 @@ func setup(owner_lab: Node3D) -> void:
 			wire.material_override.vertex_color_use_as_albedo = true
 		elif shape.get("receive_platform", false):
 			contact_box.mesh = Geometry.ReceivePlatform.mesh(shape)
-		elif shape.shape == "block_columns":
+		elif shape.shape == "block_triangle":
 			contact_box.mesh = Geometry.block_mesh(shape)
 		elif shape.shape == "ellipsoid":
 			var mesh := SphereMesh.new()
@@ -210,6 +210,7 @@ func _capture_set_target() -> void:
 	lab._message("SET BOT target locked to your position / F6 to retarget")
 
 func reset() -> void:
+	block_states.clear()
 	refresh_for_rally()
 	returns.clear()
 	net_rebound = false
@@ -428,11 +429,12 @@ func contains_ball(slot: int, point: Vector3) -> bool:
 
 func contact_anchor(slot: int) -> Vector3:
 	var shape := contact_shape(slot)
+	if slot_action(slot) == 3 and shape.has("sweet_center"): return shape.sweet_center
 	if slot_action(slot) == 1:
 		return Vector3(shape.center) + Vector3.UP * (float(shape.radius) * 0.55)
 	if slot_action(slot) == 2:
 		return Vector3(shape.center) + Geometry.sector_point(shape, 0.74, 67.5, 0.0)
-	return Vector3(shape.center) + (Vector3.RIGHT * float(shape.column_x) if slot_action(slot) == 3 else Vector3.ZERO)
+	return Vector3(shape.center) + (Vector3.RIGHT * float(shape.hand_x) if slot_action(slot) == 3 else Vector3.ZERO)
 
 func set_charge_accuracy(slot: int, value: float) -> void:
 	settings[slot].charge_accuracy = clampf(value, 0, 100)
@@ -494,7 +496,12 @@ func _plan(action: int, point: Vector3, time: float, chosen_slot: int = -1) -> v
 func tick_support_motion(_dt: float,_scales: Dictionary) -> void:
 	pass
 
+const BlockState := preload("res://scripts/block_state.gd")
+var block_states: Dictionary = {}
 var motion_clocks: Dictionary = {}
+func block_state_for(slot: int):
+	if not block_states.has(slot): block_states[slot] = BlockState.new()
+	return block_states[slot]
 func tick_motion(dt: float) -> void:
 	for slot in range(settings.size()):
 		if slot_enabled(slot):
@@ -546,6 +553,15 @@ func tick_motion(dt: float) -> void:
 		var planned := active_action == action and slot == active_slot
 		var motion_plan: Dictionary = motion.plans.get(slot, {})
 		var airborne := not motion_plan.is_empty() and str(motion_plan.get("phase", "")) in ["jump", "landing"]
+		var blocking = block_state_for(slot)
+		if action == 3 and airborne and actors[slot].position.y > 0.01:
+			if not blocking.active: blocking.start()
+			blocking.tick(dt*float(scales[slot]))
+			if preparation.state_for(slot).phase == "confirmed": blocking.confirm(float(preparation.state_for(slot).confirmation_age))
+			if blocking.latched and not Geometry.block_overlap(contact_shape(slot),(lab.ball.position-actors[slot].position).rotated(Vector3.UP,-actors[slot].rotation.y),0.06): blocking.latched = false
+		elif blocking.active:
+			blocking.land()
+			preparation.finish(slot)
 		var animation_state: Dictionary = animation.states.get(rigs[slot].body.get_instance_id(), {})
 		var following_contact := float(animation_state.get("since", 100)) < 0.75
 		if not actors[slot].visible and not planned and motion_plan.is_empty() and not following_contact:
@@ -567,7 +583,7 @@ func tick_motion(dt: float) -> void:
 		var geometry := contact_shape(slot)
 		contact_boxes[slot].position = geometry.center
 		contact_boxes[slot].scale = geometry.get("geometry_scale",Vector3.ONE)
-		var precision := active_action == slot_action(slot) and slot == active_slot and Execution.sweet_active(slot_action(slot), float(preparation.state_for(slot).confirmation_age))
+		var precision := slot_action(slot) == 3 or (active_action == slot_action(slot) and slot == active_slot and Execution.sweet_active(slot_action(slot), float(preparation.state_for(slot).confirmation_age)))
 		var material: StandardMaterial3D = contact_boxes[slot].material_override
 		material.vertex_color_use_as_albedo = precision
 		material.albedo_color = Color.WHITE if precision else Color(0.96, 0.61, 0.41, 0.16)
@@ -587,10 +603,12 @@ func tick_contact(dt: float) -> bool:
 	if not lab.ball_active or active_action < 0:
 		return false
 	remaining -= dt
-	if remaining > 0:
-		return false
 	var action := active_action
-	if remaining < -Execution.CONTACT_SECONDS:
+	var passive: bool = action == 3 and active_slot >= 0 and block_state_for(active_slot).active
+	if remaining > 0 and not passive:
+		return false
+	if passive and block_state_for(active_slot).latched: return false
+	if not passive and remaining < -Execution.CONTACT_SECONDS:
 		active_action = -1
 		active_slot = -1
 		replan(action == 3)
@@ -604,15 +622,16 @@ func tick_contact(dt: float) -> bool:
 	# A manual contact replans the intercept, so a helper never follows an old flight.
 	var bot_slot := active_slot if active_slot >= 0 else slot_for(action,intercept.z)
 	var prepared := preparation.state_for(bot_slot)
-	if prepared.phase != "confirmed":
+	if not passive and prepared.phase != "confirmed":
 		return false
-	if float(prepared.confirmation_age) > Execution.CONTACT_SECONDS:
+	if not passive and float(prepared.confirmation_age) > Execution.CONTACT_SECONDS:
 		active_action = -1
 		active_slot = -1
 		preparation.finish(bot_slot)
 		if action == 3:
 			replan(true)
 		return false
+	if action == 3 and not Geometry.block_approaching(contact_shape(bot_slot),(lab.ball.position-actors[bot_slot].position).rotated(Vector3.UP,-actors[bot_slot].rotation.y),lab.ball_velocity.rotated(Vector3.UP,-actors[bot_slot].rotation.y)): return false
 	if not contains_ball(bot_slot, lab.ball.position):
 		# Test swept flight points over this simulation step, using identical geometry.
 		var hit := false
@@ -629,7 +648,7 @@ func tick_contact(dt: float) -> bool:
 			var local: Vector3 = (lab.ball.position - actors[bot_slot].position).rotated(Vector3.UP, -actors[bot_slot].rotation.y)
 			var local_velocity: Vector3 = lab.ball_velocity.rotated(Vector3.UP, -actors[bot_slot].rotation.y)
 			var cleared_block: bool = action == 3 and local_velocity.z > 0 and local.z > float(contact_shape(bot_slot).center.z) + float(contact_shape(bot_slot).size.z) * 0.5 + Geometry.BALL_RADIUS
-			if remaining < -Execution.CONTACT_SECONDS or cleared_block:
+			if (not passive and remaining < -Execution.CONTACT_SECONDS) or cleared_block:
 				active_action = -1
 				active_slot = -1
 				if action == 3:
@@ -665,6 +684,7 @@ func tick_contact(dt: float) -> bool:
 	request.incoming = incoming
 	request.incoming_shot = incoming_shot
 	request.charge = float(prepared.locked_charge)
+	request.block_confirmation_age = block_state_for(slot).confirmation_age if passive else float(prepared.confirmation_age)
 	request.confirmation_age = float(prepared.confirmation_age)
 	request.facing = Vector3.FORWARD.rotated(Vector3.UP, actors[slot].rotation.y)
 	request.intent_direction = request.facing
@@ -700,7 +720,8 @@ func tick_contact(dt: float) -> bool:
 	lab.ball_shot = lab.contact_flow.decorate_shot(lab.ball_shot,request.incoming_shot,"training_bot_%d"%slot,action,execution)
 	if action == 2 and execution.hit:
 		lab.contact_flow.consume_attack("training_bot_%d"%slot)
-	preparation.finish(slot)
+	if passive: block_state_for(slot).latched = true
+	else: preparation.finish(slot)
 	lab._emit_external_impact("training_bot_%d" % slot, action, incoming, execution,incoming_shot)
 	var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), local_contact, move_speed_for(slot) if settings[slot].moves else 0.0) if action == 0 else "planted"
 	var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actors[slot].rotation.y, -PI, PI) if action == 2 else 0.0
@@ -815,5 +836,6 @@ func contact_shape(slot: int) -> Dictionary:
 				for child in contact_boxes[slot].get_children():
 					if child is MeshInstance3D: child.mesh = Geometry.SetHurtbox.mesh(drawing,true)
 			2: contact_boxes[slot].mesh = Geometry.zone_mesh(drawing,false,shape)
+			3: contact_boxes[slot].mesh = Geometry.block_mesh(drawing)
 	geometry_cache[slot] = {"base":base.duplicate(true),"effects":effects.duplicate(true),"control":control,"shape":shape}
 	return shape

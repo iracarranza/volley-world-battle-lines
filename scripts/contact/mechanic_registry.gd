@@ -8,7 +8,7 @@ const EFFECTS := {
 	"spike_velocity": ["Spike Velocity", " pp", "potency", [2], "Adds effective attack charge after Swing Power."],
 	"serve_velocity": ["Serve Velocity", " pp", "potency", [4], "Adds effective serve charge."],
 	"platform_quality": ["Platform Quality", " pts", "geometry", [0], "Improves receiving zone overlap; never changes matching or outer reach."],
-	"charge_tolerance": ["Charge Tolerance", "%", "handling", [0], "Softens mismatch severity without manufacturing a charge match."],
+	"charge_tolerance": ["Charge Tolerance", "%", "handling", [0,3], "Softens mismatch severity without manufacturing a charge match."],
 	"flow_attack_velocity": ["Flow Attack Velocity", " pp", "potency", [2], "Adds attack charge while consuming Flow."],
 	"second_wind": ["Second Wind", "%", "consequences", [], "Restores stamina when its fatigue condition activates."],
 	"revenge_jump_power": ["Revenge Jump Power", " pts", "consequences", [], "Grants the existing pending jump benefit after a poor attack receive."],

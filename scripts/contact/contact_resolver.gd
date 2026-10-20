@@ -2,6 +2,7 @@ extends RefCounted
 ## One ordered rules pipeline for player, court bots, Pepper and previews.
 ## Geometry -> timing -> charge -> receive outcome -> direction -> execution -> shank.
 const Registry := preload("res://scripts/contact/mechanic_registry.gd")
+const BlockResponse := preload("res://scripts/contact/block_response.gd")
 const SetIsolation := preload("res://scripts/contact/set_isolation.gd")
 const ReceiveResponse := preload("res://scripts/contact/receive_response.gd")
 const BallState := preload("res://scripts/contact/ball_state.gd")
@@ -23,6 +24,8 @@ static func assess(request: Request) -> Dictionary:
 	var result := Execution.assess(
 		spatial, request.confirmation_age, request.remembered, request.action
 	)
+	if request.action == Action.BLOCK:
+		result = BlockResponse.assess(request,spatial)
 	if request.source_athlete == null: request.source_athlete = request.athlete
 	if request.source_athlete.gameplay_context.is_valid():
 		var evidence := result.duplicate(true)
@@ -57,6 +60,10 @@ static func assess(request: Request) -> Dictionary:
 			result, request.shape, request.local_point, request.movement_speed,
 			request.directional_input, atan2(-request.facing.x, -request.facing.z)
 		)
+	if request.action == Action.BLOCK:
+		var block := BlockResponse.assess(request,spatial)
+		for key in block: result[key] = block[key]
+		result["timing_assessment"] = Snapshot.freeze({"sweet_eligible":result.sweet,"rescue":false,"confirmation_age":request.block_confirmation_age,"confirmation_pulse":result.block_response.confirmation_pulse})
 	if request.auto_charge: result["auto_charge"] = Snapshot.freeze(request.auto_evidence)
 	return result
 
@@ -116,6 +123,11 @@ static func resolve(request: Request, assessment: Dictionary) -> Result:
 			result.separation_offset = response.separation_offset
 			result.assessment["receive_response"] = response
 			result.outgoing_shot = BallState.receive(request.charge, request.actor_id, request.incoming_shot, request.incoming, velocity, response.delivery_quality, response)
+	if request.action == Action.BLOCK and assessment.hit:
+		var response := BlockResponse.resolve(request,assessment)
+		velocity = response.velocity
+		result.separation_offset = response.separation_offset
+		result.outgoing_shot = response.shot
 	var variance := request.athlete.trait_effect("charge_aim_variance")
 	if variance > 0 and not request.ideal_charge_match:
 		var random := RandomNumberGenerator.new()
@@ -137,7 +149,7 @@ static func mechanics(request: Request, result: Result) -> Array:
 		"geometry": {"hit": geometry.get("hit", false), "zone": geometry.get("zone", ""), "quality": geometry.get("quality", 0), "intersection": request.local_point, "platform_quality": request.athlete.trait_effect("platform_quality") if request.action == Action.RECEIVE else 0.0},
 		"timing": {"confirmation_age": request.confirmation_age, "sweet_eligible": timing.get("sweet_eligible", false), "early": response.get("early", 0), "late": response.get("late", 0), "timing": request.athlete.timing()},
 		"potency": {"action_charge": request.charge, "available_output": request.athlete.low_stamina_factor(), "effective_receive_charge": assessment.get("charge_match", {}).get("receive_charge", request.charge), "cushioning": request.athlete.cushioning_bonus() if request.action == Action.RECEIVE else 0.0,"auto_charge":request.auto_evidence,"runtime_effects":request.gameplay.get("effects",{})},
-		"handling": {"profile": Registry.profile(request.action), "model": "receive_response" if not response.is_empty() else "existing_action_rules", "charge_match": assessment.get("charge_match", {}), "incoming_velocity": request.incoming,"set_isolation":assessment.get("set_isolation",{})},
+		"handling": {"profile": Registry.profile(request.action), "model": "block_response" if request.action == Action.BLOCK else ("receive_response" if not response.is_empty() else "existing_action_rules"), "charge_match": assessment.get("charge_match", {}), "incoming_velocity": request.incoming,"set_isolation":assessment.get("set_isolation",{}),"block_response":assessment.get("block_response",{})},
 		"pressure_control": {"uncontrolled_fraction": response.get("uncontrolled_fraction", 0), "absorption": response.get("receive_absorption", 0), "control": response.get("receive_control", 0), "retention": response.get("retention", 0)},
 		"redirection": {"facing": request.facing, "directional_input": request.directional_input, "redirection": response.get("receive_redirection", 0), "scatter_radians": response.get("scatter_radians", 0), "seed": request.response_seed},
 		"intent_transfer": {"intended_velocity": request.base_velocity, "outgoing_velocity": result.velocity, "delivery_quality": result.outgoing_shot.get("delivery_quality", assessment.get("quality", 0))},

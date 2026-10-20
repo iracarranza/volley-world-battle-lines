@@ -48,7 +48,7 @@ func run() -> void:
 	for field in lab.bot_menu.contacts: field.select(0)
 	lab.bot_menu.blocking.button_pressed = true
 	lab.bot_menu.apply_selected()
-	check(bots.settings[setter].action_type == 3 and bots.shapes[setter].shape == "block_columns","Inspector changes actual role and hurtbox")
+	check(bots.settings[setter].action_type == 3 and bots.shapes[setter].shape == "block_triangle","Inspector changes actual role and hurtbox")
 	lab.bot_menu.toggle()
 	lab._reset()
 	check(bots.settings[receiver].enabled and bots.settings[setter].enabled and bots.settings[attacker].enabled,"Reset preserves all bot assignments")

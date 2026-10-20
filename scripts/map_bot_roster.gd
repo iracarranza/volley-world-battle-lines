@@ -222,6 +222,7 @@ func place_at_player(slot: int) -> void:
 	replan()
 
 func dismiss(slot: int) -> void:
+	block_states.erase(slot)
 	if is_instance_valid(lab.contact_flow): lab.contact_flow.clear_actor("training_bot_%d" % slot)
 	settings[slot].enabled = false
 	actors[slot].hide()
@@ -388,7 +389,7 @@ func tick(dt: float) -> bool:
 		intercept = lab.ball.position
 		remaining = 0
 		if tick_contact(dt):
-			blocks.remove(slot)
+			if not block_state_for(slot).active: blocks.remove(slot)
 			return true
 	active_slot = ordinary.slot
 	active_action = ordinary.action

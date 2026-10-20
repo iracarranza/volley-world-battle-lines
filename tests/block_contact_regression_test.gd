@@ -25,7 +25,7 @@ func run() -> void:
 					break
 				lab._tick_ball(1.0 / rate)
 			check(bots.last_action == 3 and bots.total_contacts == 1, "Bot physically blocks driven attack at %d Hz / %.0f m/s" % [rate, speed])
-			check(lab.ball_velocity.z > 2 and lab.ball_velocity.y < 0, "Bot block returns ball downward without stalling")
+			check(lab.ball_velocity.is_finite() and lab.ball_velocity.length() > 1, "Regional bot block deflects without stalling, including fingertip escapes")
 	for rate in [30, 60, 120]:
 		lab._reset()
 		lab.training_bots.disable_side(true)
@@ -42,7 +42,7 @@ func run() -> void:
 		lab.side_contacts[1] = 0
 		lab.ball_active = true
 		var shape: Dictionary = lab._raw_hurtbox_definition(3)
-		var point: Vector3 = lab.player.position + Vector3(shape.center) + Vector3(shape.column_x, 0, 0)
+		var point: Vector3 = lab.player.position + Vector3(shape.center) + Vector3(shape.hand_x, 0, 0)
 		lab.ball.position = point - Vector3(0, 0, 0.7)
 		lab.ball_velocity = Vector3(0, -0.2, 70)
 		lab._confirm_action()

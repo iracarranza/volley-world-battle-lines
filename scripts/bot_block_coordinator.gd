@@ -21,9 +21,8 @@ func airborne(slot: int,bots: Node3D) -> bool:
 
 func candidates(bots: Node3D) -> Array[int]:
 	var result: Array[int] = []
-	if bots.last_was_block: return result
 	for slot in committed.keys():
-		if bots.slot_enabled(slot) and bots.preparation.state_for(slot).phase == "confirmed" and bots.motion.plans.has(slot): result.append(slot)
+		if bots.slot_enabled(slot) and bots.block_state_for(slot).active and not bots.block_state_for(slot).latched and bots.motion.plans.has(slot): result.append(slot)
 	return result
 
 func update(bots: Node3D,dt: float) -> void:

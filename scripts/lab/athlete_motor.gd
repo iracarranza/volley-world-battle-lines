@@ -153,6 +153,7 @@ func tick(dt: float, motion_scale: float) -> void:
 	lab.player.position.x = clampf(lab.player.position.x, -78, 78)
 	lab.player.position.z = clampf(lab.player.position.z, -78, 78)
 	if lab.player.is_on_floor() and jumped:
+		if airborne_action == 3: lab.end_passive_block()
 		lab.action_endlag = maxf(lab.action_endlag,0.12)
 		jumped = false
 		lab.animation.begin_dive_recovery()
@@ -373,6 +374,7 @@ func takeoff() -> void:
 	jump_charge = -1
 	approach_action = -1
 	jumped = true
+	if airborne_action == 3 and lab.armed: lab.begin_passive_block()
 	approach_phase_name = Approach.STEP_NAMES[3]
 	if airborne_action == 0:
 		lab._confirm_action(0.65)

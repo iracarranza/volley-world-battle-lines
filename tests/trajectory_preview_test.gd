@@ -21,7 +21,7 @@ func ready(lab: Node3D,action: int) -> void:
 	elif action == 2:
 		point += lab.Geometry.sector_point(shape,0.74,67.5,0)
 	elif action == 3:
-		point.x += float(shape.column_x)
+		point = Vector3(shape.hand_x,shape.palm,shape.center.z)
 	lab.ball.position = lab.player.position+point
 	lab.ball_velocity = Vector3(2,-4,8)
 func run() -> void:

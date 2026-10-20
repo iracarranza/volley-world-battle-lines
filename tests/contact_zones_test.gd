@@ -43,7 +43,7 @@ func run() -> void:
 	lab.training_bots.toggle(1)
 	lab._reset()
 	var sector: Dictionary = lab._hurtbox_definition(2)
-	check(sector.shape == "sector" and lab._hurtbox_definition(0).shape == "receive_fan" and lab._hurtbox_definition(3).shape == "block_columns", "Actions must use genuinely distinct geometric shapes")
+	check(sector.shape == "sector" and lab._hurtbox_definition(0).shape == "receive_fan" and lab._hurtbox_definition(3).shape == "block_triangle", "Actions must use genuinely distinct geometric shapes")
 	var samples := [{"r": 0.74, "angle": 67.5, "zone": "SWEET SPOT"}, {"r": 0.70, "angle": 35.0, "zone": "FAIR"}, {"r": 0.70, "angle": 115.0, "zone": "WEAK"}, {"r": 0.96, "angle": 67.5, "zone": "SOUR SPOT"}, {"r": 0.15, "angle": 67.5, "zone": "SOUR SPOT"}, {"r": 0.70, "angle": 5.0, "zone": "SOUR SPOT"}]
 	var speeds: Array[float] = []
 	for sample in samples:

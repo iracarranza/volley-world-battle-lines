@@ -121,7 +121,7 @@ func run() -> void:
 		lab._confirm_action()
 		lab._update_hurtbox_visual(0)
 		var definition: Dictionary = lab._hurtbox_definition(action)
-		var expected_mesh: bool = (definition.shape in ["sector", "set_sector", "block_columns"] and lab.hurtbox_mesh.mesh is ImmediateMesh) or (definition.get("receive_platform", false) and lab.hurtbox_mesh.mesh is ImmediateMesh) or (definition.shape == "ellipsoid" and lab.hurtbox_mesh.mesh is SphereMesh) or (definition.shape == "box" and lab.hurtbox_mesh.mesh is BoxMesh)
+		var expected_mesh: bool = (definition.shape in ["sector", "set_sector", "block_triangle"] and lab.hurtbox_mesh.mesh is ImmediateMesh) or (definition.get("receive_platform", false) and lab.hurtbox_mesh.mesh is ImmediateMesh) or (definition.shape == "ellipsoid" and lab.hurtbox_mesh.mesh is SphereMesh) or (definition.shape == "box" and lab.hurtbox_mesh.mesh is BoxMesh)
 		check(lab.hurtbox_root.visible and expected_mesh, "Confirmed action must reveal its actual distinct geometric contact shape")
 		lab.ball.position = lab.hurtbox_root.position + (Vector3.UP * float(definition.radius) * 0.55 if definition.shape == "set_sector" else Vector3.ZERO)
 		check(lab._overlaps_contact(action), "Ball in visible hurtbox must pass the authoritative contact test")

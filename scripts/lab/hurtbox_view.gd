@@ -112,24 +112,14 @@ func _build(shape: Dictionary, action: int, grading_shape: Dictionary = {}) -> D
 		if shape.has("edge_zone"):
 			for side in [-1.0, 1.0]:
 				world_builder.sphere(group, 0.07, Vector3(side * (shape.size.x * 0.5 + Geometry.BALL_RADIUS) * float(shape.edge_zone), 0, 0), Color("ee617b"))
-	elif shape.shape == "block_columns":
+	elif shape.shape == "block_triangle":
 		mesh_instance.mesh = Geometry.block_mesh(shape)
 		var material := world_builder.debug_material(Color.WHITE, 1.0)
 		material.vertex_color_use_as_albedo = true
 		material.cull_mode = BaseMaterial3D.CULL_DISABLED
 		mesh_instance.material_override = material
-		for side in [-1.0, 1.0]:
-			var marker := MeshInstance3D.new()
-			var cylinder := CylinderMesh.new()
-			cylinder.top_radius = shape.column_radius * 0.58
-			cylinder.bottom_radius = cylinder.top_radius
-			cylinder.height = shape.size.y * 0.65
-			marker.mesh = cylinder
-			marker.position.x = side * shape.column_x
-			marker.material_override = world_builder.debug_material(Color("67f3a3"), 0.35)
-			group.add_child(marker)
-			var sweet_wire := world_builder.wire_box(group, Vector3(shape.column_radius * 1.16, shape.size.y * 0.65, shape.column_radius * 1.16), Color("67f3a3"))
-			sweet_wire.position.x = side * shape.column_x
+		for side in [-1.0,1.0]:
+			world_builder.sphere(group,0.065,Vector3(side*float(shape.hand_x),float(shape.palm)-float(shape.center.y),0),Color("67f3a3"))
 	else:
 		var mesh := BoxMesh.new()
 		mesh.size = shape.size

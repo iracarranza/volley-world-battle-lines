@@ -39,3 +39,5 @@ var rolling_receive := false
 
 var gameplay: Dictionary = {}
 var source_athlete: LabAthlete
+
+var block_confirmation_age := -1.0

@@ -23,7 +23,7 @@ func run() -> void:
 		elif action == 2:
 			point += lab.Geometry.sector_point(shape, 0.74, 67.5, 0)
 		elif action == 3:
-			point.x += shape.column_x
+			point = Vector3(shape.hand_x,shape.palm,shape.center.z)
 		lab.ball.position = lab.player.position + point
 		lab._confirm_action()
 		lab._contact()
