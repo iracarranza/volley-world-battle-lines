@@ -11,7 +11,7 @@ var steering_speed := 0.005
 var steering_duration := 1.0
 var steering_rate := 1.25
 var steering_hp_cost := 10.0
-var steering_ramp := 0.08
+var steering_ramp := 0.06
 var steering_feedback: Dictionary = {}
 var mode := Mode.CURRENT_SLOWDOWN
 const TUNED_DURATION := 0.2
@@ -202,7 +202,7 @@ func steer(dt: float, input: Vector3) -> void:
 	var athlete = owner_lab.athlete
 	var hp_multiplier := 1.5 if athlete.exhausted else 1.0
 	var before := steering.velocity
-	steering_feedback = steering.step(input,dt,steering_rate,steering_hp_cost*hp_multiplier,athlete.hp)
+	steering_feedback = steering.step(input,dt,steering_rate,steering_hp_cost*hp_multiplier*maxf(0,1.0-athlete.trait_effect("di_cost_reduction")/100.0),athlete.hp)
 	athlete.spend(0,float(steering_feedback.cost)/hp_multiplier)
 	# Preserve gravity/physics accumulated since the preceding real-time update.
 	owner_lab.ball_velocity += steering.velocity-before

@@ -15,6 +15,11 @@ var level_label: Label
 var xp_label: Label
 var flow_bar: ProgressBar
 var flow_value: Label
+const HP_RED := Color("ff5969")
+var hp_previous := 100.0
+var hp_damage_hold := 0.0
+var hp_warmth := 0.0
+var hp_steering_spent := 0.0
 var hp_bar: ProgressBar
 var sta_bar: ProgressBar
 var hp_value: Label
@@ -84,6 +89,8 @@ func setup(owner_lab: Node3D) -> void:
 	resources.add_child(sta_bar)
 	sta_value = _bar_label(sta_bar)
 	hp_bar = _bar(HP_COLOR)
+	hp_bar.step = 0.01
+	hp_bar.value = 100
 	resources.add_child(hp_bar)
 	hp_value = _bar_label(hp_bar)
 	resized.connect(_layout)
@@ -187,7 +194,6 @@ func update_values() -> void:
 	flow_value.text = "FLOW   %d / 100" % roundi(lab.athlete.flow)
 	sta_bar.max_value = lab.athlete.max_stamina()
 	sta_bar.value = lab.athlete.stamina
-	hp_bar.value = lab.athlete.hp
 	sta_value.text = "STAMINA   %d / %d" % [roundi(lab.athlete.stamina),roundi(lab.athlete.max_stamina())]
 	if lab.athlete.exhausted or lab.athlete.winded:
 		sta_value.text += "   ·   " + lab.athlete.fatigue_text()
@@ -205,3 +211,25 @@ func _draw() -> void:
 	var badge := Vector2(156, size.y - 48)
 	draw_circle(badge, 23, Color("101d29"))
 	draw_arc(badge, 21, 0, TAU, 48, Color("c5aa68"), 2, true)
+
+func _process(dt: float) -> void:
+	if not is_instance_valid(lab): return
+	update_hp_feedback(dt)
+
+func update_hp_feedback(dt: float) -> void:
+	var steering: bool = lab.moc.steering_active()
+	var spent: float = lab.moc.steering.spent if steering else 0.0
+	var steering_spend := maxf(0,spent-hp_steering_spent)
+	if hp_previous-lab.athlete.hp > steering_spend+0.0001: hp_damage_hold = 0.45
+	hp_steering_spent = spent
+	hp_previous = lab.athlete.hp
+	hp_damage_hold = maxf(0,hp_damage_hold-dt)
+	var alteration: float = lab.moc.steering_feedback.get("amount",0) if steering else 0.0
+	var target := maxf(alteration,1.0 if hp_damage_hold > 0 else 0.0)
+	hp_warmth = move_toward(hp_warmth,target,dt*(12.0 if target > hp_warmth else 2.0))
+	hp_bar.value = move_toward(hp_bar.value,lab.athlete.hp,dt*80.0) if lab.athlete.hp < hp_bar.value else lab.athlete.hp
+	var fill: StyleBoxFlat = hp_bar.get_theme_stylebox("fill")
+	fill.bg_color = HP_COLOR.lerp(HP_RED,hp_warmth)
+	fill.shadow_color = Color(fill.bg_color,0.65 if steering else hp_warmth*0.4)
+	fill.shadow_size = 7 if steering else roundi(hp_warmth*4)
+	if steering: hp_value.text = "HP   %d / 100   ·   DI −%.1f" % [roundi(lab.athlete.hp),lab.moc.steering.spent]

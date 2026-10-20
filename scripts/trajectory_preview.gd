@@ -14,6 +14,11 @@ const SAMPLES := 36
 # The hint assumes ideal timing and a matching receive charge. It retains the
 # current platform/arm intersection, stats and DI; it never changes live state.
 static func predict(lab: Node3D) -> Dictionary:
+	if lab.moc.steering_active() and lab.ball_active:
+		var live := flight(lab.ball.position,lab.ball_velocity,lab.GRAVITY)
+		live.merge({"contact_ready":true,"action":lab.moc.steering.action,"steering":true,"color":lab.moc.steering_feedback.get("color",Color("59d8ff")),"hp_cost":lab.moc.steering.spent})
+		live.make_read_only()
+		return live
 	if lab.is_benched() or not lab.ball_active or not (lab.armed or lab.charging) or lab.serve.tossing():
 		return {}
 	var action: int = lab.locked_action if lab.armed else (lab.motion.airborne_action if lab.motion.jumped and lab.motion.airborne_action >= 0 else lab.selected)
@@ -45,7 +50,12 @@ static func predict(lab: Node3D) -> Dictionary:
 	request.base_velocity = lab._shot_velocity(origin, action, power, target)
 	var assessment := ContactResolver.assess(request)
 	var velocity := ContactResolver.resolve(request, assessment).velocity
-	var gravity: float = lab.GRAVITY
+	var result := flight(origin,velocity,lab.GRAVITY)
+	result.merge({"contact_ready":reachable,"action":action,"assessment":assessment,"charge":power,"ideal_timing":true,"ideal_charge_match":true})
+	result.make_read_only()
+	return result
+
+static func flight(origin: Vector3,velocity: Vector3,gravity: float) -> Dictionary:
 	var drop := maxf(origin.y-Geometry.VISUAL_BALL_RADIUS,0)
 	var full_time := (velocity.y+sqrt(velocity.y*velocity.y+2*gravity*drop))/gravity
 	var duration := minf(full_time*FLIGHT_FRACTION,MAX_SECONDS)
@@ -63,9 +73,7 @@ static func predict(lab: Node3D) -> Dictionary:
 			break
 		points.append(point)
 		length += segment
-	var result := {"origin": origin,"velocity": velocity,"points": points,"duration": drawn_duration,"full_flight_time": full_time,"contact_ready": reachable,"action": action,"assessment": assessment,"charge": power,"ideal_timing": true,"ideal_charge_match": true}
-	result.make_read_only()
-	return result
+	return {"origin":origin,"velocity":velocity,"points":points,"duration":drawn_duration,"full_flight_time":full_time}
 
 static func projected_contact(shape: Dictionary, local: Vector3, action: int) -> Vector3:
 	var center: Vector3 = shape.center
@@ -113,7 +121,8 @@ static func ribbon(result: Dictionary, camera: Vector3, mesh: ImmediateMesh = nu
 		for glow in [true,false]:
 			var half_width := 0.11 if glow else 0.023
 			var alpha := (0.18 if glow else 0.92)*readiness
-			var color := Color("59d8ff") if glow else Color("b9f7ff")
+			var tint: Color = result.get("color",Color("59d8ff"))
+			var color := tint if glow else tint.lerp(Color.WHITE,0.65)
 			var fade_a := (1.0-smoothstep(0.65,1,progress))*alpha
 			var fade_b := (1.0-smoothstep(0.65,1,end_progress))*alpha
 			var offset_a := side*half_width*lerpf(1,0.55,progress)
@@ -123,7 +132,8 @@ static func ribbon(result: Dictionary, camera: Vector3, mesh: ImmediateMesh = nu
 				mesh.surface_set_color(Color(color,fade_a if corner < 2 else fade_b))
 				mesh.surface_add_vertex(corners[corner])
 		if index % 7 == 3 and progress < 0.8:
-			var color := Color(0.55,0.91,1,0.8*readiness*(1-progress))
+			var color: Color = Color(result.get("color",Color("59d8ff"))).lerp(Color.WHITE,0.35)
+			color.a = 0.8*readiness*(1-progress)
 			for point in [a+tangent*0.14,a-tangent*0.06+side*0.12,a-tangent*0.06-side*0.12]:
 				mesh.surface_set_color(color)
 				mesh.surface_add_vertex(point)

@@ -65,6 +65,8 @@ func run() -> void:
 	clock.begin(event("slow-again",2))
 	check(clock.mode == Clock.Mode.NONE and clock.simulation_scale() == 1.0, "Third mode disables slowdown")
 	lab.hud.toggle_moc_mode()
+	check(clock.mode == Clock.Mode.TRAJECTORY_STEERING,"Next toggle selects trajectory steering")
+	lab.hud.toggle_moc_mode()
 	clock.begin(event("current-again",2))
 	check(clock.mode == Clock.Mode.CURRENT_SLOWDOWN and clock.simulation_scale() == 0.60, "Next toggle restores original slowdown")
 	clock.clear()

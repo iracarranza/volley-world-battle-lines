@@ -210,7 +210,7 @@ func build() -> void:
 	debug_button = button("BOXES: ON [K]", toggle_debug_volumes)
 	toolbar.add_child(debug_button)
 	moc_button = button("MoC: CURRENT [O]", toggle_moc_mode)
-	moc_button.tooltip_text = "Cycle Current, Tuned and Off; open MoC Settings to tune local slowdown."
+	moc_button.tooltip_text = "Cycle Current, Tuned, Off and Trajectory Steering; open MoC Settings to tune local slowdown."
 	toolbar.add_child(moc_button)
 	moc_menu = preload("res://scripts/lab/moc_menu.gd").new(self)
 	toolbar.add_child(button("MoC SETTINGS", moc_menu.toggle))
@@ -234,8 +234,8 @@ func build() -> void:
 	ui.add_child(reticle)
 
 func toggle_moc_mode() -> void:
-	lab.moc.set_mode((lab.moc.mode + 1) % 3)
-	moc_button.text = ["MoC: CURRENT [O]", "MoC: TUNED [O]", "MoC: OFF [O]"][lab.moc.mode]
+	lab.moc.set_mode((lab.moc.mode + 1) % 4)
+	moc_button.text = ["MoC: CURRENT [O]", "MoC: TUNED [O]", "MoC: OFF [O]", "MoC: STEERING [O]"][lab.moc.mode]
 	moc_menu.sync_mode()
 	lab._message("MoC / " + lab.moc.mode_name())
 
@@ -285,7 +285,6 @@ func update() -> void:
 		lab.bench.refresh_ui()
 		camera_badge.text = "BENCHED / %.1fs\nV spectate / Q–R cycle Home teammates" % lab.bench.remaining
 	build_button.text = lab.athlete.build.name + "  [TAB]"
-	hp_bar.value = lab.athlete.hp
 	sta_bar.value = lab.athlete.stamina
 	info.text = "HP  %03d       STA  %03d%s" % [lab.athlete.hp, lab.athlete.stamina, "  " + lab.athlete.fatigue_text() if lab.athlete.exhausted or lab.athlete.winded else ""]
 	metrics.text = "Height %.2fm  ·  Reach %.2fm\nPOW %d   SPD %d   ACC %d   END %d\nReturns %d / %d   ·   Last %s" % [lab.athlete.build.height, lab.athlete.reach(), lab.athlete.build.power, lab.athlete.build.speed, lab.athlete.build.accuracy, lab.athlete.build.endurance, lab.returns, lab.attempts, lab.last_quality]

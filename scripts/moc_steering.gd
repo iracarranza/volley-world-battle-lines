@@ -37,9 +37,16 @@ func step(input: Vector3, dt: float, rate: float, hp_per_unit: float, available_
 		cost = maxf(0,available_hp)
 	axes += change
 	spent += cost
-	var result := Influence.resolve(base,action,axes,facing,quality,vision)
+	var result := Influence.resolve(base,2 if action == 3 else action,axes,facing,quality,vision)
 	velocity = result.velocity
 	if action == 2:
 		var agreement := signf(geometry)*float(result.axes.x)
+		if agreement < 0:
+			var initial_yaw := atan2(-base.x,-base.z)
+			var facing_yaw := atan2(-facing.x,-facing.z)
+			var bias := wrapf(initial_yaw-facing_yaw,-PI,PI)
+			var outgoing_yaw := wrapf(atan2(-velocity.x,-velocity.z)-facing_yaw,-PI,PI)
+			var corrected := clampf(outgoing_yaw,minf(0,bias),maxf(0,bias))
+			velocity = facing.rotated(Vector3.UP,corrected)*Vector2(velocity.x,velocity.z).length()+Vector3.UP*velocity.y
 		velocity *= 1.0+agreement*clampf(absf(geometry)/0.70,0,1)*(0.18 if agreement >= 0 else 0.22)
 	return {"velocity":velocity,"cost":cost,"amount":axes.length(),"spent":spent,"color":BLUE.lerp(RED,axes.length())}
