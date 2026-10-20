@@ -90,7 +90,7 @@ func update(bots: Node3D,dt: float) -> void:
 		var jump_time := maxf(0.04,crossing_time+timing_error)
 		bots.motion.begin(slot,actor,Vector3(target.x,jump,target.z),jump_time,true,lab.GRAVITY,bots.move_speed_for(slot) if bots.settings[slot].moves else -1.0,actor.rotation.y,bots.athlete_for(slot).explosiveness_rate(),3)
 		bots.spend_jump(slot)
-		bots.preparation.begin(slot,3,{},jump_time,bots.settings[slot].charge_accuracy,bots.charge_random)
+		bots.preparation.begin(slot,3,{},jump_time,bots.settings[slot].charge_accuracy,bots.charge_random,0.0,1.0,bots.intended_charge_for(slot))
 		committed[slot] = true
 		attempted["%d:%d" % [slot,int(threat.episode)]] = true
 		if bots.active_slot == slot: bots.replan()

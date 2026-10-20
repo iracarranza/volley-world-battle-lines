@@ -361,7 +361,7 @@ func _attempt_unreachable_jumps(origin: Vector3, velocity: Vector3, gravity: flo
 			intercept = projected
 			remaining = time
 			if action == 2: lab.contact_flow.on_attack_charge("training_bot_%d"%slot)
-			preparation.begin(slot, action, lab.ball_shot, time, settings[slot].charge_accuracy, charge_random,athlete_for(slot).cushioning_bonus(),athlete_for(slot).low_stamina_factor())
+			preparation.begin(slot, action, lab.ball_shot, time, settings[slot].charge_accuracy, charge_random,athlete_for(slot).cushioning_bonus(),athlete_for(slot).low_stamina_factor(),intended_charge_for(slot))
 
 func set_contact_order(slot: int, order: int) -> void:
 	settings[slot].contact_order = clampi(order, 0, 3)
@@ -436,6 +436,14 @@ func contact_anchor(slot: int) -> Vector3:
 		return Vector3(shape.center) + Geometry.sector_point(shape, 0.74, 67.5, 0.0)
 	return Vector3(shape.center) + (Vector3.RIGHT * float(shape.hand_x) if slot_action(slot) == 3 else Vector3.ZERO)
 
+func intended_charge_for(slot: int) -> float:
+	return -1.0 if settings[slot].auto_intended_charge else settings[slot].intended_charge
+
+func set_intended_charge(slot: int,auto: bool,value: float) -> void:
+	settings[slot].auto_intended_charge = auto
+	settings[slot].intended_charge = clampf(value,0,1)
+	replan()
+
 func set_charge_accuracy(slot: int, value: float) -> void:
 	settings[slot].charge_accuracy = clampf(value, 0, 100)
 
@@ -455,7 +463,7 @@ func _plan(action: int, point: Vector3, time: float, chosen_slot: int = -1) -> v
 	active_slot = slot
 	returns.release(slot)
 	if action == 2: lab.contact_flow.on_attack_charge("training_bot_%d"%slot)
-	preparation.begin(slot, action, lab.ball_shot, time, settings[slot].charge_accuracy, charge_random,athlete_for(slot).cushioning_bonus(),athlete_for(slot).low_stamina_factor())
+	preparation.begin(slot, action, lab.ball_shot, time, settings[slot].charge_accuracy, charge_random,athlete_for(slot).cushioning_bonus(),athlete_for(slot).low_stamina_factor(),intended_charge_for(slot))
 	if action == 0:
 		var toward_setter := setter_direction(slot, actors[slot].position)
 		if toward_setter.length_squared() > 0:
@@ -687,6 +695,9 @@ func tick_contact(dt: float) -> bool:
 	request.incoming = incoming
 	request.incoming_shot = incoming_shot
 	request.charge = float(prepared.locked_charge)
+	if action == 3:
+		var reference: float = preload("res://scripts/stat_tuning.gd").reaction_cap(request.athlete.stat("reaction_speed"))
+		request.block_charge_reference = request.charge if not settings[slot].auto_intended_charge else reference*request.charge/Preparation.DEFAULT_CHARGE
 	request.block_confirmation_age = block_state_for(slot).confirmation_age if passive else float(prepared.confirmation_age)
 	request.confirmation_age = float(prepared.confirmation_age)
 	request.facing = Vector3.FORWARD.rotated(Vector3.UP, actors[slot].rotation.y)

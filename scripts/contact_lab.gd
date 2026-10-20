@@ -465,6 +465,7 @@ func contact_request(action: int) -> ContactRequest:
 		request.auto_charge = true
 		request.auto_evidence = auto_preparation.sample(athlete,ball_shot,ball_velocity)
 		request.handling_charge = float(request.auto_evidence.handling_charge)
+	if action == 3 and not auto_preparation.active: request.block_charge_reference = request.charge
 	request.block_confirmation_age = block_state.confirmation_age if block_state.active else (confirm_duration-maxf(confirm_window,0) if confirm_window > 0 else -1.0)
 	request.confirmation_age = confirm_duration - maxf(confirm_window, 0) if confirm_duration > 0 else Execution.SWEET_DELAY
 	request.remembered = not Geometry.contains(request.shape, request.local_point) and contact_memory[action] > 0

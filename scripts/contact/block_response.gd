@@ -8,7 +8,10 @@ static func assess(request: RefCounted,spatial: Dictionary) -> Dictionary:
 	var age: float = request.block_confirmation_age
 	var pulse := pow(clampf(1.0-age/PRESS_SECONDS,0,1),3) if age >= 0 else 0.0
 	var reference: float = Stats.reaction_cap(request.athlete.stat("reaction_speed"))*request.athlete.low_stamina_factor()
-	var capacity: float = reference*0.75*float(spatial.get("block_capacity",1))*(1.0+pulse*float(spatial.get("block_sweet_weight",1)))
+	var effort: float = reference if request.block_charge_reference < 0 else request.block_charge_reference*request.athlete.low_stamina_factor()
+	var passive := reference*0.75
+	var press := effort*0.75*(1.0+float(spatial.get("block_sweet_weight",1)))
+	var capacity: float = lerpf(passive,press,pulse)*float(spatial.get("block_capacity",1))
 	var incoming_charge := maxf(0,float(request.incoming_shot.get("charge",request.incoming.length()/30.0)))
 	var tolerance: float = request.athlete.trait_effect("charge_tolerance")
 	var severity := smoothstep(0,maxf(0.05,0.35*(1.0+tolerance/100.0)),maxf(0,incoming_charge-capacity))
@@ -20,7 +23,7 @@ static func assess(request: RefCounted,spatial: Dictionary) -> Dictionary:
 	return result
 
 static func resolve(request: RefCounted,assessment: Dictionary) -> Dictionary:
-	var response: Dictionary = assessment.block_response
+	var response: Dictionary = assessment.block_response.duplicate(true)
 	var facing: Vector3 = request.facing.normalized()
 	var yaw := atan2(-facing.x,-facing.z)
 	var incoming: Vector3 = request.incoming.rotated(Vector3.UP,-yaw)
@@ -38,12 +41,19 @@ static func resolve(request: RefCounted,assessment: Dictionary) -> Dictionary:
 	var controlled := Vector3(side*pace*edge*0.20,-(0.6+lerpf(0.8,4.0,timing)*float(response.sweet_weight)),-maxf(2.5,absf(incoming.z)*0.42))
 	controlled.y += incoming.y*0.25-0.8*flow
 	controlled *= 1.0-0.15*flow
-	var escape := reflected*(0.40+0.48*severity)
-	# Upper surfaces permit a roof/touch-out; lower ones shed force laterally.
-	escape.x += side*pace*edge*(0.25+0.30*severity)
-	escape.y += incoming.y*height*edge*0.25
-	var mix := clampf(edge+severity*0.65,0,1)
+	# Deflection direction and force are independent: an upper touch can be a
+	# useful soft ball behind the blocker rather than a full-speed tool-out.
+	var retention := lerpf(0.14,0.44,severity)*(1.0-0.15*flow)
+	var escape := reflected.normalized()*pace*retention
+	var upper := smoothstep(0.62,0.94,height)*smoothstep(0.08,0.55,edge)
+	var soft_back := Vector3(side*0.55,maxf(0.25,-incoming.y/maxf(pace,1)*0.5),0.65).normalized()*pace*retention
+	escape = escape.lerp(soft_back,upper*(0.65+0.20*severity))
+	if escape.length_squared() > 0.001:
+		escape = (escape.normalized()+Vector3(side*edge*0.35,0,0)).normalized()*escape.length()
+	var mix := clampf(edge*0.85+severity*0.45+upper*0.45,0,1)
 	var outgoing := controlled.lerp(escape,mix)
+	response["retention"] = retention
+	response["outcome"] = "soft_backward" if outgoing.z > 0 and severity < 0.5 else ("overpowered_touch" if severity >= 0.5 else ("soft_outward" if absf(side) > 0.5 else "controlled_return"))
 	var scatter: float = sin(float(request.response_seed)*1.73+incoming.y*0.21)*edge*(0.04+0.14*severity)/(1.0+request.athlete.ball_control()/100.0)
 	outgoing = outgoing.rotated(Vector3.UP,scatter)
 	if outgoing.length() < 1: outgoing = normal+Vector3.UP*0.1
@@ -57,4 +67,4 @@ static func resolve(request: RefCounted,assessment: Dictionary) -> Dictionary:
 	var target_z := float(shape.center.z)+sign_z*(float(shape.size.z)*0.5+Geometry.BALL_RADIUS+0.02)
 	var offset := Vector3(0,0,target_z-point.z).rotated(Vector3.UP,yaw)
 	var charge := maxf(0,float(response.incoming_charge)*pow(world.length()/maxf(request.incoming.length(),18),2))
-	return {"velocity":world,"separation_offset":offset,"shot":Snapshot.freeze({"kind":"block","actor":request.actor_id,"charge":charge,"action_charge":request.charge,"delivery_quality":assessment.quality,"reference_speed":world.length(),"block_response":response})}
+	return {"evidence":response,"velocity":world,"separation_offset":offset,"shot":Snapshot.freeze({"kind":"block","actor":request.actor_id,"charge":charge,"action_charge":request.charge,"delivery_quality":assessment.quality,"reference_speed":world.length(),"block_response":response})}

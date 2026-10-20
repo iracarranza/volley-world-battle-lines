@@ -13,15 +13,17 @@ func state_for(key: int) -> Dictionary:
 		states[key] = {"phase": "preparing", "charge": 0.0, "target": DEFAULT_CHARGE, "locked_charge": 0.0, "elapsed": 0.0, "release_at": INF, "confirmation_age": -1.0, "planned": false}
 	return states[key]
 
-func begin(key: int, action: int, shot: Dictionary, time: float, accuracy: float, random: RandomNumberGenerator, cushioning: float = 0.0, available_output: float = 1.0) -> void:
+func begin(key: int, action: int, shot: Dictionary, time: float, accuracy: float, random: RandomNumberGenerator, cushioning: float = 0.0, available_output: float = 1.0, intended_charge: float = -1.0) -> void:
 	var state := state_for(key)
 	var match_result := ReceiveCharge.match_charge(shot, 0)
 	var target := clampf(preload("res://scripts/auto_charge.gd").receive_target(float(match_result.minimum),cushioning,available_output),0,1) if action == 0 and match_result.required else DEFAULT_CHARGE
+	if intended_charge >= 0: target = clampf(intended_charge,0,1)
+	var intended := target
 	if accuracy < 100:
 		target = clampf(target + random.randf_range(-0.35, 0.35) * (1.0 - clampf(accuracy, 0, 100) / 100.0), 0, 1)
 	if float(state.charge) > target:
 		state.charge = 0.0 # Cancel and recharge rather than silently subtracting charge.
-	state.merge({"target": target, "phase": "charging", "elapsed": 0.0, "release_at": maxf(0, time - Execution.SWEET_DELAY), "confirmation_age": -1.0, "planned": true}, true)
+	state.merge({"mode":"auto" if intended_charge < 0 else "fixed","intended_charge":intended,"accuracy":accuracy,"target": target, "phase": "charging", "elapsed": 0.0, "release_at": maxf(0, time - Execution.SWEET_DELAY), "confirmation_age": -1.0, "planned": true}, true)
 
 func tick(key: int, dt: float) -> void:
 	var state := state_for(key)

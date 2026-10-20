@@ -14,6 +14,8 @@ var move_speed: HSlider
 var tracking: HSlider
 var aiming: HSlider
 var charge: HSlider
+var charge_mode: OptionButton
+var intended_charge: HSlider
 var vitals: Label
 var summary: Label
 var feedback: Label
@@ -57,7 +59,13 @@ func _init(owner_hud: RefCounted) -> void:
 	move_speed = slider(stack,"Move speed",0,12,6," m/s",0.25)
 	tracking = slider(stack,"Tracking accuracy",0,100,100,"%")
 	aiming = slider(stack,"Aiming accuracy",0,100,100,"%")
+	charge_mode = option(stack,"Charge target",["Auto (action-based)","Fixed"])
+	charge_mode.tooltip_text = "Block charge affects confirmation; passive coverage keeps its Auto strength."
+	intended_charge = slider(stack,"Intended charge",0,100,65,"%")
+	intended_charge.editable = false
+	charge_mode.item_selected.connect(func(index: int): intended_charge.editable = index == 1)
 	charge = slider(stack,"Charge accuracy",0,100,100,"%")
+	stack.add_child(hud.label("Accuracy affects both modes. Fixed charge still needs time to build.",13))
 	var buttons := HBoxContainer.new()
 	stack.add_child(buttons)
 	buttons.add_child(hud.button("SUMMON NEW BOT",summon))
@@ -68,11 +76,20 @@ func _init(owner_hud: RefCounted) -> void:
 	feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	feedback.custom_minimum_size.x = 650
 	stack.add_child(feedback)
-	stack.add_child(hud.label("PEPPER PARTNER ACCURACY",16,hud.TEAL))
+	stack.add_child(hud.label("PEPPER PARTNER CONTACTS",16,hud.TEAL))
 	for index in range(3):
 		var partner := index
 		var aim := slider(stack,"Partner %d aim" % (index+1),0,100,hud.lab.pepper.settings[index].aiming_accuracy,"%")
 		aim.value_changed.connect(func(value: float): hud.lab.pepper.set_aiming_accuracy(partner,value))
+		var target_mode := option(stack,"Partner %d charge target"%(index+1),["Auto (action-based)","Fixed"])
+		target_mode.select(0 if hud.lab.pepper.settings[index].auto_intended_charge else 1)
+		var target_value := slider(stack,"Partner %d intended charge"%(index+1),0,100,hud.lab.pepper.settings[index].intended_charge*100,"%")
+		target_value.editable = target_mode.selected == 1
+		target_mode.item_selected.connect(func(mode: int):
+			hud.lab.pepper.settings[partner].auto_intended_charge = mode == 0
+			target_value.editable = mode == 1
+		)
+		target_value.value_changed.connect(func(value: float): hud.lab.pepper.settings[partner].intended_charge = value/100.0)
 		var control := slider(stack,"Partner %d charge" % (index+1),0,100,hud.lab.pepper.settings[index].charge_accuracy,"%")
 		control.value_changed.connect(func(value: float): hud.lab.pepper.set_charge_accuracy(partner,value))
 	stack.add_child(hud.button("CLOSE",toggle))
@@ -147,6 +164,9 @@ func load_selected() -> void:
 	tracking.value = config.tracking_accuracy
 	aiming.value = config.aiming_accuracy
 	charge.value = config.charge_accuracy
+	charge_mode.select(0 if config.auto_intended_charge else 1)
+	intended_charge.value = config.intended_charge*100
+	intended_charge.editable = not config.auto_intended_charge
 
 func save_behavior(slot: int) -> void:
 	var bots = hud.lab.training_bots
@@ -155,6 +175,7 @@ func save_behavior(slot: int) -> void:
 	bots.set_tracking_accuracy(slot,tracking.value)
 	bots.set_aiming_accuracy(slot,aiming.value)
 	bots.set_charge_accuracy(slot,charge.value)
+	bots.set_intended_charge(slot,charge_mode.selected == 0,intended_charge.value/100.0)
 
 func summon() -> void:
 	var bots = hud.lab.training_bots

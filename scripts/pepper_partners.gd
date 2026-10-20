@@ -196,7 +196,7 @@ func plan() -> void:
 	rise_time = minf(sqrt(2 * maxf(jump_height, 0.01) / lab.GRAVITY)/athlete_for(partner).explosiveness_rate(), remaining)
 	planned = true
 	if stage == 2: lab.contact_flow.on_attack_charge("pepper_%d"%partner)
-	preparation.begin(partner, stage, lab.ball_shot, remaining, settings[partner].charge_accuracy, charge_random,athlete_for(partner).cushioning_bonus(),athlete_for(partner).low_stamina_factor())
+	preparation.begin(partner, stage, lab.ball_shot, remaining, settings[partner].charge_accuracy, charge_random,athlete_for(partner).cushioning_bonus(),athlete_for(partner).low_stamina_factor(),-1.0 if settings[partner].auto_intended_charge else settings[partner].intended_charge)
 	_show_volume(definition)
 
 func _show_volume(definition: Dictionary) -> void:

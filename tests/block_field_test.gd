@@ -52,6 +52,25 @@ func run() -> void:
 	check(falling.velocity.z > 0,"Upper sourspot permits a deflection behind the blocker")
 	check(not falling.velocity.is_equal_approx(rising.velocity),"Incoming vertical velocity affects block output")
 	check(falling.separation_offset.length() > 0,"Block contact separates the ball from its platform")
+	upper.incoming_shot.charge = 0.02
+	var soft_back := Resolver.resolve(upper,Resolver.assess(upper))
+	check(soft_back.velocity.z > 0 and soft_back.velocity.length() < upper.incoming.length()*0.4,"Matched upper touch can send a useful soft ball behind the blocker")
+	lower.incoming_shot.charge = 0.02
+	var soft_side := Resolver.resolve(lower,Resolver.assess(lower))
+	var core = request_at(palm,0)
+	core.incoming_shot.charge = 0.02
+	var core_result := Resolver.resolve(core,Resolver.assess(core))
+	check(soft_side.velocity.x > 0 and soft_side.velocity.length() < core_result.velocity.length(),"Outward touch redirects with less force than central block")
+	core.incoming_shot.charge = 0.65
+	core.block_charge_reference = 0.2
+	var weak_press := Resolver.assess(core)
+	core.block_charge_reference = 1.0
+	var strong_press := Resolver.assess(core)
+	check(weak_press.block_response.severity > strong_press.block_response.severity,"Confirmed block strength respects chosen charge")
+	core.block_confirmation_age = -1
+	var passive_high := Resolver.assess(core)
+	core.block_charge_reference = 0.2
+	check(is_equal_approx(passive_high.block_response.capacity,Resolver.assess(core).block_response.capacity),"Passive block stays at its Auto reference independently of manual effort")
 	var state := State.new()
 	state.start()
 	check(state.active and state.confirmation_age < 0,"Takeoff establishes passive coverage")

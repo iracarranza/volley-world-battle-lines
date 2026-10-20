@@ -20,6 +20,8 @@ static func apply_net_2(bots: Node3D) -> bool:
 		config.tracking_accuracy = float(preset.tracking_accuracy)
 		config.aiming_accuracy = float(preset.aiming_accuracy)
 		config.charge_accuracy = float(preset.charge_accuracy)
+		config.auto_intended_charge = str(preset.get("charge_mode","Auto")) == "Auto"
+		config.intended_charge = float(preset.get("intended_charge",0.65))
 		bots._place(slot,center+Vector3(float(entry.position[0]),0,float(entry.position[1])))
 	bots.reset()
 	return true

@@ -125,6 +125,7 @@ static func resolve(request: Request, assessment: Dictionary) -> Result:
 			result.outgoing_shot = BallState.receive(request.charge, request.actor_id, request.incoming_shot, request.incoming, velocity, response.delivery_quality, response)
 	if request.action == Action.BLOCK and assessment.hit:
 		var response := BlockResponse.resolve(request,assessment)
+		result.assessment["block_response"] = response.evidence
 		velocity = response.velocity
 		result.separation_offset = response.separation_offset
 		result.outgoing_shot = response.shot

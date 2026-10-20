@@ -15,6 +15,8 @@ extends Resource
 @export_range(0, 100) var tracking_accuracy := 100.0
 @export_range(0, 100) var aiming_accuracy := 100.0
 @export_range(0, 100) var charge_accuracy := 100.0
+@export var auto_intended_charge := true
+@export_range(0, 1, 0.01) var intended_charge := 0.65
 var fixed_position := Vector3.ZERO
 
 func contact_actions() -> Dictionary:

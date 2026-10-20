@@ -41,3 +41,6 @@ var gameplay: Dictionary = {}
 var source_athlete: LabAthlete
 
 var block_confirmation_age := -1.0
+
+# Negative keeps the passive/Auto reference; explicit effort affects confirmed blocks.
+var block_charge_reference := -1.0
