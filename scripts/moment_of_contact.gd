@@ -4,7 +4,15 @@ signal impact_started(event: Dictionary)
 signal impact_ended
 
 # Contact-triggered local simulation clocks; preparation always runs at full speed.
-enum Mode { CURRENT_SLOWDOWN, TUNED_SLOWDOWN, NONE }
+enum Mode { CURRENT_SLOWDOWN, TUNED_SLOWDOWN, NONE, TRAJECTORY_STEERING }
+const Steering := preload("res://scripts/moc_steering.gd")
+var steering := Steering.new()
+var steering_speed := 0.005
+var steering_duration := 1.0
+var steering_rate := 1.25
+var steering_hp_cost := 10.0
+var steering_ramp := 0.08
+var steering_feedback: Dictionary = {}
 var mode := Mode.CURRENT_SLOWDOWN
 const TUNED_DURATION := 0.2
 const DURATION_EXTENSION := 0.100
@@ -52,13 +60,14 @@ static func duration_for(action: int, incoming: Vector3, outgoing: Vector3, swee
 	return base + DURATION_EXTENSION if base > 0 else 0.0
 
 func set_mode(next_mode: int) -> void:
-	next_mode = clampi(next_mode,Mode.CURRENT_SLOWDOWN,Mode.NONE)
+	next_mode = clampi(next_mode,Mode.CURRENT_SLOWDOWN,Mode.TRAJECTORY_STEERING)
 	if mode == next_mode:
 		return
 	clear()
 	mode = next_mode
 
 func mode_name() -> String:
+	if mode == Mode.TRAJECTORY_STEERING: return "Trajectory Steering"
 	return "No MoC" if mode == Mode.NONE else ("Current Slowdown" if mode == Mode.CURRENT_SLOWDOWN else "Tuned Slowdown")
 
 static func tuned_parts(event: Dictionary) -> Dictionary:
@@ -69,6 +78,9 @@ static func tuned_parts(event: Dictionary) -> Dictionary:
 func _effect_scale() -> float:
 	if active and _now() >= _end_usec:
 		_expire(_now())
+	if active and mode == Mode.TRAJECTORY_STEERING:
+		var age := float(_now()-_chain_start_usec)/1000000.0
+		return lerpf(1.0,steering_speed,smoothstep(0,steering_ramp,age))
 	return (tuned_speed if mode == Mode.TUNED_SLOWDOWN else SLOW_SCALE) if active else 1.0
 
 func simulation_scale() -> float:
@@ -88,6 +100,8 @@ func begin(event: Dictionary) -> void:
 		parts.contact = tuned_duration
 		parts.total = tuned_duration
 	var duration: float = 0.0 if mode == Mode.NONE else (legacy_duration if mode == Mode.CURRENT_SLOWDOWN else parts.total)
+	if mode == Mode.TRAJECTORY_STEERING:
+		duration = steering_duration if int(event.action) in [0,1,2,3] else 0.0
 	if not bool(event.get("physical_hit", false)):
 		return
 	if mode == Mode.CURRENT_SLOWDOWN and legacy_duration <= 0 and int(event.action) != 1:
@@ -112,7 +126,7 @@ func begin(event: Dictionary) -> void:
 	last_event.make_read_only()
 	event_count += 1
 	# A new non-spike contact ends the tuned observation of the previous spike.
-	if int(event.action) == 1 or (mode == Mode.TUNED_SLOWDOWN and int(event.action) != 2):
+	if (int(event.action) == 1 and mode != Mode.TRAJECTORY_STEERING) or (mode == Mode.TUNED_SLOWDOWN and int(event.action) != 2):
 		clear()
 	impact_started.emit(last_event)
 	if duration <= 0 or not enabled or (is_instance_valid(owner_lab) and owner_lab.paused):
@@ -120,6 +134,15 @@ func begin(event: Dictionary) -> void:
 	var now := _now()
 	if active and now >= _end_usec:
 		_expire(now)
+	if mode == Mode.TRAJECTORY_STEERING:
+		_chain_start_usec = now
+		_end_usec = now+int(steering_duration*1000000)
+		acting_actor = str(event.get("actor","player"))
+		var vision: float = owner_lab.contact_flow.profile(acting_actor).trait_effect("court_vision") if is_instance_valid(owner_lab) else 0.0
+		steering.begin(event,vision)
+		steering_feedback = {"amount":0.0,"spent":0.0,"color":Steering.BLUE}
+		active = true
+		return
 	if mode == Mode.TUNED_SLOWDOWN:
 		_chain_start_usec = now
 		_end_usec = now + int(tuned_duration * 1000000)
@@ -152,6 +175,7 @@ func _expire(now: int) -> void:
 		_blocked_until_usec = now + int(CHAIN_RECOVERY * 1000000)
 
 func clear() -> void:
+	steering_feedback = {}
 	acting_actor = ""
 	_blocked_until_usec = 0
 	if active:
@@ -168,3 +192,17 @@ var clock: Callable = Time.get_ticks_usec
 
 func _now() -> int:
 	return int(clock.call())
+
+func steering_active() -> bool:
+	_effect_scale()
+	return active and mode == Mode.TRAJECTORY_STEERING and acting_actor == "player"
+
+func steer(dt: float, input: Vector3) -> void:
+	if not steering_active() or not is_instance_valid(owner_lab) or not owner_lab.ball_active: return
+	var athlete = owner_lab.athlete
+	var hp_multiplier := 1.5 if athlete.exhausted else 1.0
+	var before := steering.velocity
+	steering_feedback = steering.step(input,dt,steering_rate,steering_hp_cost*hp_multiplier,athlete.hp)
+	athlete.spend(0,float(steering_feedback.cost)/hp_multiplier)
+	# Preserve gravity/physics accumulated since the preceding real-time update.
+	owner_lab.ball_velocity += steering.velocity-before

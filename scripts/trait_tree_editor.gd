@@ -34,6 +34,9 @@ var requires_menu: MenuButton
 var alt_menu: MenuButton
 var flow_check: CheckBox
 var stats_edit: LineEdit
+var subs_edit: LineEdit
+var merges_edit: LineEdit
+var rules_edit: TextEdit
 var carried_edit: LineEdit
 var parent_pick: OptionButton
 var need_checks := {}
@@ -195,6 +198,30 @@ func _ready() -> void:
 	stats_edit.custom_minimum_size.x = 130
 	stats_edit.text_changed.connect(func(_t): _read_form())
 	stats_row.add_child(stats_edit)
+	var subs_row := HBoxContainer.new()
+	form.add_child(subs_row)
+	subs_row.add_child(Style.label("Needs sub-attributes", 14, Style.INK_MUTED))
+	subs_edit = LineEdit.new()
+	subs_edit.placeholder_text = "ball_control=78"
+	subs_edit.custom_minimum_size.x = 130
+	subs_edit.text_changed.connect(func(_t): _read_form())
+	subs_row.add_child(subs_edit)
+	var merges_row := HBoxContainer.new()
+	form.add_child(merges_row)
+	var merges_label := Style.label("Merges (all needed)", 14, Style.INK_MUTED)
+	merges_label.tooltip_text = "Node ids, comma separated: this node needs every one of them and claiming it consumes them all"
+	merges_row.add_child(merges_label)
+	merges_edit = LineEdit.new()
+	merges_edit.placeholder_text = "acc_broad_range, acc_anticipation"
+	merges_edit.custom_minimum_size.x = 180
+	merges_edit.text_changed.connect(func(_t): _read_form())
+	merges_row.add_child(merges_edit)
+	form.add_child(Style.label("Gameplay rules (JSON, docs/gameplay-runtime-contract.md)", 14, Style.INK_MUTED))
+	rules_edit = TextEdit.new()
+	rules_edit.custom_minimum_size = Vector2(0, 90)
+	rules_edit.placeholder_text = "[{\"id\":\"rule\",\"trigger\":\"attack\",\"threshold\":100,\"consume\":\"all\",\"effects\":{\"spike_velocity\":8}}]"
+	rules_edit.text_changed.connect(_read_form)
+	form.add_child(rules_edit)
 	var carried_row := HBoxContainer.new()
 	form.add_child(carried_row)
 	var carried_label := Style.label("Keeps from parents", 14, Style.INK_MUTED)
@@ -337,6 +364,9 @@ func _refresh_form() -> void:
 		_fill_alt(node)
 		flow_check.set_pressed_no_signal(bool(node.get("flow", false)))
 		stats_edit.text = _pairs_text(node.get("needs_stats", {}))
+		subs_edit.text = _pairs_text(node.get("needs_subs", {}))
+		merges_edit.text = ", ".join(node.get("merges", []))
+		rules_edit.text = JSON.stringify(node.get("gameplay", []), "  ") if not node.get("gameplay", []).is_empty() else ""
 		carried_edit.text = _carried_text(node.get("carried", {}))
 		parent_pick.clear()
 		parent_pick.add_item("(standalone)")
@@ -502,6 +532,18 @@ func _read_form() -> void:
 	node.cost = int(cost_spin.value)
 	node.flow = flow_check.button_pressed
 	node.needs_stats = _parse_pairs(stats_edit.text)
+	node.needs_subs = _parse_pairs(subs_edit.text)
+	var merged: Array = []
+	for part in merges_edit.text.split(","):
+		if part.strip_edges() != "":
+			merged.append(part.strip_edges())
+	node.merges = merged
+	var parsed = JSON.parse_string(rules_edit.text) if rules_edit.text.strip_edges() != "" else []
+	if parsed is Array:
+		node.gameplay = parsed
+		rules_edit.tooltip_text = ""
+	else:
+		rules_edit.tooltip_text = "Not valid JSON yet: the rules are unchanged"
 	node.carried = _parse_carried(carried_edit.text)
 	node.weight = int(weight_spin.value)
 	node.standalone = standalone_check.button_pressed

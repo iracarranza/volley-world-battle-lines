@@ -81,7 +81,7 @@ func run() -> void:
 	check(book.weight_of(ids["Terminal Hitter"]) == 3 and book.weight_of(ids["Never Stay Down"]) == 3 and book.weight_of(ids["Power Serve"]) == 1, "The most demanding legendaries weigh 3, starters 1")
 	check(book.conflicts(ids["Topspin Serve"], ids["Rattling Serve"]) and book.conflicts(ids["Heavy Arm"], ids["Spring Legs"]), "The serve and Pepper lines are alternatives, as are Heavy Arm and Spring Legs")
 	check(not book.conflicts(ids["Terminal Hitter"], ids["Topspin Serve"]) and not book.conflicts(ids["Big Hitter"], ids["Scramble"]), "Different subtrees can be held together")
-	check(not book.conflicts(ids["Platform Quality"], ids["Shoot Set"]) and not book.conflicts(ids["Rolling Receive"], ids["Second Wind"]), "Starts are free: subtrees open side by side, capacity limits them")
+	check(not book.conflicts(ids["Steady Arms"], ids["Shoot Set"]) and not book.conflicts(ids["Rolling Receive"], ids["Second Wind"]), "Starts are free: subtrees open side by side, capacity limits them")
 	check(not book.conflicts(ids["Power Serve"], ids["Big Hitter"]) and not book.conflicts(ids["Power Serve"], ids["Quick Step"]), "A hitter can open the serving and hitting subtrees together")
 	check(book.parents_of(ids["Rhythm Hitter"]).has(ids["Big Hitter"]) and book.parents_of(ids["Rhythm Hitter"]).has(ids["Tough Arms"]), "Rhythm Hitter is reachable from Big Hitter and Tough Arms")
 	check(book.parents_of(ids["Never Stay Down"]) == [ids["Apex Hitter"]] and book.conflicts(ids["Keep in Time"], ids["Heavy Arm"]) and book.conflicts(ids["Jungle Ball"], ids["Rhythm Hitter"]), "Rhythm Hitter's branches are alternatives, and Tough Arms chooses Flow or Scramble")
@@ -113,12 +113,12 @@ func run() -> void:
 	check(is_equal_approx(float(book.active_effects(topspin_build).get("serve_velocity", 0.0)), 18.0), "A successor's running total is what applies: Topspin Serve is +18, not 12 + 18")
 	check(book.frontier(topspin_build) == ["new_trait_5"], "Power Serve is consumed")
 	var via_big: Dictionary = book.active_effects(["new_trait", "new_trait_3"])
-	check(float(via_big.get("spike_velocity", 0.0)) == 10.0 and float(via_big.get("flow_attack_velocity", 0.0)) == 8.0 and not via_big.has("platform_quality"), "Rhythm Hitter taken through Big Hitter keeps Big Hitter's +10 Spike Velocity")
+	check(float(via_big.get("spike_velocity", 0.0)) == 10.0 and not via_big.has("platform_quality"), "Rhythm Hitter taken through Big Hitter keeps Big Hitter's +10 Spike Velocity")
 	var tough_via := {"new_trait_3": "pow_tough_arms"}
 	var via_tough: Dictionary = book.active_effects(["new_trait", "pow_tough_arms", "new_trait_3"], tough_via)
 	check(float(via_tough.get("platform_quality", 0.0)) == 4.0 and float(via_tough.get("spike_velocity", 0.0)) == 10.0, "Consuming Tough Arms keeps its +4 Platform Quality, and Big Hitter stays a current Trait with its +10")
 	var deep: Dictionary = book.active_effects(["new_trait", "new_trait_3", "pow_heavy_arm", "pow_sledgehammer"])
-	check(float(deep.get("spike_velocity", 0.0)) == 15.0 and float(deep.get("flow_attack_velocity", 0.0)) == 8.0, "A successor down the line still keeps what the first parent gave (Big Hitter 10 plus Sledgehammer 5)")
+	check(float(deep.get("spike_velocity", 0.0)) == 15.0, "A successor down the line still keeps what the first parent gave (Big Hitter 10 plus Sledgehammer 5)")
 	# Stat requirements: Tooler needs 8 Spin from current Traits
 	check(not book.unmet_stats("pow_tooler", ["new_trait", "pow_wide_arm", "pow_edge_contact"]).is_empty(), "Tooler needs Spin: Edge Contact alone is 4")
 	check(book.unmet_stats("pow_tooler", ["new_trait", "pow_wide_arm", "pow_edge_contact", "pow_eyes_up", "pow_read_the_block"]).is_empty(), "Edge Contact and Read the Block together give the 8 Spin")
@@ -157,13 +157,13 @@ func run() -> void:
 	book.nodes[book.find(ids["Quick Step"])].weight = 3
 	check(Store.pick_trait(b2, ids["Power Serve"]) and Store.pick_trait(b2, ids["Quick Step"]), "Two weight 3 Traits fill a 6 slot build")
 	check(Store.capacity_used(b2) == 6, "Six of six")
-	check(Store.pick_blocker(b2, ids["Platform Quality"]) == "capacity", "A third path is refused for lack of room")
-	check(not Store.pick_trait(b2, ids["Platform Quality"]), "...and cannot be picked")
+	check(Store.pick_blocker(b2, ids["Steady Arms"]) == "capacity", "A third path is refused for lack of room")
+	check(not Store.pick_trait(b2, ids["Steady Arms"]), "...and cannot be picked")
 	b2.innates = ["Deep Bag"]
-	check(Store.trait_capacity(b2) == 8 and Store.pick_trait(b2, ids["Platform Quality"]), "Deep Bag makes room")
+	check(Store.trait_capacity(b2) == 8 and Store.pick_trait(b2, ids["Steady Arms"]), "Deep Bag makes room")
 	b2.innates = []
 	Store.prune_picks(b2)
-	check(Store.capacity_used(b2) <= 6 and not b2.picks.has(ids["Platform Quality"]), "Losing Deep Bag drops the newest pick")
+	check(Store.capacity_used(b2) <= 6 and not b2.picks.has(ids["Steady Arms"]), "Losing Deep Bag drops the newest pick")
 	# Deepening a path is not breadth
 	book.nodes[book.find(ids["Power Serve"])].weight = 1
 	Store.forget_trait_book()

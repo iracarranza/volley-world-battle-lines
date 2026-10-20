@@ -104,6 +104,9 @@ func rebuild(draft: Dictionary) -> void:
 		for key in Store.ATTRIBUTES:
 			if path_needs.has(key):
 				needs.append("%s %d" % [Store.ATTRIBUTE_NAMES[key], int(path_needs[key])])
+		var path_subs: Dictionary = book.path_subs(node.id)
+		for key in path_subs:
+			needs.append("%s %d" % [String(key).capitalize().replace("_", " "), int(path_subs[key])])
 		var info := {"id": node.id, "node_id": node.id, "title": node.name if node.name != "" else "(unnamed)", "text": node.text, "state": state, "kind": node.kind, "needs": ", ".join(needs), "cost": book.reach_cost([node.id]), "status": _status_text(state), "exclusive": book.group_of(node.id)}
 		var parents: Array = book.choice_parents(node.id)
 		var parent_info := []

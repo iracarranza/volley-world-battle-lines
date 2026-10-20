@@ -98,6 +98,18 @@ static func _numbers(value) -> Dictionary:
 			out[str(key)] = float(value[key])
 	return out
 
+# What the gameplay runtime accepts (docs/gameplay-runtime-contract.md). Anything else in a rule is flagged, not silently dropped.
+const GAMEPLAY_TRIGGERS := ["receive", "set", "attack", "block", "jump", "attack_receive_flow_loss", "inflicted_recovery", "low_stamina", "ally_attack_charge"]
+const GAMEPLAY_KEYS := ["explosiveness", "jump_power", "swing_power", "acceleration", "reaction_speed", "transition_speed", "ball_control", "timing", "stability", "cushioning", "work_rate", "capacity", "power", "speed", "accuracy", "endurance", "explosiveness_band", "jump_power_band", "swing_power_band", "explosiveness_band_cap", "jump_power_band_cap", "swing_power_band_cap", "spike_velocity", "serve_velocity", "receive_charge_bonus", "back_attack_velocity", "platform_quality", "broad_range", "vertical_reach", "court_vision", "receive_control", "receive_absorption", "receive_redirection", "charge_tolerance", "recovery", "stamina_recovery", "exertion_efficiency", "stride_speed", "flow_state", "placement", "ally_attack_charge_tolerance", "mismatch_knockback", "mismatch_stamina_drain", "transition_speed_penalty", "inflicted_recovery_duration", "charge_aim_variance", "di_stamina_cost", "di_hp_cost", "di_cost_reduction", "flow_attack_velocity", "revenge_spike_velocity", "revenge_jump_power", "second_wind", "jump_stamina_threshold"]
+
+static func _rules(value) -> Array:
+	var out := []
+	if value is Array:
+		for rule in value:
+			if rule is Dictionary:
+				out.append(rule.duplicate(true))
+	return out
+
 static func _effects_by(value) -> Dictionary:
 	var out := {}
 	if value is Dictionary:
@@ -110,7 +122,7 @@ static func _clean(raw: Dictionary) -> Dictionary:
 	for key in raw.get("needs", {}):
 		needs[key] = float(raw.needs[key])
 	var pos: Array = raw.get("pos", [0, 0])
-	return {"id": str(raw.get("id", "")), "name": str(raw.get("name", "")), "text": str(raw.get("text", "")), "kind": str(raw.get("kind", "trait")), "attribute": str(raw.get("attribute", "")), "needs": needs, "parent": str(raw.get("parent", "")), "effects": raw.get("effects",{}).duplicate(true), "cost": int(raw.get("cost", 0)), "pos": [float(pos[0]), float(pos[1])], "exclusive": str(raw.get("exclusive", "")), "weight": clampi(int(raw.get("weight", 1)), 1, 3), "requires": _strings(raw.get("requires", [])), "alt_parents": _strings(raw.get("alt_parents", [])), "merges": _strings(raw.get("merges", [])), "carried": _effects_by(raw.get("carried", {})), "needs_stats": _numbers(raw.get("needs_stats", {})), "flow": bool(raw.get("flow", false)), "standalone": bool(raw.get("standalone", false))}
+	return {"id": str(raw.get("id", "")), "name": str(raw.get("name", "")), "text": str(raw.get("text", "")), "kind": str(raw.get("kind", "trait")), "attribute": str(raw.get("attribute", "")), "needs": needs, "parent": str(raw.get("parent", "")), "effects": raw.get("effects",{}).duplicate(true), "cost": int(raw.get("cost", 0)), "pos": [float(pos[0]), float(pos[1])], "exclusive": str(raw.get("exclusive", "")), "weight": clampi(int(raw.get("weight", 1)), 1, 3), "requires": _strings(raw.get("requires", [])), "alt_parents": _strings(raw.get("alt_parents", [])), "merges": _strings(raw.get("merges", [])), "needs_subs": _numbers(raw.get("needs_subs", {})), "gameplay": _rules(raw.get("gameplay", [])), "carried": _effects_by(raw.get("carried", {})), "needs_stats": _numbers(raw.get("needs_stats", {})), "flow": bool(raw.get("flow", false)), "standalone": bool(raw.get("standalone", false))}
 
 func find(id: String) -> int:
 	for i in range(nodes.size()):
@@ -173,6 +185,29 @@ func problems(node: Dictionary) -> Array[String]:
 		out.append("Needs at least one Attribute restriction.")
 	elif not node.needs.has(node.attribute):
 		out.append("Primary Attribute (%s) must be one of its requirements." % SHORT.get(node.attribute, "?"))
+	var seen_ids := []
+	for rule in node.get("gameplay", []):
+		var rid := String(rule.get("id", ""))
+		if rid == "":
+			out.append("A gameplay rule needs an id.")
+		elif seen_ids.has(rid):
+			out.append("Gameplay rule id %s is repeated on this node." % rid)
+		seen_ids.append(rid)
+		if not GAMEPLAY_TRIGGERS.has(String(rule.get("trigger", ""))):
+			out.append("Gameplay rule %s has an unknown trigger." % rid)
+		var blocks: Array = [rule.get("effects", {})]
+		for slot in rule.get("pending", {}):
+			blocks.append(rule.pending[slot])
+		for block in blocks:
+			if not block is Dictionary:
+				out.append("Gameplay rule %s has a malformed effects block." % rid)
+				continue
+			for key in block:
+				if not GAMEPLAY_KEYS.has(String(key)):
+					out.append("Gameplay rule %s uses %s, which the runtime does not claim." % [rid, key])
+	for key in node.get("needs_subs", {}):
+		if Store.sub_parent(String(key)) == "":
+			out.append("Unknown sub-attribute %s." % key)
 	for key in node.needs:
 		if not key in Store.ATTRIBUTES:
 			out.append("Unknown Attribute %s." % key)
@@ -424,6 +459,38 @@ func path_needs(id: String, guard: Array = []) -> Dictionary:
 			best = through
 	return best if best_cost < INF else out
 
+# Sub-attribute ratings needed to take a node, given what is picked: its own, its requirements', its merged nodes' and the picked parents'.
+func subs_given(id: String, picks: Array, guard: Array = []) -> Dictionary:
+	var i := find(id)
+	if i < 0 or guard.has(id):
+		return {}
+	var trail := guard.duplicate()
+	trail.append(id)
+	var out: Dictionary = nodes[i].get("needs_subs", {}).duplicate()
+	var sources: Array = (nodes[i].get("requires", []) as Array) + merges_of(id)
+	for parent in choice_parents(id):
+		if picks.has(parent):
+			sources.append(parent)
+	for source in sources:
+		out = _merge(out, subs_given(String(source), picks, trail))
+	return out
+
+# The same for display, with no picks: the first line to the node.
+func path_subs(id: String, guard: Array = []) -> Dictionary:
+	var i := find(id)
+	if i < 0 or guard.has(id):
+		return {}
+	var trail := guard.duplicate()
+	trail.append(id)
+	var out: Dictionary = nodes[i].get("needs_subs", {}).duplicate()
+	var sources: Array = (nodes[i].get("requires", []) as Array) + merges_of(id)
+	var choices := choice_parents(id)
+	if not choices.is_empty():
+		sources.append(choices[0])
+	for source in sources:
+		out = _merge(out, path_subs(String(source), trail))
+	return out
+
 # The ratings needed to take a node given what is already picked: its own, its requirements', and every picked parent's; with no parent
 # picked yet, the cheapest line to it.
 func needs_given(id: String, picks: Array, guard: Array = []) -> Dictionary:
@@ -561,6 +628,20 @@ func active_effects(picks: Array, via: Dictionary = {}) -> Dictionary:
 			for key in node.get("carried", {}).get(source, {}):
 				total[key] = float(total.get(key, 0.0)) + float(node.carried[source][key])
 	return total
+
+# The structured runtime rules a build has: each current Trait's own, as the contract asks (consumed predecessors contribute nothing).
+# A repeated rule id keeps the first, so a build never carries two rules under one id.
+func active_gameplay_rules(picks: Array, via: Dictionary = {}) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var seen := []
+	for id in frontier(picks, via):
+		for rule in nodes[find(String(id))].get("gameplay", []):
+			var rid := String(rule.get("id", ""))
+			if rid == "" or seen.has(rid):
+				continue
+			seen.append(rid)
+			out.append(rule.duplicate(true))
+	return out
 
 # Every node this one consumed, directly or through what it consumed.
 func consumed_sources(id: String, picks: Array, via: Dictionary = {}) -> Array:

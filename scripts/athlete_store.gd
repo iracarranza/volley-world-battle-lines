@@ -201,11 +201,35 @@ static func forget_trait_book() -> void:
 
 # Whether an athlete's ratings meet everything on the path to a node.
 static func meets_path(config: Dictionary, id: String) -> bool:
-	var needs: Dictionary = trait_book().needs_given(id, config.get("picks", []))
+	var book = trait_book()
+	var needs: Dictionary = book.needs_given(id, config.get("picks", []))
 	for key in needs:
 		if float(config.get(key, 0.0)) < float(needs[key]):
 			return false
+	var subs: Dictionary = book.subs_given(id, config.get("picks", []))
+	for key in subs:
+		if sub_rating(config, String(key)) < float(subs[key]):
+			return false
 	return true
+
+# The Attribute a sub-attribute (snake_case, e.g. "ball_control") belongs to, or "".
+static func sub_parent(key: String) -> String:
+	for parent in STATS:
+		for label in STATS[parent]:
+			if String(label).to_snake_case() == key:
+				return parent
+	return ""
+
+# A sub-attribute's rating: its Attribute plus its offset within the Attribute's range.
+static func sub_rating(config: Dictionary, key: String) -> float:
+	var parent := sub_parent(key)
+	if parent == "":
+		return 0.0
+	var offsets: Array = config.get("offsets", {}).get(parent, [])
+	for i in range(STATS[parent].size()):
+		if String(STATS[parent][i]).to_snake_case() == key:
+			return clampf(float(config.get(parent, 65)) + (float(offsets[i]) if i < offsets.size() else 0.0), 50, 99)
+	return 0.0
 
 # Athletes with a "picks" list (node ids) own exactly the traits they picked; athletes without one keep the old rule of
 # owning every trait whose requirements are met, so existing athletes and tests behave as before.

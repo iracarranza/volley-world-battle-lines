@@ -266,6 +266,7 @@ func _process(dt: float) -> void:
 		moc.clear()
 	if not paused:
 		camera_rig.update_aim()
+		moc.steer(real_dt,directional_input.value())
 		animation.update()
 		camera_rig.update(real_dt)
 		_update_contact_preview()
@@ -457,7 +458,7 @@ func contact_request(action: int) -> ContactRequest:
 	request.remembered = not Geometry.contains(request.shape, request.local_point) and contact_memory[action] > 0
 	request.facing = Vector3.FORWARD.rotated(Vector3.UP, _contact_yaw())
 	request.intent_direction = committed_intent.get("direction", request.facing)
-	request.directional_input = directional_input.value()
+	request.directional_input = Vector3.ZERO if moc.mode == moc.Mode.TRAJECTORY_STEERING else directional_input.value()
 	request.movement_speed = Vector2(player.velocity.x, player.velocity.z).length()
 	request.flow = athlete.flow
 	request.gravity = GRAVITY

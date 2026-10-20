@@ -122,6 +122,7 @@ static func resolve(request: Request, assessment: Dictionary) -> Result:
 		random.seed = request.response_seed
 		var degrees := variance*request.charge*(1.0+request.directional_input.length())*(1.0-request.athlete.ball_control()/120.0)
 		velocity = velocity.rotated(Vector3.UP,deg_to_rad(random.randf_range(-degrees,degrees)))
+	result.assessment["steering"] = {"facing":request.facing,"lateral_offset":result.influence.get("geometry_lateral_offset",0)}
 	result.velocity = velocity
 	result.mechanics = mechanics(request, result)
 	result.assessment["mechanics"] = result.mechanics

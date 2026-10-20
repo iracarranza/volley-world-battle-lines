@@ -90,3 +90,28 @@ Placement is the name for the set-to-attack buff (the 'Attack Transfer' stage). 
 - Trickster is a **merge** of Broad Range ACC and Anticipation (new `merges` field); Dump branches off Back Set and requires Trickster.
 - Foresight costs Flow 30 and does what Anticipation does, plus a passive (built as +10 Placement on Flow and +4 always; the +4 is provisional).
 - ACC serve starter (name open, built as "Steady Serve", +8 Serve Velocity, slightly under Power Serve's +12) → Float Serve, or Hybrid Serve (requires Power Serve owned).
+
+## Revisions, 2026-10-20 (fifth pass)
+
+- **Broad Range (stat)** specifically means lateral hurtbox stretch **and** less penalty on the outer hurtboxes. Fingertip Set's old "edge penalty nearly nullified" is now just more Broad Range.
+- **Broad Range ACC is named Watchtower.** Its setting successors (One Handed Set, Fingertip Set; assumed to be the "two successors") grant Broad Range and Vertical Reach.
+- **Inflicted recovery time** (Pinned Down) is a penalty to the receiver's Transition Speed sub-attribute.
+- **Receive Redirection dropped from Wide Dig.** Wide Dig is +Broad Range and +Platform Quality; Wide Dig II adds Placement. Redirection remains on Guided Dig only.
+
+## Revisions, 2026-10-20 (sixth pass)
+
+- Steady Arms' receiving path is now Steady Arms → Steady Platform → Guided Dig (the old Platform Quality chain's nodes, re-parented; Platform Quality is a lone start again). Steady Platform grants +4 Ball Control and Guided Dig +6, written as running totals with the Receive Control they already had.
+- There is no receive-timing-leniency auxiliary today. Contact Timing is a pipeline stage and the Timing sub-attribute does not widen the window (`contact-confirmation.md`); `mechanic_registry.gd` has no timing effect. Not added; a new auxiliary would need a name and a unit.
+
+- The standalone Platform Quality node is removed (a leftover from the first ACC page). Platform Quality now comes from Wide Dig and Wide Dig II.
+
+- **Receive trio dropped from the ACC receive path.** Steady Platform: Ball Control and Charge Tolerance. Guided Dig (the upgrade): the same plus Cushioning, with an END requirement (70, provisional). Receive Control, Absorption and Redirection stay in the registry and on Soft Platform only.
+
+- **Dump and Endless Options require POW** (72 and 78, provisional): their purpose is to make the setter an attacking option, so they draw on power. POW's own cross-attribute requirements are as the designer supplied and are not revisited.
+
+## Revisions, 2026-10-20 (seventh pass)
+
+- **Secondary attribute costs applied (ACC):** Shot Caller SPD 70; Motion Offense SPD 74 and END 72; Guided Dig END 70; Dump and Endless Options POW (72, 78); Dump has no SPD.
+- **Sub-attribute requirements** (`needs_subs`, new field, checked on the athlete's statistic = Attribute + offset): Shoot Set Ball Control 78, Bullet Set Ball Control 88, Trickster Timing 76 (all provisional). They apply like Attribute thresholds, are inherited down a line, and prune a pick when the statistic drops.
+- **Endless Options:** retains Dump; for each allied player that charges an Attack in a Rally (max 4), gain Swing Power, Broad Range and Placement, reset when the ball crosses the net. Built as three effects at +2 per ally (provisional, no runtime mechanic).
+- Back Set is now a pickable Trait (it was still marked planned).

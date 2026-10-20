@@ -29,6 +29,7 @@ func publish() -> Dictionary:
 		"quality": float(assessment.get("quality", 0.75)),
 		"mechanics": assessment.get("mechanics", []),
 		"gameplay": assessment.get("gameplay", {}),
+		"steering": assessment.get("steering", {}),
 		"receive_response": assessment.get("receive_response", {}),
 		"sweet": bool(assessment.get("sweet", false)),
 		"rescue": bool(assessment.get("rescue", false)),

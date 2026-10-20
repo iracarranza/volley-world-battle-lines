@@ -111,13 +111,14 @@ func run() -> void:
 	await physics_frame
 	lab.athlete.trait_ids.assign([])
 	var fan: Dictionary = lab._raw_hurtbox_definition(0)
-	lab.athlete.trait_ids.assign(["accuracy_platform_quality"])
+	lab.athlete.gameplay_effects = {"platform_quality":6.0}
 	var improved: Dictionary = lab._raw_hurtbox_definition(0)
 	check(fan.size == improved.size and fan.side_reach == improved.side_reach,"Platform Quality does not enlarge physical reach")
 	var point := Vector3(0,fan.center.y,-fan.forward_reach*0.60)
 	check(Platform.evaluate(improved,point-Vector3(improved.center)).quality > Platform.evaluate(fan,point-Vector3(fan.center)).quality,"Platform Quality increases receive-zone overlap")
 	lab.athlete.trait_ids.assign([])
 	lab.athlete.build.statistics = {"timing":99}
+	lab.athlete.gameplay_effects = {}
 	check(lab._raw_hurtbox_definition(0) == fan,"Timing does not alter receive geometry")
 	lab.athlete.trait_ids.assign(["new_trait_7"])
 	lab.athlete.flow = 100
@@ -135,7 +136,7 @@ func run() -> void:
 	lab.athlete.trait_ids.assign(["new_trait","new_trait_3"])
 	lab.athlete.flow = 100
 	var effective: float = lab.contact_flow.attack_charge(0.6,"player")
-	var authored_additives: float = lab.athlete.trait_effect("spike_velocity")+lab.athlete.trait_effect("flow_attack_velocity")
+	var authored_additives: float = lab.athlete.trait_effect("spike_velocity")+8.0
 	check(is_equal_approx(effective,0.6*1.2+authored_additives/100.0),"Rhythm Hitter is additive after Swing Power and Big Hitter")
 	lab._shot_velocity(Vector3(0,3,4),2,0.6)
 	check(lab.athlete.flow == 100,"Aiming/preview cannot consume Flow")

@@ -26,7 +26,8 @@
 			"standalone": false,
 			"text": "+12 Serve Velocity.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -52,7 +53,8 @@
 			"standalone": false,
 			"text": "Active: double-tap a direction while an action is charged for one burst of movement. Cooldown 5s exploring, 8s in a rally.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -60,7 +62,7 @@
 			"carried": {},
 			"cost": 0,
 			"effects": {
-				"charge_tolerance": 5.0
+				"ally_attack_charge_tolerance": 5.0
 			},
 			"exclusive": "",
 			"flow": false,
@@ -80,7 +82,11 @@
 			"standalone": false,
 			"text": "Charge Tolerance to attackers hitting your sets (value open). Sets are faster and flatter.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"needs_subs": {
+				"ball_control": 78.0
+			},
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -91,7 +97,7 @@
 			"exclusive": "",
 			"flow": false,
 			"id": "accuracy_back_set",
-			"kind": "planned",
+			"kind": "trait",
 			"name": "Back Set",
 			"needs": {
 				"accuracy": 73.0
@@ -104,9 +110,10 @@
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Planned: concealed set behind the setter.",
+			"text": "A set behind the setter: concealed from the block until it is released.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -132,7 +139,8 @@
 			"standalone": false,
 			"text": "Dive receive that rolls out, cheaper recovery",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -158,7 +166,8 @@
 			"standalone": false,
 			"text": "Planned: floor-sliding save.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -186,7 +195,8 @@
 			"standalone": false,
 			"text": "+10 Spike Velocity.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -214,7 +224,8 @@
 			"standalone": false,
 			"text": "Passive: When you become Winded, gain 23% of your maximum Stamina back. (CD: 30s)",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [
@@ -231,7 +242,6 @@
 			},
 			"cost": 0,
 			"effects": {
-				"flow_attack_velocity": 8.0,
 				"flow_state": 5.0
 			},
 			"exclusive": "",
@@ -252,7 +262,18 @@
 			"standalone": false,
 			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "rhythm-release",
+					"trigger": "attack",
+					"threshold": 100,
+					"consume": "all",
+					"effects": {
+						"spike_velocity": 8
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -281,7 +302,8 @@
 			"standalone": false,
 			"text": "+10 Platform Quality. After you make a receive, your next approach is 8% faster.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -311,7 +333,8 @@
 			"standalone": false,
 			"text": "+18 Serve Velocity, +6 Spin. Your serves fall more sharply.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -339,7 +362,8 @@
 			"standalone": false,
 			"text": "Your serves knock the receiver back further on a charge mismatch.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -350,9 +374,7 @@
 				"charge_tolerance": 5.0,
 				"receive_absorption": 6.0,
 				"receive_control": 8.0,
-				"recovery": 6.0,
-				"revenge_jump_power": 10.0,
-				"revenge_spike_velocity": 15.0
+				"recovery": 6.0
 			},
 			"exclusive": "",
 			"flow": true,
@@ -373,7 +395,21 @@
 			"standalone": false,
 			"text": "+6% Receive Absorption, +6% faster recovery, Receive Control +8%, Charge Tolerance +5%. Upon Receiving an Attack, if that Receive lowered your Flow, your next Jump gains +10 Jump Power and your next Attack gains +15 Spike Velocity.",
 			"weight": 2,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "revenge",
+					"trigger": "attack_receive_flow_loss",
+					"pending": {
+						"jump": {
+							"jump_power": 10
+						},
+						"attack": {
+							"spike_velocity": 15
+						}
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -403,7 +439,8 @@
 			"standalone": false,
 			"text": "Your serves knock the receiver back further on a charge mismatch, and the mismatch drains more Stamina.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -433,7 +470,8 @@
 			"standalone": false,
 			"text": "+24 Serve Velocity, +10 Spin. Your serves fall more sharply. Your Serve Toss goes higher and farther, and you can perform a Spike Approach after a Serve Toss to complete the Serve while midair.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -463,7 +501,8 @@
 			"standalone": false,
 			"text": "+14 Platform Quality, and up to +8 Spike Velocity when approaching further from the net. After you make a receive, your next approach is 8% faster.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -478,10 +517,13 @@
 			},
 			"cost": 0,
 			"effects": {
-				"flow_attack_velocity": 8.0,
 				"flow_state": 5.0,
 				"jump_stamina_threshold": 15.0,
-				"spike_velocity": 15.0
+				"spike_velocity": 15.0,
+				"jump_power_band": 1,
+				"jump_power_band_cap": 3,
+				"swing_power_band": 1,
+				"swing_power_band_cap": 4
 			},
 			"exclusive": "",
 			"flow": true,
@@ -503,7 +545,18 @@
 			"standalone": false,
 			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Jump Power counts as one band higher, up to T3, and Swing Power up to T4. +15 Spike Velocity. Your Jumps always reach their maximum height even at diminished Stamina or Charge, until 15% Stamina remains.",
 			"weight": 3,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "rhythm-release",
+					"trigger": "attack",
+					"threshold": 100,
+					"consume": "all",
+					"effects": {
+						"spike_velocity": 8
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -531,35 +584,8 @@
 			"standalone": false,
 			"text": "Charge mismatches develop severity 10% more slowly; does not create a charge match.",
 			"weight": 1,
-			"merges": []
-		},
-		{
-			"alt_parents": [],
-			"attribute": "accuracy",
-			"carried": {},
-			"cost": 0,
-			"effects": {
-				"platform_quality": 6.0
-			},
-			"exclusive": "",
-			"flow": false,
-			"id": "accuracy_platform_quality",
-			"kind": "trait",
-			"name": "Platform Quality",
-			"needs": {
-				"accuracy": 68.0
-			},
-			"needs_stats": {},
-			"parent": "",
-			"pos": [
-				1050.0,
-				0.0
-			],
-			"requires": [],
-			"standalone": false,
-			"text": "+6 Platform Quality: more overlap between receiving quality zones, without changing charge.",
-			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -587,7 +613,8 @@
 			"standalone": false,
 			"text": "12% faster recovery from Knee, Fall, Blown Away and Dive.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -615,7 +642,8 @@
 			"standalone": false,
 			"text": "15% faster Stamina regeneration; fatigue status durations are unchanged.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -643,7 +671,8 @@
 			"standalone": false,
 			"text": "12% lower ordinary action Stamina expenditure.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -651,7 +680,8 @@
 			"carried": {},
 			"cost": 0,
 			"effects": {
-				"receive_control": 10.0
+				"ball_control": 4.0,
+				"charge_tolerance": 8.0
 			},
 			"exclusive": "",
 			"flow": false,
@@ -662,16 +692,17 @@
 				"accuracy": 70.0
 			},
 			"needs_stats": {},
-			"parent": "accuracy_platform_quality",
+			"parent": "acc_steady_arms",
 			"pos": [
-				1050.0,
+				900.0,
 				110.0
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "+10% Receive Control: less incoming influence on an uncontrolled dig. Does not grant a charge match.",
+			"text": "+4 Ball Control, +8% Charge Tolerance: a mismatched receive is softened. Does not grant a charge match.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -699,7 +730,8 @@
 			"standalone": false,
 			"text": "+12% Receive Absorption: reduces residual impact pace on poor receives, especially low contacts.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -707,7 +739,9 @@
 			"carried": {},
 			"cost": 0,
 			"effects": {
-				"receive_redirection": 12.0
+				"ball_control": 4.0,
+				"charge_tolerance": 8.0,
+				"cushioning": 6.0
 			},
 			"exclusive": "",
 			"flow": false,
@@ -715,19 +749,21 @@
 			"kind": "trait",
 			"name": "Guided Dig",
 			"needs": {
-				"accuracy": 72.0
+				"accuracy": 72.0,
+				"endurance": 70.0
 			},
 			"needs_stats": {},
 			"parent": "accuracy_steady_platform",
 			"pos": [
-				1050.0,
+				900.0,
 				220.0
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "+12% Receive Redirection: reduces late placement error and scatter on uncontrolled receives.",
+			"text": "+4 Ball Control, +8% Charge Tolerance, +6 Cushioning: your receives start from a higher charge.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -757,7 +793,8 @@
 			"standalone": false,
 			"text": "+34 Serve Velocity, +16 Spin. Your serves fall more sharply. Your Serve Toss goes higher and farther, and you can perform a Spike Approach after a Serve Toss to complete the Serve while midair. A serve that forces the receiver into a recovery gives you Flow.",
 			"weight": 2,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -772,8 +809,9 @@
 			},
 			"cost": 0,
 			"effects": {
-				"flow_attack_velocity": 8.0,
-				"flow_state": 5.0
+				"flow_state": 5.0,
+				"swing_power_band": 1,
+				"swing_power_band_cap": 3
 			},
 			"exclusive": "",
 			"flow": true,
@@ -793,7 +831,18 @@
 			"standalone": false,
 			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Swing Power counts as one band higher, up to T3.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "rhythm-release",
+					"trigger": "attack",
+					"threshold": 100,
+					"consume": "all",
+					"effects": {
+						"spike_velocity": 8
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -808,9 +857,12 @@
 			},
 			"cost": 0,
 			"effects": {
-				"flow_attack_velocity": 8.0,
 				"flow_state": 5.0,
-				"spike_velocity": 15.0
+				"spike_velocity": 15.0,
+				"swing_power_band": 1,
+				"swing_power_band_cap": 3,
+				"jump_power_band": 1,
+				"jump_power_band_cap": 4
 			},
 			"exclusive": "",
 			"flow": true,
@@ -831,7 +883,18 @@
 			"standalone": false,
 			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Swing Power counts as one band higher, up to T3. +15 Spike Velocity, and Jump Power counts as one band higher, up to T4. The END is what keeps the jump through a long rally.",
 			"weight": 3,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "rhythm-release",
+					"trigger": "attack",
+					"threshold": 100,
+					"consume": "all",
+					"effects": {
+						"spike_velocity": 8
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -846,8 +909,9 @@
 			},
 			"cost": 0,
 			"effects": {
-				"flow_attack_velocity": 8.0,
-				"flow_state": 5.0
+				"flow_state": 5.0,
+				"jump_power_band": 1,
+				"jump_power_band_cap": 3
 			},
 			"exclusive": "",
 			"flow": true,
@@ -867,7 +931,18 @@
 			"standalone": false,
 			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Jump Power counts as one band higher, up to T3.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "rhythm-release",
+					"trigger": "attack",
+					"threshold": 100,
+					"consume": "all",
+					"effects": {
+						"spike_velocity": 8
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -882,9 +957,12 @@
 			},
 			"cost": 0,
 			"effects": {
-				"flow_attack_velocity": 8.0,
 				"flow_state": 5.0,
-				"spike_velocity": 15.0
+				"spike_velocity": 15.0,
+				"jump_power_band": 1,
+				"jump_power_band_cap": 3,
+				"swing_power_band": 1,
+				"swing_power_band_cap": 4
 			},
 			"exclusive": "",
 			"flow": true,
@@ -905,7 +983,18 @@
 			"standalone": false,
 			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Jump Power counts as one band higher, up to T3. +15 Spike Velocity, and Swing Power counts as one band higher, up to T4.",
 			"weight": 3,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "rhythm-release",
+					"trigger": "attack",
+					"threshold": 100,
+					"consume": "all",
+					"effects": {
+						"spike_velocity": 8
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -934,7 +1023,8 @@
 			"standalone": false,
 			"text": "+6 Broad Range: Directional Influence reaches further for sets that arrive off-line.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -964,7 +1054,8 @@
 			"standalone": false,
 			"text": "+6 Broad Range, +4 Spin. Directional Influence reaches further for sets that arrive off-line. Contact at the edges of the spiking hurtbox loses less quality.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -994,7 +1085,8 @@
 			"standalone": false,
 			"text": "+12 Broad Range, +6 Spin. Directional Influence reaches further for sets that arrive off-line. Contact at the edges of the spiking hurtbox loses less quality. A swing from the edge of the hurtbox or an off-line set keeps nearly its full reach and velocity.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1023,7 +1115,8 @@
 			"standalone": false,
 			"text": "+6 Court Vision: Directional Influence bends your spike's trajectory more.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1053,7 +1146,8 @@
 			"standalone": false,
 			"text": "+6 Court Vision, +4 Spin. Directional Influence bends your spike's trajectory more and costs less Stamina and HP.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1083,7 +1177,8 @@
 			"standalone": false,
 			"text": "+12 Court Vision, +6 Spin. Directional Influence bends your spike's trajectory more, costs less Stamina and HP, and has a wider aiming arc. A precision attacker, deliberately cheap and low-ceiling.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1121,7 +1216,8 @@
 			"standalone": false,
 			"text": "A technical scorer: +10 Spike Velocity, +8 Court Vision, +8 Broad Range and +8 Spin, and Directional Influence on spikes costs nothing extra. Needs Big Hitter, Edge Contact and Read the Block owned and 8 Spin from your current Traits.",
 			"weight": 3,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1150,7 +1246,8 @@
 			"standalone": false,
 			"text": "+4 Platform Quality. After you make a receive, your next approach is 8% faster.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1179,7 +1276,8 @@
 			"standalone": false,
 			"text": "Explosiveness counts as one band higher, up to T2.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1208,7 +1306,8 @@
 			"standalone": false,
 			"text": "Explosiveness counts as one band higher, up to T2. An abrupt approach keeps full attack quality: a short run-up carries no penalty.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1237,7 +1336,8 @@
 			"standalone": false,
 			"text": "Explosiveness counts as two bands higher, up to T4. An abrupt approach keeps full attack quality: a short run-up carries no penalty. The first jump after a Quick Step is a full-charge jump.",
 			"weight": 2,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1266,7 +1366,8 @@
 			"standalone": false,
 			"text": "+6% Receive Absorption on poor receives.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1296,7 +1397,8 @@
 			"standalone": false,
 			"text": "+6% Receive Absorption on poor receives. +6% faster recovery from Knee, Fall, Blown Away and Dive.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1328,7 +1430,8 @@
 			"standalone": false,
 			"text": "+6% Receive Absorption, +6% faster recovery. A role player: Receive Control +8% and Charge Tolerance +5% without ACC or END specialization, and no bonus to attacking.",
 			"weight": 2,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1357,7 +1460,8 @@
 			"standalone": false,
 			"text": "+4 Platform Quality.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1372,7 +1476,6 @@
 			},
 			"cost": 0,
 			"effects": {
-				"flow_attack_velocity": 10.0,
 				"flow_state": 8.0
 			},
 			"exclusive": "",
@@ -1394,7 +1497,23 @@
 			"standalone": false,
 			"text": "Flow 100: Your next receive consumes all Flow and gains Platform Quality +10, and your next attack gains +10 Spike Velocity. +8 Flow State.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "keep-in-time",
+					"trigger": "receive",
+					"threshold": 100,
+					"consume": "all",
+					"effects": {
+						"platform_quality": 10
+					},
+					"pending": {
+						"attack": {
+							"spike_velocity": 10
+						}
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -1408,9 +1527,7 @@
 				}
 			},
 			"cost": 0,
-			"effects": {
-				"flow_attack_velocity": 12.0
-			},
+			"effects": {},
 			"exclusive": "",
 			"flow": true,
 			"id": "pow_flowing_finisher",
@@ -1430,7 +1547,26 @@
 			"standalone": false,
 			"text": "Flow 100: Your next receive consumes 80 Flow and gains Platform Quality +15, your next jump gains +5 Jump Power, and your next attack gains +12 Spike Velocity.",
 			"weight": 2,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "bass-release",
+					"trigger": "receive",
+					"threshold": 100,
+					"consume": 80,
+					"effects": {
+						"platform_quality": 15
+					},
+					"pending": {
+						"jump": {
+							"jump_power": 5
+						},
+						"attack": {
+							"spike_velocity": 12
+						}
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -1445,9 +1581,10 @@
 			},
 			"cost": 0,
 			"effects": {
-				"flow_attack_velocity": 8.0,
 				"flow_state": 5.0,
-				"spike_velocity": 5.0
+				"spike_velocity": 5.0,
+				"swing_power_band": 1,
+				"swing_power_band_cap": 3
 			},
 			"exclusive": "",
 			"flow": true,
@@ -1467,7 +1604,18 @@
 			"standalone": false,
 			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Swing Power counts as one band higher, up to T3. +5 Spike Velocity.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "rhythm-release",
+					"trigger": "attack",
+					"threshold": 100,
+					"consume": "all",
+					"effects": {
+						"spike_velocity": 8
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -1482,9 +1630,10 @@
 			},
 			"cost": 0,
 			"effects": {
-				"flow_attack_velocity": 8.0,
 				"flow_state": 5.0,
-				"spike_velocity": 5.0
+				"spike_velocity": 5.0,
+				"jump_power_band": 1,
+				"jump_power_band_cap": 3
 			},
 			"exclusive": "",
 			"flow": true,
@@ -1504,7 +1653,18 @@
 			"standalone": false,
 			"text": "Flow 100: Your next attack consumes all Flow and gains +8 Spike Velocity. +5 Flow State. Jump Power counts as one band higher, up to T3. +5 Spike Velocity.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "rhythm-release",
+					"trigger": "attack",
+					"threshold": 100,
+					"consume": "all",
+					"effects": {
+						"spike_velocity": 8
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -1518,7 +1678,7 @@
 			"flow": false,
 			"id": "acc_broad_range",
 			"kind": "trait",
-			"name": "Broad Range ACC",
+			"name": "Watchtower",
 			"needs": {
 				"accuracy": 66.0
 			},
@@ -1530,9 +1690,10 @@
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Planned: widens the edge of your hurtbox for sets (+Broad Range).",
+			"text": "+4 Broad Range: your hurtbox stretches further sideways and its outer parts are penalized less.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1540,8 +1701,8 @@
 			"carried": {},
 			"cost": 0,
 			"effects": {
-				"broad_range": 6,
-				"set_edge_penalty": -20
+				"broad_range": 6.0,
+				"vertical_reach": 4.0
 			},
 			"exclusive": "",
 			"flow": false,
@@ -1559,9 +1720,10 @@
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Planned: sets from further out; edge-hurtbox set penalty reduced.",
+			"text": "+6 Broad Range, +4 Vertical Reach: your hurtbox stretches further sideways and up, and its outer parts are penalized less.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1569,8 +1731,8 @@
 			"carried": {},
 			"cost": 0,
 			"effects": {
-				"broad_range": 8,
-				"set_edge_penalty": -80
+				"broad_range": 10.0,
+				"vertical_reach": 8.0
 			},
 			"exclusive": "",
 			"flow": false,
@@ -1588,9 +1750,10 @@
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Planned: edge-hurtbox set penalty nearly nullified.",
+			"text": "+10 Broad Range, +8 Vertical Reach: your hurtbox stretches further sideways and up, and its outer parts are nearly unpenalized.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1598,14 +1761,14 @@
 			"carried": {},
 			"cost": 0,
 			"effects": {
-				"broad_range": 6,
-				"receive_redirection": 6
+				"broad_range": 6.0,
+				"platform_quality": 6.0
 			},
 			"exclusive": "",
 			"flow": false,
 			"id": "acc_wide_dig",
 			"kind": "trait",
-			"name": "Wide Dig (placeholder)",
+			"name": "Wide Dig",
 			"needs": {
 				"accuracy": 70.0
 			},
@@ -1617,9 +1780,10 @@
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Placeholder for the Broad Range receiver path: Broad Range and Receive Redirection.",
+			"text": "+6 Broad Range, +6 Platform Quality.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1628,7 +1792,6 @@
 			"cost": 0,
 			"effects": {
 				"broad_range": 6,
-				"placement": 10,
 				"flow_state": 5
 			},
 			"exclusive": "",
@@ -1652,6 +1815,24 @@
 			"merges": [
 				"acc_broad_range",
 				"acc_anticipation"
+			],
+			"needs_subs": {
+				"timing": 76.0
+			},
+			"gameplay": [
+				{
+					"id": "anticipation",
+					"trigger": "set",
+					"threshold": 30,
+					"consume": 0,
+					"effects": {
+						"placement": 10
+					},
+					"clear_on": [
+						"set_rescue",
+						"set_attack_blocked"
+					]
+				}
 			]
 		},
 		{
@@ -1666,7 +1847,8 @@
 			"kind": "trait",
 			"name": "Dump",
 			"needs": {
-				"accuracy": 78.0
+				"accuracy": 78.0,
+				"power": 72.0
 			},
 			"needs_stats": {},
 			"parent": "accuracy_back_set",
@@ -1680,7 +1862,8 @@
 			"standalone": false,
 			"text": "Active, midair, only with a Set: your Setting hurtbox acts as an Attack in the direction you move (Swing Power affects it less than an Attack).",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1694,7 +1877,8 @@
 			"kind": "trait",
 			"name": "Endless Options",
 			"needs": {
-				"accuracy": 86.0
+				"accuracy": 86.0,
+				"power": 78.0
 			},
 			"needs_stats": {},
 			"parent": "acc_dump",
@@ -1704,9 +1888,23 @@
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Capstone; effect undecided.",
+			"text": "Retain the ability to Dump as written before: active, midair, only with a Set; your Setting hurtbox acts as an Attack in the direction you move (Swing Power affects it less than an Attack). For every allied player that charges an Attack during a Rally (maximum 4), gain Swing Power, Broad Range, and Placement, resetting when the ball crosses into the opposing court.",
 			"weight": 2,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "endless-options",
+					"trigger": "ally_attack_charge",
+					"max_allies": 4,
+					"recipient": "self",
+					"until": "net_cross",
+					"effects": {
+						"swing_power": 2,
+						"broad_range": 2,
+						"placement": 2
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -1714,7 +1912,6 @@
 			"carried": {},
 			"cost": 0,
 			"effects": {
-				"placement": 10,
 				"flow_state": 5
 			},
 			"exclusive": "",
@@ -1735,7 +1932,22 @@
 			"standalone": false,
 			"text": "Flow 30: Your Sets gain +10 Placement. You lose all Flow upon Rescuing a Set, or when an Attack from your Set is Blocked.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "anticipation",
+					"trigger": "set",
+					"threshold": 30,
+					"consume": 0,
+					"effects": {
+						"placement": 10
+					},
+					"clear_on": [
+						"set_rescue",
+						"set_attack_blocked"
+					]
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -1743,7 +1955,7 @@
 			"carried": {},
 			"cost": 0,
 			"effects": {
-				"placement": 10,
+				"placement": 4,
 				"flow_state": 8
 			},
 			"exclusive": "",
@@ -1764,7 +1976,22 @@
 			"standalone": false,
 			"text": "Flow 30: Your Sets gain +6 Placement; +4 Placement always (provisional split of the buff).",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "anticipation",
+					"trigger": "set",
+					"threshold": 30,
+					"consume": 0,
+					"effects": {
+						"placement": 6
+					},
+					"clear_on": [
+						"set_rescue",
+						"set_attack_blocked"
+					]
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -1772,7 +1999,7 @@
 			"carried": {},
 			"cost": 0,
 			"effects": {
-				"placement": 14,
+				"placement": 4,
 				"flow_state": 12
 			},
 			"exclusive": "",
@@ -1793,7 +2020,22 @@
 			"standalone": false,
 			"text": "Flow 30: Your Sets gain +10 Placement. You lose all Flow upon Rescuing a Set, or when an Attack from your Set is Blocked. Your Sets always gain +4 Placement.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "anticipation",
+					"trigger": "set",
+					"threshold": 30,
+					"consume": 0,
+					"effects": {
+						"placement": 10
+					},
+					"clear_on": [
+						"set_rescue",
+						"set_attack_blocked"
+					]
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -1819,7 +2061,8 @@
 			"standalone": false,
 			"text": "Planned: a steady base for setting and receiving.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1845,7 +2088,8 @@
 			"standalone": false,
 			"text": "Planned: safer, more forgiving sets.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1873,33 +2117,8 @@
 			"standalone": false,
 			"text": "+6 Placement.",
 			"weight": 1,
-			"merges": []
-		},
-		{
-			"alt_parents": [],
-			"attribute": "accuracy",
-			"carried": {},
-			"cost": 0,
-			"effects": {},
-			"exclusive": "",
-			"flow": false,
-			"id": "acc_steady_receiver",
-			"kind": "trait",
-			"name": "Steady Arms receiver (placeholder)",
-			"needs": {
-				"accuracy": 70.0
-			},
-			"needs_stats": {},
-			"parent": "acc_steady_arms",
-			"pos": [
-				900.0,
-				110.0
-			],
-			"requires": [],
-			"standalone": false,
-			"text": "Placeholder for the Steady Arms receiving path (Receive Absorption, Control, Redirection).",
-			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1925,7 +2144,8 @@
 			"standalone": false,
 			"text": "Planned: the setter's support line.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -1939,7 +2159,8 @@
 			"kind": "trait",
 			"name": "Shot Caller",
 			"needs": {
-				"accuracy": 80.0
+				"accuracy": 80.0,
+				"speed": 70.0
 			},
 			"needs_stats": {},
 			"parent": "acc_playmaker",
@@ -1951,7 +2172,19 @@
 			"standalone": false,
 			"text": "Planned: the first two allies to charge an Attack gain a SPD aura.",
 			"weight": 1,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "shot-caller",
+					"trigger": "ally_attack_charge",
+					"max_allies": 2,
+					"recipient": "ally",
+					"duration": 8,
+					"effects": {
+						"speed": 3
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -1965,7 +2198,9 @@
 			"kind": "trait",
 			"name": "Motion Offense",
 			"needs": {
-				"accuracy": 88.0
+				"accuracy": 88.0,
+				"speed": 74.0,
+				"endurance": 72.0
 			},
 			"needs_stats": {},
 			"parent": "acc_shot_caller",
@@ -1977,7 +2212,20 @@
 			"standalone": false,
 			"text": "Capstone: Shot Caller extends to three allies, plus some END.",
 			"weight": 2,
-			"merges": []
+			"merges": [],
+			"gameplay": [
+				{
+					"id": "shot-caller",
+					"trigger": "ally_attack_charge",
+					"max_allies": 3,
+					"recipient": "ally",
+					"duration": 8,
+					"effects": {
+						"speed": 3,
+						"endurance": 2
+					}
+				}
+			]
 		},
 		{
 			"alt_parents": [],
@@ -1985,7 +2233,7 @@
 			"carried": {},
 			"cost": 0,
 			"effects": {
-				"charge_tolerance": 10
+				"ally_attack_charge_tolerance": 10.0
 			},
 			"exclusive": "",
 			"flow": false,
@@ -2005,7 +2253,11 @@
 			"standalone": false,
 			"text": "Capstone: attackers hitting your sets gain more Charge Tolerance.",
 			"weight": 2,
-			"merges": []
+			"merges": [],
+			"needs_subs": {
+				"ball_control": 88.0
+			},
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -2033,7 +2285,8 @@
 			"requires": [],
 			"standalone": false,
 			"text": "+8 Serve Velocity.",
-			"weight": 1
+			"weight": 1,
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -2061,7 +2314,8 @@
 			"requires": [],
 			"standalone": false,
 			"text": "Planned: an unpredictable serve. +8 Serve Velocity.",
-			"weight": 1
+			"weight": 1,
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -2091,7 +2345,8 @@
 			],
 			"standalone": false,
 			"text": "Planned: a serve with both power and float; needs Power Serve owned. +8 Serve Velocity.",
-			"weight": 1
+			"weight": 1,
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -2120,7 +2375,8 @@
 			"requires": [],
 			"standalone": false,
 			"text": "A charge mismatch against your serve drains more Stamina.",
-			"weight": 1
+			"weight": 1,
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -2130,7 +2386,7 @@
 			"effects": {
 				"serve_velocity": 8.0,
 				"mismatch_stamina_drain": 10.0,
-				"inflicted_recovery_time": 15.0
+				"transition_speed_penalty": 15.0
 			},
 			"exclusive": "",
 			"flow": false,
@@ -2149,8 +2405,9 @@
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "A charge mismatch against your serve drains more Stamina, and recovery poses your serve inflicts last longer.",
-			"weight": 1
+			"text": "A charge mismatch against your serve drains more Stamina, and your serve's recovery poses also penalize the receiver's Transition Speed.",
+			"weight": 1,
+			"gameplay": []
 		},
 		{
 			"alt_parents": [],
@@ -2178,7 +2435,39 @@
 			"requires": [],
 			"standalone": false,
 			"text": "Planned: a float serve struck from a jump. +8 Serve Velocity.",
-			"weight": 1
+			"weight": 1,
+			"gameplay": []
+		},
+		{
+			"alt_parents": [],
+			"attribute": "accuracy",
+			"carried": {},
+			"cost": 0,
+			"effects": {
+				"broad_range": 10.0,
+				"platform_quality": 10.0,
+				"placement": 6.0
+			},
+			"exclusive": "",
+			"flow": false,
+			"id": "acc_wide_dig_2",
+			"kind": "trait",
+			"merges": [],
+			"name": "Wide Dig II (name open)",
+			"needs": {
+				"accuracy": 74.0
+			},
+			"needs_stats": {},
+			"parent": "acc_wide_dig",
+			"pos": [
+				150.0,
+				220.0
+			],
+			"requires": [],
+			"standalone": false,
+			"text": "+10 Broad Range, +10 Platform Quality, +6 Placement.",
+			"weight": 1,
+			"gameplay": []
 		}
 	],
 	"rules": {
