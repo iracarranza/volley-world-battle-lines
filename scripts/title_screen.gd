@@ -102,9 +102,11 @@ func _refresh_selected() -> void:
 		selected_detail.text = "%s  /  Level %d  /  %s" % [config.role, int(config.get("level", 1)), Store.height_label(Store.height_inches(float(config.height)))]
 
 func _enter_map() -> void:
+	get_tree().set_meta(preload("res://scripts/bot_roster_presets.gd").STARTUP_META,true)
 	get_tree().change_scene_to_file("res://map_graybox.tscn")
 
 func _enter_lab() -> void:
+	get_tree().set_meta(preload("res://scripts/bot_roster_presets.gd").STARTUP_META,true)
 	get_tree().change_scene_to_file("res://main.tscn")
 
 func _open_menu() -> void:

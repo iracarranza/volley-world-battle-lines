@@ -260,6 +260,10 @@ func _ready() -> void:
 	_reset()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	Input.use_accumulated_input = false
+	var presets := preload("res://scripts/bot_roster_presets.gd")
+	if get_tree().get_meta(presets.STARTUP_META,false):
+		get_tree().remove_meta(presets.STARTUP_META)
+		presets.apply_net_2.call_deferred(training_bots)
 
 func _process(dt: float) -> void:
 	animation.pose_frame_dt = dt * moc.actor_scale("player")
