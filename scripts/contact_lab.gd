@@ -339,6 +339,7 @@ func apply_created_athlete(config: Dictionary) -> void:
 	build["stat_names"] = config.get("stat_names",preload("res://scripts/athlete_store.gd").STATS).duplicate(true)
 	athlete.build = build
 	athlete.trait_ids = preload("res://scripts/athlete_store.gd").owned_trait_ids(config)
+	athlete.trait_via = config.get("via", {}).duplicate()
 	_rebuild_visual()
 	_reset()
 	_message(athlete_name + " / " + body_type + " / ready to train" + ((" / traits: " + ", ".join(athlete.trait_ids)) if not athlete.trait_ids.is_empty() else ""))

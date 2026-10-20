@@ -31,7 +31,7 @@ Updated runtime record, 2026-10-19. The later designer revisions place Stability
 Structured numeric `effects` in `data/trait_tree.json` are authoritative and editable in the trait-tree inspector. Authored branches, requirements, picks and exclusive groups are preserved.
 
 - Big Hitter: +10 Spike Velocity. Power Serve: +12 Serve Velocity. Topspin Serve and Jump Topspin contribute their authored +6 Serve Velocity each; their specialized spin/airborne serving techniques are separate from these charge-layer effects.
-- Flow Hitter (POW 72, Big Hitter branch): when Flow is present, the next physical attack consumes the old Flow and adds +20 Spike Velocity. The new contact can then earn Flow. Aim previews do not consume it.
+- Rhythm Hitter (POW 72, Big Hitter branch): when Flow is present, the next physical attack consumes the old Flow and adds +20 Spike Velocity. The new contact can then earn Flow. Aim previews do not consume it.
 - Revenger: an Attack receive that actually lowers Flow arms +10 Jump Power and +15 Spike Velocity, independently consumed by the next jump and attack. A dive does not consume the jump bonus.
 - Second Wind (END 68): entering Winded restores 23% of actual maximum Stamina, with a 30 s cooldown. It does not clear Winded or bypass Exhaustion.
 - Platform Quality: +6 quality-zone overlap points. Transition Hitter and Back Attacker contribute their authored +6/+4 Platform Quality; Back Attacker also supplies its provisional depth-scaled attack charge bonus.

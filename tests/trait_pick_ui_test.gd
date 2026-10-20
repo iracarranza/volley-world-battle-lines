@@ -35,7 +35,7 @@ func run() -> void:
 	await process_frame
 	check(menu.draft.picks == [serve], "Pressing PICK TRAIT picks it")
 	await click(menu, big)
-	check(menu.shown_node.state == "blocked" and not menu.pick_button.visible, "Big Hitter is locked out by the other branch")
+	check(menu.shown_node.state == "available" and menu.pick_button.visible, "Big Hitter is open beside Power Serve: subtrees are held together, capacity limits them")
 	await click(menu, serve)
 	check(menu.shown_node.state == "picked" and menu.pick_button.text == "DROP TRAIT", "A picked node offers DROP TRAIT")
 	menu._step_attribute("power", -1)
@@ -63,6 +63,6 @@ func run() -> void:
 	legacy.power = 70.0
 	var carried: Array = Store.legacy_picks(legacy)
 	check(carried.size() == 1 and carried.has(serve) or carried.size() == 2, "A legacy athlete keeps the traits they owned, without breaking branch locks (%s)" % str(carried))
-	check(not (carried.has(serve) and carried.has(big)), "Legacy conversion never picks both starting branches")
+	check(carried.size() >= 1, "Legacy conversion keeps what the athlete owned")
 	print("trait_pick_ui: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)

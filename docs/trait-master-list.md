@@ -8,8 +8,12 @@ These come from the designer and replace the earlier proposals about a flat trai
 
 - **Model C.** A deeper Trait incorporates the Traits it builds on. The ancestors' effects stay active; they just stop taking capacity. The data stores each node's effect as an *increment* (Topspin Serve +6 on top of Power Serve +12), and the runtime sums along the path, so Jump Topspin's total is +24 Serve Velocity. Read a node's cumulative effect off its path.
 - **Capacity is 6, 8 with Deep Bag (+2).** Only the *frontier* counts: picked nodes that are not a prerequisite of another picked node, each at its `weight` (1 to 3). Depth costs progression; breadth costs capacity. Deeper nodes may weigh 2 or 3; the two capstones weigh 3.
-- **Every fork is exclusive.** Of the children of one node, one branch only. Of the roots on a page, one start only. A `standalone` node (a capstone) is outside the start choice. `rules.forks` can be set to `"open"` to turn this off and compare.
-- **Extra prerequisites.** `requires` lists other nodes, from any page, that must also be taken (Hybrid Server and the capstones). Reach cost counts what every required node needs.
+- **Three different relationships**, none implying another:
+  - *Parent*: the node advances its parent's line and incorporates it (Model C). The parent stays active but stops taking capacity, and the two sit on the same branch of the parent's fork.
+  - *Requires*: the node needs another node owned, from any page, without advancing it. The required node keeps its own capacity and effects, and a requiring node takes none of its forks. Hybrid Server (Jump Topspin plus an ACC float serve) and advanced parentless Traits use this.
+  - *Needs*: attribute ratings, independent of both. Reach cost counts the needs of every required node.
+- **A node's position is not its tier.** A parentless node is introductory only if it is a starting choice. An advanced node (for example POW 82, END 76 and ownership of a defensive Trait) can have no parent and still be late-game; mark it **Advanced (not a start)** in the editor (`standalone` in the data). An advanced parentless node counts as its own current Trait unless it is an upgrade that has the other node as its parent.
+- **Every fork is exclusive where a parent-child branching exists.** Of the children of one node, one branch only. Of the *starting choices* on a page (parentless, no `requires`, not advanced), one only. Two advanced parentless nodes are not exclusive merely for sitting at the same depth. Explicit `exclusive` groups stay exclusive. `rules.forks` can be set to `"open"` to turn forks off and compare.
 - **Three reasons a Trait is unavailable**, in the order the picker checks them: ratings and prerequisites; an exclusive fork already taken the other way; no capacity left.
 
 ### What exclusive forks cost, counted on the saved tree
@@ -45,7 +49,7 @@ Order of effects: multipliers first (Swing Power on charge, Stamina output), add
 | Stat | Unit | Granted by (value) | Largest total a build can reach |
 |---|---|---|---|
 | Serve Velocity | charge points | Power Serve +12, Topspin Serve +6, Jump Topspin +6 | +24 (one 12 AP spine, POW 72 and ACC 70) |
-| Spike Velocity | charge points | Big Hitter +10, Flow Hitter +20 (consumes Flow), Revenger +15 (armed), Back Attacker up to +8 by depth | +10 steady, +30 to +45 in bursts |
+| Spike Velocity | charge points | Big Hitter +10, Rhythm Hitter +20 (consumes Flow), Revenger +15 (armed), Back Attacker up to +8 by depth | +10 steady, +30 to +45 in bursts |
 | Platform Quality | quality-zone overlap points | Platform Quality +6, Transition Hitter +6, Back Attacker +4 | +16 |
 | Receive Control | % | Steady Platform +10 | 10 |
 | Receive Redirection | % | Guided Dig +12 | 12 |
@@ -57,7 +61,7 @@ Order of effects: multipliers first (Swing Power on charge, Stamina output), add
 | Second Wind | % of max Stamina on Winded, 30 s cooldown | Second Wind 23 | 23 |
 | Jump Power (armed) | points | Revenger +10 | 10 |
 | Jump stamina floor | % Stamina | Never Stay Down 15 | 15 |
-| Flow | resource | gained on quality contacts, lost on poor ones; spent or scaled by Flow Hitter, Revenger | n/a |
+| Flow | resource | gained on quality contacts, lost on poor ones; spent or scaled by Rhythm Hitter, Revenger | n/a |
 
 ## 3. The trees as they stand
 
@@ -73,7 +77,7 @@ Reach cost in AP. `needs` shows the primary requirement first; other attributes 
 | Com-Pepp-Itor | mid | POW 72 | 7 | Power Serve | +5 HP stolen on a successful Pepper |
 | Jump Topspin | late | POW 72, ACC 70 | 12 | Topspin Serve | +6 Serve Velocity, higher toss, Spike Approach after the toss |
 | Pepper Patroller | late | POW 75, SPD 72 | 17 | Com-Pepp-Itor | +10 Acceleration after a successful Pepper |
-| Flow Hitter | mid | POW 72 | 7 | Big Hitter | next attack consumes all Flow for +20 Spike Velocity |
+| Rhythm Hitter | mid | POW 72 | 7 | Big Hitter | next attack consumes all Flow for +20 Spike Velocity |
 | Transition Hitter | mid | POW 71, SPD 68 | 9 | Big Hitter | +6 Platform Quality |
 | Back Attacker | late | POW 71, SPD 71 | 12 | Transition Hitter | +4 Platform Quality, up to +8 Spike Velocity from further back |
 | Revenger | capstone | POW 82, END 76 | 28 | none | after an Attack receive that lowered Flow: next Jump +10 Jump Power, next Attack +15 Spike Velocity |
@@ -117,8 +121,8 @@ Reach cost in AP. `needs` shows the primary requirement first; other attributes 
    - *Identity:* POW is the clearest (harass with serves, or fight with spikes, exclusive). ACC splits into receive control and set precision but has no exclusive choice, and END has seven roots.
    - *Novelty:* an introductory trait should add one new verb or rule, not only a number. Quick Step, Shoot Set, Rolling Receive, Second Wind and Charge Tolerance do. **Power Serve and Big Hitter are pure numbers** (+12 and +10), so the most important early choice is the least novel.
    - *Early importance:* intro prices run from 1 AP (Quick Step) to 7 AP (Shoot Set) with 3 AP the norm. Quick Step is underpriced for a new verb; Shoot Set is priced as a mid trait but sits at the root.
-2. **Intermediate balance.** POW does this well: both spines add one technique or a related number to the intro (Topspin Serve is still a serve, Flow Hitter is still a spike), and Transition Hitter and Back Attacker leave the spike line toward receiving, which is the "approach specialization without wandering" the tier asks for, though a +6 and +4 Platform Quality on a hitter line stacks with the ACC intro to +16 total with no cap. END's mid traits are stat bumps sitting at the root, not intermediates. SPD has no intermediates.
-3. **Capstones.** Both are strong and expensive (28 and 39 AP, T3 in the primary line) but both have **no parent**, so they are reached by thresholds alone, not by a path. A capstone should be earned through the lines that justify it. Revenger is a Flow-and-receive payoff with no Flow Hitter or receive trait before it; Never Stay Down is a Stamina payoff with no Stamina trait before it.
+2. **Intermediate balance.** POW does this well: both spines add one technique or a related number to the intro (Topspin Serve is still a serve, Rhythm Hitter is still a spike), and Transition Hitter and Back Attacker leave the spike line toward receiving, which is the "approach specialization without wandering" the tier asks for, though a +6 and +4 Platform Quality on a hitter line stacks with the ACC intro to +16 total with no cap. END's mid traits are stat bumps sitting at the root, not intermediates. SPD has no intermediates.
+3. **Capstones.** Both are strong and expensive (28 and 39 AP, T3 in the primary line) but both have **no parent**, so they are reached by thresholds alone, not by a path. A capstone should be earned through the lines that justify it. Revenger is a Flow-and-receive payoff with no Rhythm Hitter or receive trait before it; Never Stay Down is a Stamina payoff with no Stamina trait before it.
 4. **Cost shape.** Clean ladders exist (ACC receive line 3, 5, 7 AP; Serve line 3, 9, 12; Hitter line 3, 9, 12). The two POW spines both end at exactly 12 AP, the base budget, which is a nice property and should be kept as a rule: **the deepest node a base athlete can reach costs exactly the base budget.**
 5. **SPD is nearly empty.** One real trait, one planned.
 6. **Unlinked ideas.** Soft Platform (END) and Steady Platform and Guided Dig (ACC) overlap in intent (a gentler poor receive), differing in the mechanism (absorption, control, redirection). That is fine as a family, but they should be recognisably one family, not three unrelated nodes.
@@ -140,11 +144,11 @@ Base-athlete rule: each attribute has at least two introductory lines that make 
 ## 6. Proposed changes *(proposal, not applied)*
 
 1. **Capacity (done).** Frontier capacity 6, Deep Bag +2, node weights 1 to 3, every fork exclusive (section 0). Supersedes the flat claim limit proposed first.
-2. **Give the POW intros a hook.** Power Serve: a serve that forces a receiver into a recovery gives the server some Flow. Big Hitter: spikes that land clean give extra Flow. This also introduces Flow earlier than Flow Hitter does, and keeps +12 and +10 as the numbers.
+2. **Give the POW intros a hook.** Power Serve: a serve that forces a receiver into a recovery gives the server some Flow. Big Hitter: spikes that land clean give extra Flow. This also introduces Flow earlier than Rhythm Hitter does, and keeps +12 and +10 as the numbers.
 3. **Restructure END** into two exclusive starts: *economy* (Second Wind, then Stamina Recovery and Exertion Efficiency beneath it) and *durable receiver* (Rolling Receive, with Fast Recovery and Pancake beneath it; Charge Tolerance and Soft Platform as a second step). The three trait roots at 70 become children.
 4. **Fill SPD** with three introductory lines at 68: Quick Step (the burst verb, raised from 66 to 68), a *reaction* line (extra pace for a moment after an opposing contact, linking to Transition Speed), and a *rotation* line for the map (faster movement outside a rally). Dump stays a mid trait under Quick Step. One SPD capstone (for example an extra Quick Step charge with a shared cooldown).
 5. **ACC set line:** add a cheaper introductory set trait at 68 that narrows the set column or lowers set error, make Shoot Set a mid trait at 72 under it, and make the receive-control and set-precision starts exclusive.
-6. **Link the capstones.** *(The model now supports it: `requires`. The two capstones are still flagged standalone with no prerequisites, awaiting the archetype design.)* Revenger would require Flow Hitter and a receive Trait; Never Stay Down a Stamina Trait.
+6. **Link the capstones.** *(The model now supports it: `requires`. The two capstones are still flagged standalone with no prerequisites, awaiting the archetype design.)* Revenger would require Rhythm Hitter and a receive Trait; Never Stay Down a Stamina Trait.
 7. **Cap the stacks.** Platform Quality at +12 total; Serve Velocity at +24; a stated maximum for Spike Velocity bursts.
 8. **Keep the 12 AP rule** for the deepest base-reachable node, and state expected AP by level so the capstone prices (28 to 39 AP) can be checked against the real progression.
 

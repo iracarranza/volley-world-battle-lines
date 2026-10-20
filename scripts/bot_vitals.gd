@@ -6,6 +6,7 @@ static func create(template: LabAthlete) -> LabAthlete:
 	var athlete := Athlete.new()
 	athlete.build = template.build.duplicate(true)
 	athlete.trait_ids.assign(template.trait_ids)
+	athlete.trait_via = template.trait_via.duplicate()
 	refresh(athlete)
 	return athlete
 

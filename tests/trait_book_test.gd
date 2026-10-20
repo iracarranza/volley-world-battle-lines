@@ -5,7 +5,7 @@ func run() -> void:
 	var Book = load("res://scripts/trait_book.gd")
 	var book = Book.new()
 	book.load_book("user://none.json")
-	check(book.nodes.size() == 8, "Seeded with the four traits and four planned")
+	check(book.nodes.size() == 7, "Seeded with the four traits and three planned")
 	check(book.all_problems().is_empty(), "Seeded nodes are valid")
 	var node: Dictionary = book.add_node("speed", Vector2(10, 10))
 	check(not book.problems(node).is_empty(), "Blank node is invalid")
@@ -64,13 +64,13 @@ func run() -> void:
 	var byname := {}
 	for n in real.nodes:
 		byname[n.name] = n.id
-	for name in ["Power Serve", "Big Hitter", "Jump Topspin", "Back Attacker", "Pepper Patroller", "Revenger", "Never Stay Down"]:
+	for name in ["Power Serve", "Big Hitter", "Jump Topspin", "Back Attacker", "Draining Serve", "Revenger", "Never Stay Down"]:
 		check(byname.has(name), "%s is in the saved tree" % name)
-	if byname.has("Jump Topspin") and byname.has("Pepper Patroller") and byname.has("Back Attacker"):
+	if byname.has("Jump Topspin") and byname.has("Draining Serve") and byname.has("Back Attacker"):
 		check(real.reach_cost([byname["Jump Topspin"]]) == 12, "Jump Topspin costs 12 AP (ACC 70, POW 72)")
 		check(real.reachable_at_base(byname["Jump Topspin"]) and real.reachable_at_base(byname["Back Attacker"]), "A base athlete can reach Jump Topspin and Back Attacker")
-		check(not real.reachable_at_base(byname["Pepper Patroller"]), "A base athlete cannot reach Pepper Patroller")
-		check(real.reach_cost([byname["Pepper Patroller"]]) == 17, "Pepper Patroller costs 17 AP")
+		check(not real.reachable_at_base(byname["Draining Serve"]), "A base athlete cannot reach Draining Serve")
+		check(real.reach_cost([byname["Draining Serve"]]) == 17, "Draining Serve costs 17 AP")
 		check(real.reach_cost([byname["Jump Topspin"], byname["Back Attacker"]]) == 5 + 7 + 6, "Two branches share the highest need per attribute")
 	var branches = Book.new()
 	branches.nodes = [

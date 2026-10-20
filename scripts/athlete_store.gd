@@ -38,7 +38,8 @@ const INNATES := {
 	"Giant": {"cost": 10, "text": "Unlocks the Giant height range (6'9\" to 7'2\"): more reach and jump height, slower to turn and recover. The height itself is covered by this cost."},
 	"Tiny": {"cost": 10, "text": "Unlocks the Tiny height range (5'0\" to 5'5\"): small contact envelope, quicker direction changes, lower exertion. The height itself is covered by this cost."},
 	"Workhorse": {"cost": 8, "text": "Very large base Stamina for sustained drilling and repeated effort."},
-	"Deep Bag": {"cost": 6, "text": "Higher HP Minimum and a larger Trait claim limit."},
+	"Deep Bag": {"cost": 6, "text": "Higher HP Minimum and two more slots of build capacity."},
+	"Open Mind": {"cost": 6, "text": "A build may hold up to three Flow effects instead of one. (Provisional cost.)"},
 }
 const POSITION_INNATES := {
 	"MB": {"name": "Wall", "text": "Minimal HP cost on Blocks; faster Block Jump charge. +2 END growth."},
@@ -51,7 +52,6 @@ const POSITION_INNATES := {
 # Planned deeper Traits (names from the design notes, not implemented yet).
 const PLANNED := {
 	"power": {"name": "Tool", "text": "Planned: attack that uses the blocker's hands."},
-	"speed": {"name": "Dump", "text": "Planned: quick jump-set dump."},
 	"accuracy": {"name": "Back Set", "text": "Planned: concealed set behind the setter."},
 	"endurance": {"name": "Pancake", "text": "Planned: floor-sliding save."},
 }
@@ -201,7 +201,7 @@ static func forget_trait_book() -> void:
 
 # Whether an athlete's ratings meet everything on the path to a node.
 static func meets_path(config: Dictionary, id: String) -> bool:
-	var needs: Dictionary = trait_book().path_needs(id)
+	var needs: Dictionary = trait_book().needs_given(id, config.get("picks", []))
 	for key in needs:
 		if float(config.get(key, 0.0)) < float(needs[key]):
 			return false
@@ -217,11 +217,14 @@ static func trait_capacity(config: Dictionary) -> int:
 	return trait_book().capacity_for(config.get("innates", []))
 
 static func capacity_used(config: Dictionary) -> int:
-	return trait_book().capacity_used(config.get("picks", []))
+	return trait_book().capacity_used(config.get("picks", []), config.get("via", {}))
+
+static func flow_limit(config: Dictionary) -> int:
+	return trait_book().flow_limit_for(config.get("innates", []))
 
 # Why a node cannot be picked now, or "" if it can: "planned", "ratings", "needs" (a prerequisite not taken), "locked" (an exclusive fork
 # already went the other way) or "capacity" (the build is full).
-static func pick_blocker(config: Dictionary, id: String) -> String:
+static func pick_blocker(config: Dictionary, id: String, via: String = "") -> String:
 	var book = trait_book()
 	var picks: Array = config.get("picks", [])
 	var i: int = book.find(id)
@@ -234,13 +237,19 @@ static func pick_blocker(config: Dictionary, id: String) -> String:
 			return "locked"
 	if not meets_path(config, id):
 		return "ratings"
-	for needed in book.prereqs(id):
-		if not picks.has(needed):
-			return "needs"
+	if not book.unmet(id, picks).is_empty():
+		return "needs"
 	var trial := picks.duplicate()
 	trial.append(id)
-	if book.capacity_used(trial) > trait_capacity(config):
+	var trial_via: Dictionary = config.get("via", {}).duplicate()
+	if via != "":
+		trial_via[id] = via
+	if not book.unmet_stats(id, picks, config.get("via", {})).is_empty():
+		return "stats"
+	if book.capacity_used(trial, trial_via) > trait_capacity(config):
 		return "capacity"
+	if bool(book.nodes[i].get("flow", false)) and book.flow_count(trial, trial_via) > flow_limit(config):
+		return "flow"
 	return ""
 
 # Nodes the athlete could pick now: requirements met along the path, every prerequisite taken, not locked out by an exclusive fork already
@@ -262,22 +271,39 @@ static func legacy_picks(config: Dictionary) -> Array:
 			pick_trait(trial, node.id)
 	return trial.picks
 
-static func pick_trait(config: Dictionary, id: String) -> bool:
+# `via` is the parent a node with several parents consumes (the half the player clicked); "" takes the first one taken.
+static func pick_trait(config: Dictionary, id: String, via: String = "") -> bool:
 	if not config.has("picks"):
 		config["picks"] = []
-	if not trait_options(config).has(id):
+	if pick_blocker(config, id, via) != "":
 		return false
 	config.picks.append(id)
+	if via != "" and trait_book().choice_parents(id).size() > 1:
+		if not config.has("via"):
+			config["via"] = {}
+		config.via[id] = via
 	return true
 
-# Dropping a pick drops everything picked beneath it.
+# Dropping a pick drops everything that can no longer stand without it: a node with another parent still taken stays.
 static func unpick_trait(config: Dictionary, id: String) -> void:
 	var book = trait_book()
 	var keep: Array = []
 	for picked in config.get("picks", []):
-		if not book.ancestry(String(picked)).has(id):
+		if String(picked) != id:
 			keep.append(picked)
+	var changed := true
+	while changed:
+		changed = false
+		for picked in keep:
+			if not book.unmet(String(picked), keep).is_empty():
+				keep.erase(picked)
+				changed = true
+				break
 	config["picks"] = keep
+	var via: Dictionary = config.get("via", {})
+	for key in via.keys():
+		if not keep.has(key):
+			via.erase(key)
 
 # After ratings change: drop picks whose requirements are no longer met (and what hangs from them).
 static func prune_picks(config: Dictionary) -> void:

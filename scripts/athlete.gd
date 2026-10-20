@@ -28,7 +28,10 @@ var exhaustion_remaining := 0.0
 const WINDED_SECONDS := 10.5
 const EXHAUSTION_SECONDS := 7.0
 const WINDED_REGEN_FACTOR := 0.5
+# Everything claimed, for prerequisites; only the current Traits (nothing consumed by a successor) apply. `trait_via` says, for a node with
+# several parents, which one it consumed.
 var trait_ids: Array[String] = []
+var trait_via: Dictionary = {}
 const QUICK_STEP_HP := 3.0
 const ROLLING_RECEIVE_HP := 5.0
 
@@ -39,14 +42,10 @@ func trait_effect(name: String) -> float:
 	if not Mechanics.EFFECTS.has(name):
 		return 0.0
 	var book = Store.trait_book()
-	var key := str(trait_ids)+str(book.get_instance_id())
+	var key := str(trait_ids)+str(trait_via)+str(book.get_instance_id())
 	if key != _effect_key:
 		_effect_key = key
-		_effects.clear()
-		for node in book.nodes:
-			if str(node.id) in trait_ids:
-				for effect in node.get("effects",{}):
-					_effects[effect] = float(_effects.get(effect,0))+float(node.effects[effect])
+		_effects = book.active_effects(trait_ids, trait_via)
 	return float(_effects.get(name,0))
 
 func recovery_rate() -> float:
@@ -115,7 +114,10 @@ func stabilize_set(assessment: Dictionary) -> Dictionary:
 	return result
 
 func has_trait(trait_id: String) -> bool:
-	return trait_id in trait_ids
+	if not (trait_id in trait_ids):
+		return false
+	# A Trait a successor has consumed no longer applies; the successor carries what it kept.
+	return trait_id in Store.trait_book().frontier(trait_ids, trait_via)
 
 func serve_speed_factor(charge: float) -> float:
 	return (1.0+0.5*effective_serve_charge(charge))/maxf(0.1,1.0+0.5*charge)

@@ -31,6 +31,10 @@ var reach_label: Label
 var weight_spin: SpinBox
 var standalone_check: CheckBox
 var requires_menu: MenuButton
+var alt_menu: MenuButton
+var flow_check: CheckBox
+var stats_edit: LineEdit
+var carried_edit: LineEdit
 var parent_pick: OptionButton
 var need_checks := {}
 var need_spins := {}
@@ -38,6 +42,8 @@ var problem_label: Label
 var status_label: Label
 var tag_label: Label
 var dragging := ""
+var view_offset := Vector2.ZERO     # drag empty space to pan: a page can be wider than the canvas
+var panning := false
 var drag_offset := Vector2.ZERO
 var refreshing := false
 var dirty := false
@@ -162,8 +168,8 @@ func _ready() -> void:
 	weight_spin.value_changed.connect(func(_v): _read_form())
 	capacity_row.add_child(weight_spin)
 	standalone_check = CheckBox.new()
-	standalone_check.text = "Standalone"
-	standalone_check.tooltip_text = "Not part of the page's starting choice (a capstone, say)"
+	standalone_check.text = "Advanced (not a start)"
+	standalone_check.tooltip_text = "A parentless node that is not one of the page's starting choices: it rests on its requirements, not on a parent"
 	standalone_check.toggled.connect(func(_on): _read_form())
 	capacity_row.add_child(standalone_check)
 	var requires_row := HBoxContainer.new()
@@ -174,6 +180,41 @@ func _ready() -> void:
 	requires_menu.get_popup().hide_on_checkable_item_selection = false
 	requires_menu.get_popup().id_pressed.connect(_toggle_requirement)
 	requires_row.add_child(requires_menu)
+	var extra_row := HBoxContainer.new()
+	form.add_child(extra_row)
+	flow_check = CheckBox.new()
+	flow_check.text = "Flow effect"
+	flow_check.tooltip_text = "Counts against the build's limit of Flow effects"
+	flow_check.toggled.connect(func(_on): _read_form())
+	extra_row.add_child(flow_check)
+	var stats_row := HBoxContainer.new()
+	form.add_child(stats_row)
+	stats_row.add_child(Style.label("Also needs stats", 14, Style.INK_MUTED))
+	stats_edit = LineEdit.new()
+	stats_edit.placeholder_text = "spin=8"
+	stats_edit.custom_minimum_size.x = 130
+	stats_edit.text_changed.connect(func(_t): _read_form())
+	stats_row.add_child(stats_edit)
+	var carried_row := HBoxContainer.new()
+	form.add_child(carried_row)
+	var carried_label := Style.label("Keeps from parents", 14, Style.INK_MUTED)
+	carried_label.tooltip_text = "What a node with several parents (or the line below it) keeps from the one consumed: parent_id:effect=value, effect=value; other_id:..."
+	carried_row.add_child(carried_label)
+	carried_edit = LineEdit.new()
+	carried_edit.placeholder_text = "big_hitter:spike_velocity=10"
+	carried_edit.custom_minimum_size.x = 150
+	carried_edit.text_changed.connect(func(_t): _read_form())
+	carried_row.add_child(carried_edit)
+	var alt_row := HBoxContainer.new()
+	form.add_child(alt_row)
+	var alt_label := Style.label("Also reachable from", 14, Style.INK_MUTED)
+	alt_label.tooltip_text = "Other nodes that lead to this one: taking any one of them is enough"
+	alt_row.add_child(alt_label)
+	alt_menu = MenuButton.new()
+	alt_menu.text = "none"
+	alt_menu.get_popup().hide_on_checkable_item_selection = false
+	alt_menu.get_popup().id_pressed.connect(_toggle_alt_parent)
+	alt_row.add_child(alt_menu)
 	form.add_child(Style.label("ATTRIBUTE RESTRICTIONS", 12, Style.ACCENT))
 	for key in Store.ATTRIBUTES:
 		var row := HBoxContainer.new()
@@ -221,13 +262,14 @@ func _button(text: String, action: Callable) -> Button:
 func show_page(key: String) -> void:
 	page = key
 	selected = ""
+	view_offset = Vector2.ZERO
 	for k in tab_buttons:
 		tab_buttons[k].set_pressed_no_signal(k == key)
 	_refresh_form()
 	canvas.queue_redraw()
 
 func node_rect(node: Dictionary) -> Rect2:
-	return Rect2(Vector2(node.pos[0], node.pos[1]) + Vector2(24, 24), NODE_SIZE)
+	return Rect2(Vector2(node.pos[0], node.pos[1]) + Vector2(24, 24) + view_offset, NODE_SIZE)
 
 func add_node(connected: bool) -> Dictionary:
 	var parent := selected if connected and selected != "" else ""
@@ -292,6 +334,10 @@ func _refresh_form() -> void:
 		weight_spin.value = int(node.get("weight", 1))
 		standalone_check.set_pressed_no_signal(bool(node.get("standalone", false)))
 		_fill_requires(node)
+		_fill_alt(node)
+		flow_check.set_pressed_no_signal(bool(node.get("flow", false)))
+		stats_edit.text = _pairs_text(node.get("needs_stats", {}))
+		carried_edit.text = _carried_text(node.get("carried", {}))
 		parent_pick.clear()
 		parent_pick.add_item("(standalone)")
 		parent_pick.set_item_metadata(0, "")
@@ -364,6 +410,67 @@ func _fill_requires(node: Dictionary) -> void:
 		count += int(popup.is_item_checked(index))
 	requires_menu.text = "none" if count == 0 else "%d required" % count
 
+static func _pairs_text(pairs: Dictionary) -> String:
+	var parts: Array[String] = []
+	for key in pairs:
+		parts.append("%s=%s" % [key, str(pairs[key])])
+	return ", ".join(parts)
+
+static func _parse_pairs(text: String) -> Dictionary:
+	var out := {}
+	for part in text.split(","):
+		var bits := part.strip_edges().split("=")
+		if bits.size() == 2 and not bits[0].strip_edges().is_empty() and bits[1].strip_edges().is_valid_float():
+			out[bits[0].strip_edges()] = float(bits[1])
+	return out
+
+static func _carried_text(carried: Dictionary) -> String:
+	var parts: Array[String] = []
+	for source in carried:
+		parts.append("%s:%s" % [source, _pairs_text(carried[source])])
+	return "; ".join(parts)
+
+static func _parse_carried(text: String) -> Dictionary:
+	var out := {}
+	for group in text.split(";"):
+		var halves := group.strip_edges().split(":")
+		if halves.size() == 2 and not halves[0].strip_edges().is_empty():
+			out[halves[0].strip_edges()] = _parse_pairs(halves[1])
+	return out
+
+func _fill_alt(node: Dictionary) -> void:
+	var popup := alt_menu.get_popup()
+	popup.clear()
+	var count := 0
+	for other in book.nodes:
+		if other.id == node.id or other.kind == "planned" or book.would_cycle(other.id, node.id) or other.id == node.parent:
+			continue
+		popup.add_check_item("%s  (%s)" % [other.name if other.name != "" else other.id, Book.SHORT.get(other.attribute, "?")])
+		var index := popup.item_count - 1
+		popup.set_item_metadata(index, other.id)
+		popup.set_item_checked(index, node.get("alt_parents", []).has(other.id))
+		count += int(popup.is_item_checked(index))
+	alt_menu.text = "none" if count == 0 else "%d other" % count
+
+func _toggle_alt_parent(index: int) -> void:
+	var node := _selected_node()
+	if node.is_empty():
+		return
+	var popup := alt_menu.get_popup()
+	var id := String(popup.get_item_metadata(index))
+	popup.set_item_checked(index, not popup.is_item_checked(index))
+	var list: Array = node.get("alt_parents", [])
+	if popup.is_item_checked(index):
+		if not list.has(id):
+			list.append(id)
+	else:
+		list.erase(id)
+	node["alt_parents"] = list
+	alt_menu.text = "none" if list.is_empty() else "%d other" % list.size()
+	dirty = true
+	_update_notes()
+	canvas.queue_redraw()
+
 func _toggle_requirement(index: int) -> void:
 	var node := _selected_node()
 	if node.is_empty():
@@ -393,6 +500,9 @@ func _read_form() -> void:
 	node.text = text_edit.text
 	node.kind = Book.KINDS[kind_pick.selected]
 	node.cost = int(cost_spin.value)
+	node.flow = flow_check.button_pressed
+	node.needs_stats = _parse_pairs(stats_edit.text)
+	node.carried = _parse_carried(carried_edit.text)
 	node.weight = int(weight_spin.value)
 	node.standalone = standalone_check.button_pressed
 	node.exclusive = group_edit.text.strip_edges() if node.parent == "" or String(node.parent) == "" else ""
@@ -429,15 +539,20 @@ func _canvas_input(event: InputEvent) -> void:
 		if event.pressed:
 			var hit := hit_test(event.position)
 			select(hit)
+			panning = hit == ""
 			if hit != "":
 				dragging = hit
 				var node := _selected_node()
 				drag_offset = event.position - node_rect(node).position
 		else:
 			dragging = ""
+			panning = false
+	elif event is InputEventMouseMotion and panning:
+		view_offset += event.relative
+		canvas.queue_redraw()
 	elif event is InputEventMouseMotion and dragging != "":
 		var node: Dictionary = book.nodes[book.find(dragging)]
-		var top_left: Vector2 = event.position - drag_offset - Vector2(24, 24)
+		var top_left: Vector2 = event.position - drag_offset - Vector2(24, 24) - view_offset
 		node.pos = [maxf(0.0, snappedf(top_left.x, 10.0)), maxf(0.0, snappedf(top_left.y, 10.0))]
 		dirty = true
 		canvas.queue_redraw()
@@ -459,6 +574,17 @@ func _draw_canvas() -> void:
 		if node.parent != "" and book.find(node.parent) >= 0:
 			var parent: Dictionary = book.nodes[book.find(node.parent)]
 			canvas.draw_line(node_rect(parent).get_center() + Vector2(0, NODE_SIZE.y * 0.5), node_rect(node).get_center() - Vector2(0, NODE_SIZE.y * 0.5), Color(0.37, 0.52, 0.56), 2.0)
+	for node in nodes:
+		for other in node.get("alt_parents", []):
+			var j: int = book.find(String(other))
+			if j >= 0 and book.nodes[j].attribute == page:
+				canvas.draw_line(node_rect(book.nodes[j]).get_center() + Vector2(0, NODE_SIZE.y * 0.5), node_rect(node).get_center() - Vector2(0, NODE_SIZE.y * 0.5), Color(0.37, 0.52, 0.56), 2.0)
+	# Nodes a node requires without building on them: a dashed gold line from the required node, on this page.
+	for node in nodes:
+		for required in (node.get("requires", []) as Array) + (node.get("merges", []) as Array):
+			var i: int = book.find(String(required))
+			if i >= 0 and book.nodes[i].attribute == page:
+				canvas.draw_dashed_line(node_rect(book.nodes[i]).get_center(), node_rect(node).get_center(), Color("ffce73"), 1.5, 6.0)
 	for node in nodes:
 		var rect := node_rect(node)
 		var invalid: bool = not book.problems(node).is_empty()

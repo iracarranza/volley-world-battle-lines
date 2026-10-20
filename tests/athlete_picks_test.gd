@@ -20,8 +20,8 @@ func run() -> void:
 	check(Store.trait_options(a).has(serve) and Store.trait_options(a).has(big), "At POW 68 both starting branches are open")
 	check(Store.pick_trait(a, serve), "Picks Power Serve")
 	check(Store.has_picks(a) and Store.owned_traits(a) == ["Power Serve"], "A picking athlete owns exactly its picks")
-	check(not Store.trait_options(a).has(big), "The other starting branch is locked out")
-	check(not Store.pick_trait(a, big), "Cannot pick Big Hitter after Power Serve")
+	check(Store.trait_options(a).has(big), "Starts are free: the hitting subtree is open beside the serving one")
+	var pepper := ids_of(book, "Rattling Serve")
 	var topspin := ids_of(book, "Topspin Serve")
 	a.power = 71.0
 	check(not Store.trait_options(a).has(topspin), "Topspin Serve also needs ACC 68")
@@ -34,7 +34,10 @@ func run() -> void:
 	check(Store.pick_trait(a, ids_of(book, "Jump Topspin")), "Reaches Jump Topspin with ACC 70 and POW 72")
 	check(Store.ap_spent(a) == 12, "The Jump Topspin build spends exactly the 12 AP budget")
 	var back := ids_of(book, "Back Attacker")
-	check(not Store.pick_trait(a, back), "The Big Hitter side stays locked")
+	a.speed = 71.0
+	check(not Store.pick_trait(a, back), "Back Attacker needs its own line (Scramble, Transition Hitter) picked first")
+	check(Store.pick_blocker(a, pepper) == "locked", "Rattling Serve is the other branch of Power Serve's fork, so it is locked out")
+	a.speed = 65.0
 	a.accuracy = 69.0
 	Store.prune_picks(a)
 	check(Store.owned_traits(a) == ["Power Serve", "Topspin Serve"], "Dropping ACC below 70 drops Jump Topspin only")
@@ -42,10 +45,10 @@ func run() -> void:
 	Store.prune_picks(a)
 	check(Store.owned_traits(a) == ["Power Serve"], "Dropping POW below 71 drops Topspin Serve")
 	Store.unpick_trait(a, serve)
-	check(Store.owned_traits(a).is_empty() and Store.trait_options(a).has(big), "Dropping the first pick reopens the other branch")
+	check(Store.owned_traits(a).is_empty() and Store.trait_options(a).has(serve), "Dropping the first pick clears its line")
 	var p: Dictionary = Store.blank()
 	p.power = 77.0
 	p.speed = 65.0
-	check(not Store.trait_options(p).has(ids_of(book, "Pepper Patroller")), "Pepper Patroller is not offered below its requirements")
+	check(not Store.trait_options(p).has(ids_of(book, "Draining Serve")), "Draining Serve is not offered below its requirements")
 	print("athlete_picks: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)

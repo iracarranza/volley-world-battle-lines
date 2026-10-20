@@ -525,6 +525,18 @@ func _show_node(info: Dictionary) -> void:
 		text += "\nReach cost: %d AP of %d" % [int(info.get("cost", 0)), Store.AP_BUDGET]
 	if str(info.get("exclusive", "")) != "":
 		text += "\nChoosing a trait in this branch locks the other starting branch."
+	var parents: Array = info.get("parents", [])
+	if parents.size() > 1:
+		text += "\n\nBuilds on one of: " + " or ".join(parents.map(func(p): return String(p.name) + (" (taken)" if p.picked else "")))
+		var consumed_name := String(info.get("via", ""))
+		for parent in parents:
+			if String(parent.id) == consumed_name:
+				consumed_name = String(parent.name)
+		text += "\nTaking it consumes: %s. Click the other section to change." % consumed_name
+		if String(info.get("kept", "")) != "":
+			text += "\nKeeps from it: " + String(info.kept)
+	elif parents.size() == 1:
+		text += "\n\nBuilds on: " + String(parents[0].name)
 	text += "\n\n" + str(info.text)
 	tree_detail.text = text
 	var state := String(info.get("state", ""))
@@ -538,7 +550,7 @@ func _toggle_pick() -> void:
 	if (draft.get("picks", []) as Array).has(id):
 		Store.unpick_trait(draft, id)
 		status.text = "Dropped %s." % shown_node.title
-	elif Store.pick_trait(draft, id):
+	elif Store.pick_trait(draft, id, String(shown_node.get("via", ""))):
 		status.text = "Picked %s." % shown_node.title
 	else:
 		status.text = "%s cannot be picked." % shown_node.title

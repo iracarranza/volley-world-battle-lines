@@ -134,7 +134,7 @@ func run() -> void:
 	lab.athlete.flow = 100
 	var effective: float = lab.contact_flow.attack_charge(0.6,"player")
 	var authored_additives: float = lab.athlete.trait_effect("spike_velocity")+lab.athlete.trait_effect("flow_attack_velocity")
-	check(is_equal_approx(effective,0.6*1.2+authored_additives/100.0),"Flow Hitter is additive after Swing Power and Big Hitter")
+	check(is_equal_approx(effective,0.6*1.2+authored_additives/100.0),"Rhythm Hitter is additive after Swing Power and Big Hitter")
 	lab._shot_velocity(Vector3(0,3,4),2,0.6)
 	check(lab.athlete.flow == 100,"Aiming/preview cannot consume Flow")
 	lab.ball_active = true
@@ -149,7 +149,7 @@ func run() -> void:
 	lab.confirm_window = lab.confirm_duration-0.22
 	lab._contact()
 	check(is_equal_approx(lab.last_contact_result.outgoing_shot.charge,effective),"Real attack metadata uses identical effective charge")
-	check(lab.athlete.flow <= 25,"Real Flow Hitter consumes old Flow, then new contact earns Flow")
+	check(lab.athlete.flow <= 25,"Real Rhythm Hitter consumes old Flow, then new contact earns Flow")
 	lab.athlete.trait_ids.assign(["endurance_fast_recovery"])
 	lab.athlete.build.statistics = {"transition_speed":65}
 	lab.animation.floor_recovery_name = "knee"

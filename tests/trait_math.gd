@@ -1,14 +1,14 @@
 extends SceneTree
-# What the fork and capacity rules cost, counted on the saved tree: godot --headless --path . --script res://tests/trait_math.gd
+# What the fork, start and capacity rules leave open, counted on the saved tree, for a given AP budget:
+#   godot --headless --path . --script res://tests/trait_math.gd -- 12 24
 var book
 var order: Array = []
+var budget := 12
 var total := 0
-var by_capacity := {}
+var within := 0
 var best_picks := 0
-var base_total := 0
-var base_best := 0
-var base_by_page := {}
-var counts_over := {6: 0, 8: 0}
+var best_frontier := 0
+var by_page := {}
 func _initialize() -> void:
 	call_deferred("run")
 func depth(id: String) -> int:
@@ -27,60 +27,36 @@ func walk(index: int, picks: Array) -> void:
 			return
 	var with := picks.duplicate()
 	with.append(id)
+	if book.reach_cost(with) > budget:
+		return
 	walk(index + 1, with)
 func record(picks: Array) -> void:
 	total += 1
 	var used: int = book.capacity_used(picks)
-	by_capacity[used] = int(by_capacity.get(used, 0)) + 1
+	if used <= 6:
+		within += 1
 	best_picks = maxi(best_picks, picks.size())
-	for cap in [6, 8]:
-		if used <= cap:
-			counts_over[cap] += 1
-	if book.reach_cost(picks) <= 12 and used <= 6:
-		base_total += 1
-		base_best = maxi(base_best, picks.size())
+	best_frontier = maxi(best_frontier, book.frontier(picks).size())
 func run() -> void:
 	var Book = load("res://scripts/trait_book.gd")
-	for mode in ["exclusive", "open"]:
+	var budgets := []
+	for a in OS.get_cmdline_user_args():
+		budgets.append(int(a))
+	if budgets.is_empty():
+		budgets = [12]
+	for b in budgets:
+		budget = b
 		book = Book.new()
 		book.load_book()
-		book.rules.forks = mode
 		order = []
 		for n in book.nodes:
 			if n.kind != "planned":
 				order.append(String(n.id))
-		order.sort_custom(func(a, b): return depth(a) < depth(b))
+		order.sort_custom(func(x, y): return depth(x) < depth(y))
 		total = 0
-		by_capacity = {}
+		within = 0
 		best_picks = 0
-		base_total = 0
-		base_best = 0
-		counts_over = {6: 0, 8: 0}
+		best_frontier = 0
 		walk(0, [])
-		print("MODE ", mode, ": nodes ", order.size(), " / structurally valid builds ", total, " / most Traits owned ", best_picks)
-		print("   within capacity 6: ", counts_over[6], "   within 8: ", counts_over[8])
-		print("   at creation (12 AP, capacity 6): builds ", base_total, "   most Traits owned ", base_best)
-		var keys := by_capacity.keys()
-		keys.sort()
-		var line := "   by capacity used:"
-		for k in keys:
-			line += "  %d:%d" % [k, by_capacity[k]]
-		print(line)
-	# Per-page path counts under exclusive forks
-	book = Book.new()
-	book.load_book()
-	for key in ["power", "speed", "accuracy", "endurance"]:
-		var leaves := 0
-		var nodes := 0
-		for n in book.page(key):
-			if n.kind == "planned":
-				continue
-			nodes += 1
-			var has_child := false
-			for m in book.nodes:
-				if m.kind != "planned" and (m.parent == n.id or m.get("requires", []).has(n.id)):
-					has_child = true
-			if not has_child:
-				leaves += 1
-		print("PAGE ", key, ": ", nodes, " nodes, ", leaves, " ends of a line")
+		print("BUDGET ", budget, " AP: ", order.size(), " nodes / valid builds ", total, " / within capacity 6: ", within, " / most Traits owned ", best_picks, " / most current Traits ", best_frontier)
 	quit()
