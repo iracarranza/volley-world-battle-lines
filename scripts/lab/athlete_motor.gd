@@ -229,7 +229,7 @@ func travel_takeoff() -> void:
 		jump_charge = -1
 		generic_jump = false
 		return
-	var power := clampf(jump_charge, 0, 1)
+	var power := clampf(lab.athlete.jump_charge_for_height(jump_charge), 0, 1)
 	last_jump_height = lerpf(0.6, maxf(0.6, lab.athlete.explore_jump_max()), power)
 	var flight_time := lab.athlete.jump_flight_time(last_jump_height,GRAVITY)
 	var distance := lerpf(1.5, 5.5, power)
@@ -250,6 +250,7 @@ func begin_approach() -> void:
 	generic_jump = false
 	jump_charge = 0.0
 	approach_action = lab.locked_action if lab.armed else lab.selected
+	if approach_action == 2: lab.contact_flow.on_attack_charge("player")
 	approach_distance = 0.0
 	approach_plant_speed = 0.0
 	approach_bound = false
@@ -292,9 +293,12 @@ func takeoff() -> void:
 	approach_bound = false
 	approach_release_pending = false
 	lab.camera_rig.update_aim()
-	var progress := clampf(jump_charge, 0, 1)
+	var progress := clampf(lab.athlete.jump_charge_for_height(jump_charge), 0, 1)
 	airborne_action = approach_action if approach_action >= 0 else (lab.locked_action if lab.armed else lab.selected)
-	var base_jump := lab.athlete.leap(1.0, 1.0)
+	var jump_bonus: float = lab.contact_flow.jump_bonus("player") if airborne_action != 0 else 0.0
+	# Legacy pending values are already installed on the player profile.
+	jump_bonus -= lab.athlete.jump_power_bonus if airborne_action != 0 else 0.0
+	var base_jump := lab.athlete.leap(1.0, 1.0,jump_bonus)
 	var jump_factor := lerpf(0.60,0.88,progress) if airborne_action in [1,3] else Approach.jump_factor(airborne_action, progress)
 	var run_quality := clampf(approach_distance / (lab.athlete.stride() * 2.0), 0.0, 1.0)
 	if airborne_action == 2:

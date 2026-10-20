@@ -32,13 +32,14 @@ func present(shape: Dictionary, action: int) -> Dictionary:
 		# Bound unusual debug/creator sessions that produce many shapes.
 		if groups.size() >= 16:
 			clear()
-		groups[key] = _build(shape, action)
+		groups[key] = _build(shape.get("base_geometry",shape), action,shape)
+		groups[key].group.scale = shape.get("geometry_scale",Vector3.ONE)
 	var entry: Dictionary = groups[key]
 	active = entry.group
 	active.show()
 	return entry
 
-func _build(shape: Dictionary, action: int) -> Dictionary:
+func _build(shape: Dictionary, action: int, grading_shape: Dictionary = {}) -> Dictionary:
 	var group := Node3D.new()
 	root.add_child(group)
 	var mesh_instance: MeshInstance3D
@@ -47,16 +48,18 @@ func _build(shape: Dictionary, action: int) -> Dictionary:
 	mesh_instance = MeshInstance3D.new()
 	group.add_child(mesh_instance)
 	if shape.shape == "sector":
-		mesh_instance.mesh = Geometry.zone_mesh(shape)
+		mesh_instance.mesh = Geometry.zone_mesh(shape,false,grading_shape)
 		var m := world_builder.debug_material(Color.WHITE, 1.0)
 		m.vertex_color_use_as_albedo = true
 		m.cull_mode = BaseMaterial3D.CULL_DISABLED
 		mesh_instance.material_override = m
 		var wire := MeshInstance3D.new()
-		wire.mesh = Geometry.zone_mesh(shape, true)
+		wire.mesh = Geometry.zone_mesh(shape, true,grading_shape)
 		wire.material_override = m
 		group.add_child(wire)
 		var sweet_point := Geometry.sector_point(shape, 0.74, 67.5, 0.0)
+		if not grading_shape.is_empty():
+			sweet_point = (Vector3(shape.center)+sweet_point-Vector3(grading_shape.center))/Vector3(grading_shape.get("geometry_scale",Vector3.ONE))
 		world_builder.sphere(group, 0.045, sweet_point, Color("67f3a3"))
 	elif shape.shape == "set_sector":
 		mesh_instance.mesh = Geometry.SetHurtbox.mesh(shape)

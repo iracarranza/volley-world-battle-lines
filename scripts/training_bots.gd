@@ -228,7 +228,8 @@ func reset() -> void:
 		actors[slot].position = spawn_position(slot) if settings[slot].follows_ball else settings[slot].fixed_position
 		captions[slot].text = ("HOME " if not slot_away(slot) else "AWAY ") + NAMES[action]
 		captions[slot].position.y = 2.15
-		contact_boxes[slot].position = shapes[slot].center
+		contact_boxes[slot].position = contact_shape(slot).center
+		contact_boxes[slot].scale = contact_shape(slot).get("geometry_scale",Vector3.ONE)
 		Motion.Pose.base(rigs[slot].body, 0, 0, 0, false)
 		Motion.Pose.ground_feet(rigs[slot].body)
 
@@ -358,6 +359,7 @@ func _attempt_unreachable_jumps(origin: Vector3, velocity: Vector3, gravity: flo
 			active_slot = slot
 			intercept = projected
 			remaining = time
+			if action == 2: lab.contact_flow.on_attack_charge("training_bot_%d"%slot)
 			preparation.begin(slot, action, lab.ball_shot, time, settings[slot].charge_accuracy, charge_random,athlete_for(slot).cushioning_bonus(),athlete_for(slot).low_stamina_factor())
 
 func set_contact_order(slot: int, order: int) -> void:
@@ -368,7 +370,8 @@ func set_following(slot: int, follow: bool) -> void:
 	settings[slot].fixed_position = actors[slot].position
 	settings[slot].follows_ball = follow
 	settings[slot].moves = false
-	contact_boxes[slot].position = shapes[slot].center
+	contact_boxes[slot].position = contact_shape(slot).center
+	contact_boxes[slot].scale = contact_shape(slot).get("geometry_scale",Vector3.ONE)
 	replan()
 
 func set_mode(slot: int, mode: int) -> void:
@@ -394,7 +397,8 @@ func place_at_player(slot: int) -> void:
 	settings[slot].fixed_position = Vector3(clampf(lab.player.position.x, lab.court_center.x-lab.court_half_width-1, lab.court_center.x+lab.court_half_width+1), 0, clampf(absf(lab.player.position.z), 0.5, 10.0) * (-1 if slot_away(slot) else 1))
 	actors[slot].position = settings[slot].fixed_position
 	# Only the spot changes: a follow, move or static helper stays what it was. A move helper comes back here after its contacts.
-	contact_boxes[slot].position = shapes[slot].center
+	contact_boxes[slot].position = contact_shape(slot).center
+	contact_boxes[slot].scale = contact_shape(slot).get("geometry_scale",Vector3.ONE)
 	replan()
 
 # Use the same narrow-phase geometry as player contacts, including the forward
@@ -414,16 +418,16 @@ func _static_intercept(slot: int, origin: Vector3, velocity: Vector3, gravity: f
 		var local := frame*(point-fixed)
 		if overhead:
 			local.y -= clampf(point.y-anchor_height,0,max_jump)
-		if Geometry.contains(shapes[slot], local):
+		if Geometry.contains(contact_shape(slot), local):
 			return time
 		time += step
 	return -1.0
 
 func contains_ball(slot: int, point: Vector3) -> bool:
-	return Geometry.contains(shapes[slot], (point - actors[slot].position).rotated(Vector3.UP, -actors[slot].rotation.y))
+	return Geometry.contains(contact_shape(slot), (point - actors[slot].position).rotated(Vector3.UP, -actors[slot].rotation.y))
 
 func contact_anchor(slot: int) -> Vector3:
-	var shape := shapes[slot]
+	var shape := contact_shape(slot)
 	if slot_action(slot) == 1:
 		return Vector3(shape.center) + Vector3.UP * (float(shape.radius) * 0.55)
 	if slot_action(slot) == 2:
@@ -448,6 +452,7 @@ func _plan(action: int, point: Vector3, time: float, chosen_slot: int = -1) -> v
 	if slot < 0: return
 	active_slot = slot
 	returns.release(slot)
+	if action == 2: lab.contact_flow.on_attack_charge("training_bot_%d"%slot)
 	preparation.begin(slot, action, lab.ball_shot, time, settings[slot].charge_accuracy, charge_random,athlete_for(slot).cushioning_bonus(),athlete_for(slot).low_stamina_factor())
 	if action == 0:
 		var toward_setter := setter_direction(slot, actors[slot].position)
@@ -545,9 +550,9 @@ func tick_motion(dt: float) -> void:
 			continue
 		var point: Vector3 = (lab.ball.position - actors[slot].position).rotated(Vector3.UP, -actors[slot].rotation.y) if planned and lab.ball_active else contact_anchor(slot)
 		var speed := Vector2(actors[slot].position.x - previous_positions[slot].x, actors[slot].position.z - previous_positions[slot].z).length() / maxf(dt, 0.001)
-		if action == 0 and not Geometry.contains(shapes[slot], point):
+		if action == 0 and not Geometry.contains(contact_shape(slot), point):
 			point = contact_anchor(slot)
-		var posture := Geometry.ReceivePlatform.posture(shapes[slot], point, speed) if action == 0 else "planted"
+		var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), point, speed) if action == 0 else "planted"
 		animation.update(rigs[slot], dt * float(scales[slot]), {"action": action, "charge": float(preparation.state_for(slot).charge), "planned": planned or not motion_plan.is_empty(), "airborne": airborne, "remaining": float(motion_plan.get("contact", remaining)) - float(motion_plan.get("elapsed", 0)) if not motion_plan.is_empty() else remaining, "rise": motion_plan.get("rise", 0.4), "preserve_base": not motion_plan.is_empty(), "contact_point": point, "posture": posture, "speed": speed, "cycle": float(Time.get_ticks_msec()) * 0.008, "swing_yaw": motion_plan.get("swing_yaw", 0.0),"transition_rate":athlete_for(slot).transition_rate()})
 	for slot in range(actors.size()):
 		var travel: Vector3 = lab.contact_flow.displacement("training_bot_%d" % slot,dt*float(scales[slot])) if is_instance_valid(lab.contact_flow) else Vector3.ZERO
@@ -557,6 +562,9 @@ func tick_motion(dt: float) -> void:
 			motion.plans[slot].start += travel
 			motion.plans[slot].ground += travel
 	for slot in range(contact_boxes.size()):
+		var geometry := contact_shape(slot)
+		contact_boxes[slot].position = geometry.center
+		contact_boxes[slot].scale = geometry.get("geometry_scale",Vector3.ONE)
 		var precision := active_action == slot_action(slot) and slot == active_slot and Execution.sweet_active(slot_action(slot), float(preparation.state_for(slot).confirmation_age))
 		var material: StandardMaterial3D = contact_boxes[slot].material_override
 		material.vertex_color_use_as_albedo = precision
@@ -617,7 +625,7 @@ func tick_contact(dt: float) -> bool:
 			# flight to the receiving role. A whiff is not a team contact.
 			var local: Vector3 = (lab.ball.position - actors[bot_slot].position).rotated(Vector3.UP, -actors[bot_slot].rotation.y)
 			var local_velocity: Vector3 = lab.ball_velocity.rotated(Vector3.UP, -actors[bot_slot].rotation.y)
-			var cleared_block: bool = action == 3 and local_velocity.z > 0 and local.z > float(shapes[bot_slot].center.z) + float(shapes[bot_slot].size.z) * 0.5 + Geometry.BALL_RADIUS
+			var cleared_block: bool = action == 3 and local_velocity.z > 0 and local.z > float(contact_shape(bot_slot).center.z) + float(contact_shape(bot_slot).size.z) * 0.5 + Geometry.BALL_RADIUS
 			if remaining < -Execution.CONTACT_SECONDS or cleared_block:
 				active_action = -1
 				active_slot = -1
@@ -648,7 +656,7 @@ func tick_contact(dt: float) -> bool:
 	request.response_seed = total_contacts + 1
 	request.athlete = athlete_for(slot)
 	request.actor_id = "training_bot_%d" % slot
-	request.shape = shapes[slot]
+	request.shape = contact_shape(slot)
 	request.local_point = local_contact
 	request.origin = lab.ball.position
 	request.incoming = incoming
@@ -674,7 +682,7 @@ func tick_contact(dt: float) -> bool:
 	if action != 2:
 		lab.ball_velocity *= athlete_for(slot).low_stamina_factor()
 	if action != 0:
-		lab.ball_velocity *= Preparation.output_factor(lab.contact_flow.attack_charge(float(prepared.locked_charge),"training_bot_%d"%slot,lab.ball.position) if action == 2 else float(prepared.locked_charge))
+		lab.ball_velocity *= Preparation.output_factor(lab.contact_flow.attack_charge(float(prepared.locked_charge),"training_bot_%d"%slot,lab.ball.position,execution) if action == 2 else float(prepared.locked_charge))
 	request.base_velocity = lab.ball_velocity
 	var result := ContactResolver.resolve(request, execution)
 	lab.ball_velocity = result.velocity
@@ -683,14 +691,15 @@ func tick_contact(dt: float) -> bool:
 	last_aim = result.aiming
 	if action == 2 and motion.plans.has(slot):
 		motion.plans[slot]["swing_yaw"] = result.influence.shot_yaw_radians
-	lab.ball_shot = ReceiveCharge.shot(["receive", "set", "attack", "block"][action], lab.contact_flow.attack_charge(float(prepared.locked_charge),"training_bot_%d"%slot,lab.ball.position) if action == 2 else float(prepared.locked_charge), "training_bot_%d" % slot)
+	lab.ball_shot = ReceiveCharge.shot(["receive", "set", "attack", "block"][action], lab.contact_flow.attack_charge(float(prepared.locked_charge),"training_bot_%d"%slot,lab.ball.position,execution) if action == 2 else float(prepared.locked_charge), "training_bot_%d" % slot)
 	if not result.outgoing_shot.is_empty():
 		lab.ball_shot = result.outgoing_shot
+	lab.ball_shot = lab.contact_flow.decorate_shot(lab.ball_shot,request.incoming_shot,"training_bot_%d"%slot,action,execution)
 	if action == 2 and execution.hit:
 		lab.contact_flow.consume_attack("training_bot_%d"%slot)
 	preparation.finish(slot)
 	lab._emit_external_impact("training_bot_%d" % slot, action, incoming, execution,incoming_shot)
-	var posture := Geometry.ReceivePlatform.posture(shapes[slot], local_contact, move_speed_for(slot) if settings[slot].moves else 0.0) if action == 0 else "planted"
+	var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), local_contact, move_speed_for(slot) if settings[slot].moves else 0.0) if action == 0 else "planted"
 	var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actors[slot].rotation.y, -PI, PI) if action == 2 else 0.0
 	animation.contact(rigs[slot], action, local_contact, posture, swing_yaw, execution.get("rescue", false))
 	spend_stamina(slot,athlete_for(slot).contact_cost(action,1).x)
@@ -757,7 +766,7 @@ func _launch(action: int,firing_slot: int = -1) -> void:
 	if action == 2:
 		var slot := firing_slot if firing_slot >= 0 else slot_for(2,origin.z)
 		var yaw: float = actors[slot].rotation.y
-		lab.ball_velocity = Influence.constrain_attack(lab.ball_velocity, yaw)
+		lab.ball_velocity = Influence.constrain_attack(lab.ball_velocity, yaw,athlete_for(slot).trait_effect("court_vision"))
 		var shot_yaw := atan2(-lab.ball_velocity.x, -lab.ball_velocity.z)
 		var swing := wrapf(shot_yaw - yaw, -PI, PI)
 		if motion.plans.has(slot):
@@ -778,3 +787,30 @@ func disable_side(away: bool) -> void:
 		settings[slot].enabled = false
 		actors[slot].hide()
 	replan()
+
+var geometry_cache: Dictionary = {}
+func contact_shape(slot: int) -> Dictionary:
+	var base: Dictionary = shapes[slot]
+	if not is_instance_valid(lab.contact_flow): return base
+	var effects: Dictionary = lab.contact_flow.shape_effects("training_bot_%d"%slot,slot_action(slot))
+	var control := athlete_for(slot).ball_control()
+	var cached: Dictionary = geometry_cache.get(slot,{})
+	if cached.get("base",{}) == base and cached.get("effects",{}) == effects and cached.get("control",-1) == control:
+		return cached.shape
+	var definition := base.duplicate(true)
+	if slot_action(slot) == 0: definition["platform_quality"] = effects.get("platform_quality",0)
+	if slot_action(slot) == 1:
+		definition["ball_control"] = control
+		definition["column_radius"] = lerpf(0.16,0.42,clampf(control/100.0,0,1))*float(athlete_for(slot).build.height)/1.86
+	var shape := Geometry.with_effects(definition,effects)
+	if slot < contact_boxes.size():
+		var drawing: Dictionary = shape.get("base_geometry",shape)
+		match slot_action(slot):
+			0: contact_boxes[slot].mesh = Geometry.ReceivePlatform.mesh(drawing)
+			1:
+				contact_boxes[slot].mesh = Geometry.SetHurtbox.mesh(drawing)
+				for child in contact_boxes[slot].get_children():
+					if child is MeshInstance3D: child.mesh = Geometry.SetHurtbox.mesh(drawing,true)
+			2: contact_boxes[slot].mesh = Geometry.zone_mesh(drawing,false,shape)
+	geometry_cache[slot] = {"base":base.duplicate(true),"effects":effects.duplicate(true),"control":control,"shape":shape}
+	return shape

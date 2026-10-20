@@ -32,14 +32,14 @@ func value() -> Vector3:
 	# Unfilled history is neutral, preventing a one-frame flick from getting full DI.
 	return (result / WINDOW).limit_length(1.0)
 
-static func resolve(base: Vector3, action: int, world_input: Vector3, contact_forward: Vector3, quality: float) -> Dictionary:
+static func resolve(base: Vector3, action: int, world_input: Vector3, contact_forward: Vector3, quality: float, court_vision: float = 0.0) -> Dictionary:
 	contact_forward.y = 0
 	contact_forward = contact_forward.normalized() if contact_forward.length_squared() > 0.0001 else Vector3.FORWARD
 	var right := contact_forward.cross(Vector3.UP)
 	world_input.y = 0
 	world_input = world_input.limit_length(1.0)
 	var axes := Vector2(world_input.dot(right), world_input.dot(contact_forward)).limit_length(1.0)
-	var authority := clampf(quality, 0, 1)
+	var authority := clampf(quality, 0, 1)*clampf(1.0+court_vision/100.0,0,3)
 	var output := base
 	var yaw := 0.0
 	var range_factor := 1.0
@@ -65,10 +65,10 @@ static func resolve(base: Vector3, action: int, world_input: Vector3, contact_fo
 	return result
 
 # Bot intent uses the same maximum horizontal attack influence as player input.
-static func constrain_attack(velocity: Vector3, facing_yaw: float) -> Vector3:
+static func constrain_attack(velocity: Vector3, facing_yaw: float, court_vision: float = 0.0) -> Vector3:
 	var horizontal := Vector2(velocity.x, velocity.z).length()
 	if horizontal < 0.0001:
 		return velocity
 	var desired_yaw := atan2(-velocity.x, -velocity.z)
-	var offset := clampf(wrapf(desired_yaw - facing_yaw, -PI, PI), -deg_to_rad(YAW_LIMITS[2]), deg_to_rad(YAW_LIMITS[2]))
+	var offset := clampf(wrapf(desired_yaw - facing_yaw, -PI, PI), -deg_to_rad(YAW_LIMITS[2])*clampf(1.0+court_vision/100.0,0,3), deg_to_rad(YAW_LIMITS[2])*clampf(1.0+court_vision/100.0,0,3))
 	return Vector3(-sin(facing_yaw + offset) * horizontal, velocity.y, -cos(facing_yaw + offset) * horizontal)

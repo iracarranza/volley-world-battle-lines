@@ -23,6 +23,19 @@ static func assess(request: Request) -> Dictionary:
 	var result := Execution.assess(
 		spatial, request.confirmation_age, request.remembered, request.action
 	)
+	if request.source_athlete == null: request.source_athlete = request.athlete
+	if request.source_athlete.gameplay_context.is_valid():
+		var evidence := result.duplicate(true)
+		evidence["incoming_shot"] = request.incoming_shot
+		if request.action == Action.RECEIVE and not request.ideal_charge_match:
+			var baseline := Charge.assess(result,request.incoming_shot,request.charge*request.source_athlete.low_stamina_factor(),request.source_athlete.cushioning_bonus(),request.source_athlete.trait_effect("charge_tolerance"),request.auto_charge)
+			evidence["mismatch"] = not bool(baseline.get("charge_match",{}).get("matched",true))
+			evidence["sweet"] = baseline.get("sweet",false)
+			evidence["quality"] = baseline.get("quality",0)
+
+		request.gameplay = request.source_athlete.gameplay_context.call(request.action,evidence)
+		request.athlete = request.source_athlete.contact_copy(request.gameplay.get("effects",{}))
+	result["gameplay"] = request.gameplay
 	result["geometry_assessment"] = Snapshot.freeze(spatial)
 	result["timing_assessment"] = Snapshot.freeze({"sweet_eligible": result.get("sweet", false), "rescue": result.get("rescue", false), "confirmation_age": request.confirmation_age})
 	if request.action == Action.SET:
@@ -70,11 +83,11 @@ static func resolve(request: Request, assessment: Dictionary) -> Result:
 			result.aiming = Aim.apply(request.origin, velocity, request.aiming_accuracy, request.gravity, request.aim_random)
 			velocity = result.aiming.velocity
 		result.influence = Spike.resolve(
-			velocity, assessment, request.directional_input, request.facing, request.keep_attack_intent
+			velocity, assessment, request.directional_input, request.facing, request.keep_attack_intent, request.athlete.trait_effect("court_vision")
 		)
 	else:
 		result.influence = Influence.resolve(
-			velocity, request.action, request.directional_input, request.intent_direction, quality
+			velocity, request.action, request.directional_input, request.intent_direction, quality, request.athlete.trait_effect("court_vision")
 		)
 	velocity = Execution.velocity(
 		request.action, result.influence.velocity, request.incoming, request.facing,
@@ -103,6 +116,12 @@ static func resolve(request: Request, assessment: Dictionary) -> Result:
 			result.separation_offset = response.separation_offset
 			result.assessment["receive_response"] = response
 			result.outgoing_shot = BallState.receive(request.charge, request.actor_id, request.incoming_shot, request.incoming, velocity, response.delivery_quality, response)
+	var variance := request.athlete.trait_effect("charge_aim_variance")
+	if variance > 0 and not request.ideal_charge_match:
+		var random := RandomNumberGenerator.new()
+		random.seed = request.response_seed
+		var degrees := variance*request.charge*(1.0+request.directional_input.length())*(1.0-request.athlete.ball_control()/120.0)
+		velocity = velocity.rotated(Vector3.UP,deg_to_rad(random.randf_range(-degrees,degrees)))
 	result.velocity = velocity
 	result.mechanics = mechanics(request, result)
 	result.assessment["mechanics"] = result.mechanics
@@ -116,7 +135,7 @@ static func mechanics(request: Request, result: Result) -> Array:
 	var evidence := {
 		"geometry": {"hit": geometry.get("hit", false), "zone": geometry.get("zone", ""), "quality": geometry.get("quality", 0), "intersection": request.local_point, "platform_quality": request.athlete.trait_effect("platform_quality") if request.action == Action.RECEIVE else 0.0},
 		"timing": {"confirmation_age": request.confirmation_age, "sweet_eligible": timing.get("sweet_eligible", false), "early": response.get("early", 0), "late": response.get("late", 0), "timing": request.athlete.timing()},
-		"potency": {"action_charge": request.charge, "available_output": request.athlete.low_stamina_factor(), "effective_receive_charge": assessment.get("charge_match", {}).get("receive_charge", request.charge), "cushioning": request.athlete.cushioning_bonus() if request.action == Action.RECEIVE else 0.0,"auto_charge":request.auto_evidence},
+		"potency": {"action_charge": request.charge, "available_output": request.athlete.low_stamina_factor(), "effective_receive_charge": assessment.get("charge_match", {}).get("receive_charge", request.charge), "cushioning": request.athlete.cushioning_bonus() if request.action == Action.RECEIVE else 0.0,"auto_charge":request.auto_evidence,"runtime_effects":request.gameplay.get("effects",{})},
 		"handling": {"profile": Registry.profile(request.action), "model": "receive_response" if not response.is_empty() else "existing_action_rules", "charge_match": assessment.get("charge_match", {}), "incoming_velocity": request.incoming,"set_isolation":assessment.get("set_isolation",{})},
 		"pressure_control": {"uncontrolled_fraction": response.get("uncontrolled_fraction", 0), "absorption": response.get("receive_absorption", 0), "control": response.get("receive_control", 0), "retention": response.get("retention", 0)},
 		"redirection": {"facing": request.facing, "directional_input": request.directional_input, "redirection": response.get("receive_redirection", 0), "scatter_radians": response.get("scatter_radians", 0), "seed": request.response_seed},

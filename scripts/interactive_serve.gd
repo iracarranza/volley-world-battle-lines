@@ -169,6 +169,7 @@ func strike(hand: Vector3) -> void:
 	var speed: float = (9.0 + 65.0 * 0.035) * lab.athlete.serve_speed_factor(lab._default_charge())*(1.0+0.12*lab.athlete.flow/100.0)
 	lab.ball_velocity = horizontal * cos(deg_to_rad(angle)) * speed + Vector3.UP * sin(deg_to_rad(angle)) * speed
 	lab.ball_shot = lab.ReceiveCharge.shot("serve", lab.athlete.effective_serve_charge(lab._default_charge()), "player")
+	lab.ball_shot = lab.contact_flow.decorate_serve(lab.ball_shot,"player")
 	var sweet: bool = hand.distance_to(lab.ball.position) <= HAND_RADIUS * 0.60 + lab.Geometry.BALL_RADIUS
 	evidence = {"mode": "tap", "sweet": sweet, "charge": lab.athlete.effective_serve_charge(lab._default_charge()), "hand": hand, "point": lab.ball.position, "incoming_velocity": incoming, "outgoing_velocity": lab.ball_velocity, "angle_degrees": angle, "toss_time": toss_time, "swing_time": swing_time}
 	evidence.make_read_only()
@@ -210,6 +211,7 @@ func basic_strike() -> void:
 		apex += 0.5
 	lab.ball_velocity = velocity
 	lab.ball_shot = lab.ReceiveCharge.shot("serve", lab.athlete.effective_serve_charge(lab._default_charge()), "player")
+	lab.ball_shot = lab.contact_flow.decorate_serve(lab.ball_shot,"player")
 	evidence = {"mode": "held", "sweet": false, "charge": lab.athlete.effective_serve_charge(lab._default_charge()), "hand": origin, "point": origin, "target": target, "duration": duration, "net_height": net_height, "incoming_velocity": incoming, "outgoing_velocity": velocity, "channel_seconds": held_time}
 	evidence.make_read_only()
 	_finish_strike(incoming, false)

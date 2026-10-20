@@ -36,3 +36,6 @@ var receive_heading := Vector3.ZERO
 var attack_strength_reference := 1.0
 # Rolling Receive is an ability override, not a separate contact implementation.
 var rolling_receive := false
+
+var gameplay: Dictionary = {}
+var source_athlete: LabAthlete

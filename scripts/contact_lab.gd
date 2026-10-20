@@ -203,6 +203,7 @@ func open_bot_menu() -> bool:
 	return true
 
 func refresh_bot_rally() -> void:
+	if is_instance_valid(contact_flow): contact_flow.start_rally()
 	training_bots.refresh_for_rally()
 	pepper.refresh_for_rally()
 
@@ -357,6 +358,10 @@ func _raw_hurtbox_definition(action: int) -> Dictionary:
 	var shape := Geometry.definition(action, height, athlete.reach(), motion.jumped and motion.airborne_action == 0, -1.0 if dominant_hand == "Left" else 1.0, shoulder, shoulder_x, athlete.ball_control(), Geometry.arm_length(arms[0 if dominant_hand == "Left" else 1], scale_to_world))
 	if action == 0:
 		shape["platform_quality"] = athlete.trait_effect("platform_quality")
+	if is_instance_valid(contact_flow):
+		var effects: Dictionary = contact_flow.shape_effects("player",action)
+		if action == 0: shape["platform_quality"] = effects.get("platform_quality",0)
+		shape = Geometry.with_effects(shape,effects)
 	return shape
 
 func _contact_yaw() -> float:
@@ -584,6 +589,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				if armed:
 					_confirm_action()
 				else:
+					if selected == 2: contact_flow.on_attack_charge("player")
 					charging = true
 					charge = 0.0
 			elif charging:
@@ -793,7 +799,7 @@ func _loft_velocity(origin: Vector3, action: int, power: float, direction: Vecto
 	var duration := (upward + sqrt(upward * upward + 2.0 * GRAVITY * maxf(origin.y - 0.105, 0.0))) / GRAVITY
 	return direction * distance / maxf(duration, 0.01) + Vector3.UP * upward
 
-func _shot_velocity(origin: Vector3, action: int, power: float, target: Variant = null) -> Vector3:
+func _shot_velocity(origin: Vector3, action: int, power: float, target: Variant = null, evidence: Dictionary = {}) -> Vector3:
 	var direction: Vector3 = (aim if target == null else Vector3(target)) - origin
 	direction.y = 0
 	if direction.length() < 0.2:
@@ -802,7 +808,7 @@ func _shot_velocity(origin: Vector3, action: int, power: float, target: Variant 
 	if action in [0, 1]:
 		return _loft_velocity(origin, action, power, direction)*athlete.low_stamina_factor()
 	if action == 2:
-		power = contact_flow.attack_charge(power,"player",origin) if is_instance_valid(contact_flow) else athlete.effective_attack_charge(power)
+		power = contact_flow.attack_charge(power,"player",origin,evidence) if is_instance_valid(contact_flow) else athlete.effective_attack_charge(power)
 	var hp_factor := lerpf(0.7, 1.0, athlete.hp / 100.0)
 	var speed := (6.0 + power * 7.0 + 65.0 * 0.02) * hp_factor
 	if action == 2:
@@ -945,7 +951,7 @@ func _contact() -> void:
 	var rolled: bool = locked_action == 0 and athlete.has_trait("endurance_rolling_receive") and assessment.hit and assessment.get("edge", false) and not assessment.get("rescue", false) and assessment.get("charge_match", {}).get("matched", true)
 	if committed_intent.is_empty() or int(committed_intent.action) != locked_action or (not auto_preparation.active and not is_equal_approx(float(committed_intent.charge), locked_charge)):
 		_capture_contact_intent()
-	ball_velocity = _shot_velocity(ball.position, locked_action, request.charge, committed_intent.target)
+	ball_velocity = _shot_velocity(ball.position, locked_action, request.charge, committed_intent.target, assessment)
 	if locked_action == 2 and assessment.get("rescue", false):
 		rescue_swing_remaining = 0.28
 	if rolled:
@@ -965,9 +971,10 @@ func _contact() -> void:
 	last_directional_influence = result.influence
 	if locked_action == Action.ATTACK:
 		animation.spike_swing_yaw = result.influence.shot_yaw_radians
-	ball_shot = ReceiveCharge.shot(["receive", "set", "attack", "block"][locked_action], contact_flow.attack_charge(request.charge,"player",ball.position) if locked_action == 2 else request.charge, "player")
+	ball_shot = ReceiveCharge.shot(["receive", "set", "attack", "block"][locked_action], contact_flow.attack_charge(request.charge,"player",ball.position,assessment) if locked_action == 2 else request.charge, "player")
 	if not result.outgoing_shot.is_empty():
 		ball_shot = result.outgoing_shot
+	ball_shot = contact_flow.decorate_shot(ball_shot,request.incoming_shot,"player",locked_action,assessment)
 	if locked_action == 2 and assessment.hit:
 		contact_flow.consume_attack("player")
 	var cost: Vector2 = athlete.contact_cost(locked_action, contacts)
@@ -1049,6 +1056,7 @@ func _tick_ball(dt: float) -> void:
 			_finish("UNDER-NET FAULT / Ball crossed beneath the webbing")
 			return
 	if net_result.crossed:
+		contact_flow.net_cross()
 		training_bots.net_rebound = false
 	if net_result.crossed and absf(ball.position.x-court_center.x) <= net_response.web_half_width+0.1:
 		if not pepper.active():
@@ -1098,6 +1106,7 @@ func _tick_ball(dt: float) -> void:
 	_draw_line(trail, trail_points)
 
 func _finish(message: String) -> void:
+	contact_flow.end_rally()
 	clear_net_responses()
 	net_bounce_pending = false
 	action_endlag = 0.0

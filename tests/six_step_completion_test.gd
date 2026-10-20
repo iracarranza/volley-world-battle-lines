@@ -123,11 +123,13 @@ func run() -> void:
 	lab.athlete.flow = 100
 	var receive := {"id":"revenge","actor":"player","physical_hit":true,"action":0,"quality":0.2,"incoming_shot":{"kind":"attack"},"incoming_velocity":Vector3(0,-2,20),"point":lab.player.position,"charge_match":{"matched":false,"status":"undercharged","severity":1}}
 	lab.contact_flow.record(receive)
-	check(lab.contact_flow.pending_attacks.player == 15 and lab.athlete.jump_power_bonus == 10,"Revenger arms next attack and jump after attack receive reduces Flow")
+	check(lab.contact_flow.context("player",2).effects.get("spike_velocity",0)+lab.contact_flow.pending_attacks.get("player",0) == 15 and lab.contact_flow.jump_bonus("player") == 10,"Revenger arms next attack and jump after attack receive reduces Flow")
 	lab.contact_flow.consume_jump("player")
-	check(lab.athlete.jump_power_bonus == 0 and lab.contact_flow.pending_attacks.player == 15,"Jump and attack bonuses consume independently")
+	check(lab.contact_flow.jump_bonus("player") == 0 and lab.contact_flow.context("player",2).effects.get("spike_velocity",0)+lab.contact_flow.pending_attacks.get("player",0) == 15,"Jump and attack bonuses consume independently")
+	var revenge_context: Dictionary = lab.contact_flow.context("player",2)
 	lab.contact_flow.consume_attack("player")
-	check(not lab.contact_flow.pending_attacks.has("player"),"Attack bonus is one-shot")
+	lab.contact_flow.record({"id":"revenge-attack","actor":"player","physical_hit":true,"action":2,"quality":1,"gameplay":revenge_context})
+	check(lab.contact_flow.context("player",2).effects.get("spike_velocity",0)+lab.contact_flow.pending_attacks.get("player",0) == 0,"Attack bonus is one-shot on physical contact")
 	lab._reset()
 	lab.athlete.build.statistics = {"swing_power":99}
 	lab.athlete.trait_ids.assign(["new_trait","new_trait_3"])
@@ -149,7 +151,7 @@ func run() -> void:
 	lab.confirm_window = lab.confirm_duration-0.22
 	lab._contact()
 	check(is_equal_approx(lab.last_contact_result.outgoing_shot.charge,effective),"Real attack metadata uses identical effective charge")
-	check(lab.athlete.flow <= 25,"Real Rhythm Hitter consumes old Flow, then new contact earns Flow")
+	check(lab.athlete.flow <= 25*(1.0+lab.athlete.trait_effect("flow_state")/100.0),"Real Rhythm Hitter consumes old Flow, then new contact earns Flow with Flow State")
 	lab.athlete.trait_ids.assign(["endurance_fast_recovery"])
 	lab.athlete.build.statistics = {"transition_speed":65}
 	lab.animation.floor_recovery_name = "knee"

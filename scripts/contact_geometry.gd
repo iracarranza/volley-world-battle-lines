@@ -22,7 +22,27 @@ static func definition(action: int, height: float, reach: float, dive: bool, dom
 		_:
 			return {"shape": "block_columns", "center": Vector3(0, reach - 0.20, -0.38), "size": Vector3(1.02, 1.10, 0.42) * height / 1.86, "column_x": 0.32 * height / 1.86, "column_radius": 0.19 * height / 1.86}
 
+static func with_effects(base: Dictionary,effects: Dictionary) -> Dictionary:
+	var scale := Vector3(maxf(0.1,1.0+float(effects.get("broad_range",0))/100.0),maxf(0.1,1.0+float(effects.get("vertical_reach",0))/100.0),1)
+	if scale.is_equal_approx(Vector3.ONE): return base
+	var result := base.duplicate(true)
+	result["base_geometry"] = base.duplicate(true)
+	result["geometry_scale"] = scale
+	var pivot := Vector3(0,base.center.y-base.size.y*0.5,0)
+	result["geometry_pivot"] = pivot
+	result["center"] = pivot+(Vector3(base.center)-pivot)*scale
+	result["size"] = Vector3(base.size)*scale
+	if base.has("side_reach"): result["side_reach"] = float(base.side_reach)*scale.x
+	result["broad_leniency"] = maxf(0,float(effects.get("broad_range",0))/100.0)
+	return result
+
+static func unscaled_point(shape: Dictionary,point: Vector3) -> Vector3:
+	if not shape.has("base_geometry"): return point
+	var pivot: Vector3 = shape.geometry_pivot
+	return pivot+(point-pivot)/Vector3(shape.geometry_scale)
+
 static func contains(definition: Dictionary, local_ball: Vector3) -> bool:
+	if definition.has("base_geometry"): return contains(definition.base_geometry,unscaled_point(definition,local_ball))
 	var point: Vector3 = local_ball - definition.center
 	if definition.shape == "set_sector":
 		return SetHurtbox.contains(definition, local_ball, BALL_RADIUS)
@@ -47,6 +67,24 @@ static func zone_at(radius_ratio: float, angle: float) -> String:
 	return "FAIR" if angle < 90.0 else "WEAK"
 
 static func evaluate(definition: Dictionary, local_ball: Vector3) -> Dictionary:
+	if definition.has("base_geometry"):
+		var grade := evaluate(definition.base_geometry,unscaled_point(definition,local_ball))
+		if grade.hit:
+			var leniency := float(definition.get("broad_leniency",0))
+			grade.quality = 1.0-(1.0-float(grade.quality))/(1.0+leniency)
+			if float(grade.strength) < 1.0: grade.strength = 1.0-(1.0-float(grade.strength))/(1.0+leniency)
+			# Enlarged reach cannot manufacture an anatomically impossible sweetspot.
+			if definition.shape == "sector":
+				var physical := evaluate(definition.base_geometry,local_ball)
+				if physical.get("zone","") == "SWEET SPOT":
+					grade.zone = "SWEET SPOT"
+					grade.quality = physical.quality
+					grade.strength = physical.strength
+				elif grade.zone == "SWEET SPOT":
+					grade.zone = "FAIR"
+					grade.quality = minf(0.82,float(grade.quality))
+				grade["rescue_only"] = physical.get("rescue_only",not physical.hit)
+		return grade
 	if not contains(definition, local_ball):
 		return {"hit": false, "zone": "MISS", "quality": 0.0, "strength": 0.0}
 	var point: Vector3 = local_ball - definition.center
@@ -74,7 +112,7 @@ static func evaluate(definition: Dictionary, local_ball: Vector3) -> Dictionary:
 	var strength: float = {"SWEET SPOT": 1.08, "FAIR": 0.95, "WEAK": 0.78, "SOUR SPOT": 0.48}[zone]
 	return {"hit": true, "zone": zone, "quality": quality, "strength": strength, "rescue_only": (point + Vector3(0, 0, -0.35)).length() > float(definition.radius), "spike_geometry": true, "spike_lateral_offset": (point.x - cos(deg_to_rad(67.5)) * 0.74 * float(definition.radius) * float(definition.dominant_sign)) / float(definition.radius), "reach_ratio": (point + Vector3(0, 0, -0.35)).length() / float(definition.radius), "depth_ratio": absf(point.z) / (float(definition.depth) * 0.5)}
 
-static func zone_mesh(definition: Dictionary, lines: bool = false) -> ImmediateMesh:
+static func zone_mesh(definition: Dictionary, lines: bool = false, grading_shape: Dictionary = {}) -> ImmediateMesh:
 	var mesh := ImmediateMesh.new()
 	mesh.surface_begin(Mesh.PRIMITIVE_LINES if lines else Mesh.PRIMITIVE_TRIANGLES)
 	var radius: float = definition.radius
@@ -97,7 +135,8 @@ static func zone_mesh(definition: Dictionary, lines: bool = false) -> ImmediateM
 			color.a = 0.20 if not lines else 0.85
 			mesh.surface_set_color(color)
 			for z in [-depth, 0.0, depth]:
-				var grade := evaluate(definition, Vector3(definition.center) + sector_point(definition, (r0 + r1) * 0.5, (a + b) * 0.5, z))
+				var sample := sector_point(definition,(r0+r1)*0.5,(a+b)*0.5,z)
+				var grade := evaluate(definition,Vector3(definition.center)+sample) if grading_shape.is_empty() else evaluate(grading_shape,Vector3(grading_shape.center)+sample*Vector3(grading_shape.get("geometry_scale",Vector3.ONE)))
 				color = ZONE_COLORS.get("WEAK" if grade.get("rescue_only", false) else grade.zone, Color("ee617b"))
 				color.a = 0.16 if not lines else 0.85
 				mesh.surface_set_color(color)
@@ -127,6 +166,7 @@ static func zone_mesh(definition: Dictionary, lines: bool = false) -> ImmediateM
 	return mesh
 
 static func sector_point(definition: Dictionary, ratio: float, angle: float, z: float) -> Vector3:
+	if definition.has("base_geometry"): return sector_point(definition.base_geometry,ratio,angle,z)*Vector3(definition.geometry_scale)
 	return Vector3(cos(deg_to_rad(angle)) * ratio * float(definition.radius) * float(definition.dominant_sign), sin(deg_to_rad(angle)) * ratio * float(definition.radius), z)
 
 static func block_mesh(definition: Dictionary) -> ImmediateMesh:

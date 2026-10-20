@@ -37,11 +37,55 @@ var trait_via: Dictionary = {}
 const QUICK_STEP_HP := 3.0
 const ROLLING_RECEIVE_HP := 5.0
 
-func stat(name: String) -> float:
-	return clampf(Stats.rating(build,name)+(jump_power_bonus if name == "jump_power" else 0.0),50,99)
+const Modifiers := preload("res://scripts/gameplay_modifiers.gd")
+var modifiers := Modifiers.new()
+var gameplay_context: Callable
+var gameplay_effects: Dictionary = {}
+var gameplay_rules: Array[Dictionary] = []
+var _rule_ids: Array[String] = []
+var _rule_via: Dictionary = {}
+var _rule_injected: Array[Dictionary] = []
+var _rule_book_id := 0
+var _rules: Array[Dictionary] = []
+
+func rules() -> Array[Dictionary]:
+	var book = Store.trait_book()
+	if book.get_instance_id() != _rule_book_id or trait_ids != _rule_ids or trait_via != _rule_via or gameplay_rules != _rule_injected:
+		_rule_book_id = book.get_instance_id()
+		_rule_ids = trait_ids.duplicate()
+		_rule_via = trait_via.duplicate(true)
+		_rule_injected = gameplay_rules.duplicate(true)
+		_rules = gameplay_rules.duplicate(true)
+		if book.has_method("active_gameplay_rules"):
+			_rules.append_array(book.active_gameplay_rules(trait_ids,trait_via))
+	return _rules
+
+func stat(name: String,extra: Dictionary = {}) -> float:
+	var parent: String = Stats.PARENTS.get(name,"")
+	var bonus := trait_effect(name)+trait_effect(parent)
+	bonus += float(extra.get(name,0))+float(extra.get(parent,0))
+	bonus += modifiers.total("stats",name)+modifiers.total("stats",parent)
+	if name == "jump_power": bonus += jump_power_bonus
+	var rating := clampf(Stats.rating(build,name)+bonus,50,99)
+	var base_band := Stats.tier(rating)
+	var uplift := int(trait_effect(name+"_band")+float(extra.get(name+"_band",0)))
+	var cap_key := name+"_band_cap"
+	var authored_cap := trait_effect(cap_key) if has_effect(cap_key) else 5.0
+	var cap := int(extra.get(cap_key,authored_cap))
+	var band := maxi(base_band,mini(cap,base_band+maxi(0,uplift)))
+	for change in modifiers.bands(name):
+		band = maxi(band,mini(int(change.get("cap",5)),band+maxi(0,int(change.get("amount",0)))))
+	return [50.0,56.0,65.0,66.0,70.0,80.0,90.0,99.0][clampi(band,-2,5)+2] if band != base_band else rating
+
+func has_effect(name: String) -> bool:
+	trait_effect(name) # Synchronize the tree cache before testing authored zeroes.
+	if _effects.has(name) or gameplay_effects.has(name): return true
+	for modifier in modifiers.entries.values():
+		if modifier.get("effects",{}).has(name): return true
+	return false
 
 func trait_effect(name: String) -> float:
-	if not Mechanics.EFFECTS.has(name):
+	if not Mechanics.registered(name):
 		return 0.0
 	var book = Store.trait_book()
 	var book_id: int = book.get_instance_id()
@@ -52,7 +96,7 @@ func trait_effect(name: String) -> float:
 		_effect_ids = trait_ids.duplicate()
 		_effect_via = trait_via.duplicate(true)
 		_effects = book.active_effects(trait_ids, trait_via)
-	return float(_effects.get(name,0))
+	return float(_effects.get(name,0))+float(gameplay_effects.get(name,0))+modifiers.total("effects",name)
 
 func recovery_rate() -> float:
 	return 1.0+trait_effect("recovery")/100.0
@@ -88,13 +132,17 @@ func max_stamina() -> float:
 	return Stats.capacity(stat("capacity"))
 
 func cushioning_bonus() -> float:
-	return Stats.cushioning(stat("cushioning"))
+	return Stats.cushioning(stat("cushioning"))+trait_effect("receive_charge_bonus")/100.0
+
+func jump_charge_for_height(charge: float) -> float:
+	var threshold := trait_effect("jump_stamina_threshold")/100.0
+	return 1.0 if threshold > 0 and stamina/max_stamina() > threshold else maxf(0,charge)
 
 func effective_jump_charge(charge: float) -> float:
-	return maxf(0,charge)*Stats.charge_multiplier(stat("jump_power"))
+	return jump_charge_for_height(charge)*Stats.charge_multiplier(stat("jump_power"))
 
-func effective_attack_charge(charge: float) -> float:
-	return maxf(0,charge)*Stats.charge_multiplier(stat("swing_power"))+trait_effect("spike_velocity")/100.0
+func effective_attack_charge(charge: float,extra: Dictionary = {}) -> float:
+	return maxf(0,charge)*Stats.charge_multiplier(stat("swing_power",extra))+(trait_effect("spike_velocity")+float(extra.get("spike_velocity",0)))/100.0
 
 func jump_gravity(gravity: float, rising: bool) -> float:
 	return gravity*pow(explosiveness_rate(),2) if rising else gravity
@@ -147,10 +195,10 @@ func stride() -> float:
 	return clampf(0.43 * float(build.height), 0.55, 1.15)
 
 func speed() -> float:
-	return (3.6 + Stats.anchor(float(build.speed)) * 0.035) * stride() / 0.80 * (0.55 if exhausted else 1.0)
+	return (3.6 + Stats.anchor(clampf(float(build.speed)+trait_effect("speed")+modifiers.total("stats","speed"),50,99)) * 0.035) * stride() / 0.80 * (0.55 if exhausted else 1.0)
 
 func leap(charge: float, approach: float, extra_jump_power: float = 0.0) -> float:
-	return JUMP_HEIGHT_MULTIPLIER * (0.20 + 65.0 * 0.007) * lerpf(0.55, 1.0, maxf(charge,0)*Stats.charge_multiplier(clampf(stat("jump_power")+extra_jump_power,50,99))) * lerpf(0.78, 1.0, approach) * (0.65 if exhausted else 1.0) * jump_output_factor()
+	return JUMP_HEIGHT_MULTIPLIER * (0.20 + 65.0 * 0.007) * lerpf(0.55, 1.0, jump_charge_for_height(charge)*Stats.charge_multiplier(clampf(stat("jump_power")+extra_jump_power,50,99))) * lerpf(0.78, 1.0, approach) * (0.65 if exhausted else 1.0) * jump_output_factor()
 
 # The most an exploration (travel) jump can rise: a share of what this build's own standing leap is,
 # and never more than EXPLORE_JUMP_CAP. An attack approach converts its run-up into height and clears this
@@ -205,13 +253,14 @@ func _enter_winded() -> void:
 	fatigue_epoch += 1
 	winded = true
 	winded_remaining = WINDED_SECONDS
-	if trait_effect("second_wind") > 0 and second_wind_cooldown <= 0:
+	if rules().is_empty() and trait_effect("second_wind") > 0 and second_wind_cooldown <= 0:
 		stamina = minf(max_stamina(),stamina+max_stamina()*trait_effect("second_wind")/100.0)
 		second_wind_cooldown = 30.0
 
 func reset_fatigue() -> void:
 	second_wind_cooldown = 0.0
 	jump_power_bonus = 0.0
+	modifiers.clear()
 	exhausted = false
 	winded = false
 	exhaustion_remaining = 0.0
@@ -249,3 +298,19 @@ func recover(delta: float, resting: bool) -> void:
 func contact_cost(_action: int, _repeat: int) -> Vector2:
 	# Ordinary volleyball contacts spend stamina. HP is reserved for abilities.
 	return Vector2(8.0 * (1.25 - 65.0 / 200.0), 0.0)
+
+func contact_copy(effects: Dictionary) -> LabAthlete:
+	var copy := LabAthlete.new()
+	copy.build = build.duplicate(true)
+	copy.trait_ids = trait_ids.duplicate()
+	copy.trait_via = trait_via.duplicate(true)
+	copy.gameplay_effects = gameplay_effects.duplicate(true)
+	for key in effects: copy.gameplay_effects[key] = float(copy.gameplay_effects.get(key,0))+float(effects[key])
+	copy.modifiers.entries = modifiers.entries.duplicate(true)
+	copy.stamina = stamina
+	copy.hp = hp
+	copy.flow = flow
+	copy.exhausted = exhausted
+	copy.winded = winded
+	copy.jump_power_bonus = jump_power_bonus
+	return copy

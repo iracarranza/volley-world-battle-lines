@@ -1,7 +1,7 @@
 extends RefCounted
 const Influence := preload("res://scripts/directional_influence.gd")
 
-static func resolve(base: Vector3, assessment: Dictionary, world_input: Vector3, facing: Vector3, keep_intent: bool = false) -> Dictionary:
+static func resolve(base: Vector3, assessment: Dictionary, world_input: Vector3, facing: Vector3, keep_intent: bool = false, court_vision: float = 0.0) -> Dictionary:
 	facing = Vector3(facing.x, 0, facing.z).normalized()
 	if facing.length_squared() < 0.001:
 		facing = Vector3.FORWARD
@@ -13,10 +13,10 @@ static func resolve(base: Vector3, assessment: Dictionary, world_input: Vector3,
 	var horizontal := Vector2(base.x, base.z).length()
 	var intent_degrees := 0.0
 	if keep_intent and horizontal > 0.001:
-		intent_degrees = clampf(rad_to_deg(wrapf(atan2(-base.x, -base.z) - facing_yaw, -PI, PI)), -15, 15)
+		intent_degrees = clampf(rad_to_deg(wrapf(atan2(-base.x, -base.z) - facing_yaw, -PI, PI)), -15*clampf(1.0+court_vision/100.0,0,3), 15*clampf(1.0+court_vision/100.0,0,3))
 	var direction := facing.rotated(Vector3.UP, deg_to_rad(intent_degrees - geometry_degrees))
 	var biased := direction * horizontal + Vector3.UP * base.y
-	var result := Influence.resolve(biased, 2, world_input, facing, float(assessment.get("quality", 0))).duplicate(true)
+	var result := Influence.resolve(biased, 2, world_input, facing, float(assessment.get("quality", 0)),court_vision).duplicate(true)
 	var lateral: float = result.axes.x
 	var agreement := signf(geometry_degrees) * lateral
 	var severity := clampf(absf(offset) / 0.70, 0, 1)

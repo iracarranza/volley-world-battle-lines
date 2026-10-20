@@ -136,7 +136,9 @@ func shape() -> Dictionary:
 	var definition := Geometry.definition(stage, physique.build.height, physique.reach(), false, 1, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale))
 	if stage == 0:
 		definition["platform_quality"] = physique.trait_effect("platform_quality")
-	return definition
+	var effects: Dictionary = lab.contact_flow.shape_effects("pepper_%d"%partner,stage)
+	if stage == 0: definition["platform_quality"] = effects.get("platform_quality",0)
+	return Geometry.with_effects(definition,effects)
 
 func anchor(definition: Dictionary) -> Vector3:
 	if stage == 1:
@@ -193,6 +195,7 @@ func plan() -> void:
 		spend_stamina(athlete_for(partner).jump_stamina_cost())
 	rise_time = minf(sqrt(2 * maxf(jump_height, 0.01) / lab.GRAVITY)/athlete_for(partner).explosiveness_rate(), remaining)
 	planned = true
+	if stage == 2: lab.contact_flow.on_attack_charge("pepper_%d"%partner)
 	preparation.begin(partner, stage, lab.ball_shot, remaining, settings[partner].charge_accuracy, charge_random,athlete_for(partner).cushioning_bonus(),athlete_for(partner).low_stamina_factor())
 	_show_volume(definition)
 
@@ -205,7 +208,10 @@ func _show_volume(definition: Dictionary) -> void:
 	var mesh := MeshInstance3D.new()
 	root.add_child(mesh)
 	mesh.position = definition.center
-	mesh.mesh = Geometry.ReceivePlatform.mesh(definition) if stage == 0 else (Geometry.SetHurtbox.mesh(definition, true) if stage == 1 else Geometry.zone_mesh(definition))
+	mesh.scale = definition.get("geometry_scale",Vector3.ONE)
+	var grading_shape := definition
+	definition = definition.get("base_geometry",definition)
+	mesh.mesh = Geometry.ReceivePlatform.mesh(definition) if stage == 0 else (Geometry.SetHurtbox.mesh(definition, true) if stage == 1 else Geometry.zone_mesh(definition,false,grading_shape))
 	var material: StandardMaterial3D = lab.world_builder.debug_material(Color.WHITE, 1)
 	material.vertex_color_use_as_albedo = true
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -339,18 +345,19 @@ func tick(dt: float) -> bool:
 	if stage != 2:
 		lab.ball_velocity *= athlete_for(partner).low_stamina_factor()
 	if stage != 0:
-		lab.ball_velocity *= Preparation.output_factor(lab.contact_flow.attack_charge(float(prepared.locked_charge),"pepper_%d"%partner,lab.ball.position) if stage == 2 else float(prepared.locked_charge))
+		lab.ball_velocity *= Preparation.output_factor(lab.contact_flow.attack_charge(float(prepared.locked_charge),"pepper_%d"%partner,lab.ball.position,assessment) if stage == 2 else float(prepared.locked_charge))
 	if stage == 2:
-		lab.ball_velocity = Influence.constrain_attack(lab.ball_velocity, actor.rotation.y)
+		lab.ball_velocity = Influence.constrain_attack(lab.ball_velocity, actor.rotation.y,athlete_for(partner).trait_effect("court_vision"))
 	request.base_velocity = lab.ball_velocity
 	var result := ContactResolver.resolve(request, assessment)
 	lab.ball_velocity = result.velocity
 	lab.ball.position += result.separation_offset
 	assessment = result.assessment
 	last_aim = result.aiming
-	lab.ball_shot = ReceiveCharge.shot(["receive", "set", "attack"][stage], lab.contact_flow.attack_charge(float(prepared.locked_charge),"pepper_%d"%partner,lab.ball.position) if stage == 2 else float(prepared.locked_charge), "pepper_%d" % partner)
+	lab.ball_shot = ReceiveCharge.shot(["receive", "set", "attack"][stage], lab.contact_flow.attack_charge(float(prepared.locked_charge),"pepper_%d"%partner,lab.ball.position,assessment) if stage == 2 else float(prepared.locked_charge), "pepper_%d" % partner)
 	if not result.outgoing_shot.is_empty():
 		lab.ball_shot = result.outgoing_shot
+	lab.ball_shot = lab.contact_flow.decorate_shot(lab.ball_shot,request.incoming_shot,"pepper_%d"%partner,stage,assessment)
 	if stage == 2 and assessment.hit:
 		lab.contact_flow.consume_attack("pepper_%d"%partner)
 	lab._emit_external_impact("pepper_%d" % partner, stage, incoming, assessment,incoming_shot)
