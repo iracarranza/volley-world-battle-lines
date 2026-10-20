@@ -37,8 +37,8 @@ func run() -> void:
 	moc.begin(contact())
 	check(moc.simulation_scale() == 1,"New mode begins at normal motion speed")
 	usec += 100000
-	check(is_equal_approx(moc.simulation_scale(),0.005) and Engine.time_scale == 1,"Only local clocks ramp to half a percent speed")
-	check(moc.actor_scale("training_bot_0") == 1 and is_equal_approx(moc.actor_scale("player"),0.005),"Other athletes remain at full speed")
+	check(is_equal_approx(moc.simulation_scale(),0.05) and Engine.time_scale == 1,"Only local clocks ramp to five percent speed")
+	check(moc.actor_scale("training_bot_0") == 1 and is_equal_approx(moc.actor_scale("player"),0.05),"Other athletes remain at full speed")
 	var neutral := Preview.predict(lab)
 	check(not neutral.is_empty() and neutral.steering and neutral.points.size() > 2,"Unarmed post-contact preview remains visible")
 	var hp: float = lab.athlete.hp
@@ -54,7 +54,7 @@ func run() -> void:
 	check(fill.shadow_size > 0 and bar.hp_bar.value < 100,"HP bar glows and drains during steering")
 	var before: Vector3 = lab.ball.position
 	lab._tick_ball(0.1)
-	check(before.distance_to(lab.ball.position) > 0 and before.distance_to(lab.ball.position) < 0.1,"Ball moves slowly instead of pausing")
+	check(before.distance_to(lab.ball.position) > 0 and before.distance_to(lab.ball.position) < 0.2,"Ball moves slowly instead of pausing")
 	usec += 1000000
 	check(moc.simulation_scale() == 1 and not moc.active and Preview.predict(lab).is_empty(),"Window expiry restores normal flight and removes post-contact preview")
 	for action in range(4):

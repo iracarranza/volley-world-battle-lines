@@ -57,7 +57,7 @@ func run() -> void:
 	bots.motion.begin(0,bots.actors[0],Vector3(0,1,3),1.0,false,lab.GRAVITY)
 	bots.motion.begin(2,bots.actors[2],Vector3(0,1,4),1.0,false,lab.GRAVITY)
 	bots.tick_motion(0.1)
-	check(is_equal_approx(bots.motion.plans[0].elapsed,0.1),"Unrelated bot motion progresses at full speed")
+	check(is_equal_approx(bots.motion.plans[0].elapsed,0.06),"Other bots follow the slowed ball")
 	check(is_equal_approx(bots.motion.plans[2].elapsed,0.06),"Acting bot motion progresses at 60% speed")
 	lab.hud.toggle_moc_mode()
 	lab.hud.toggle_moc_mode()

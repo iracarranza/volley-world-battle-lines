@@ -88,6 +88,7 @@ var aim_marker: MeshInstance3D
 var reach_ring: MeshInstance3D
 const TrajectoryPreview := preload("res://scripts/trajectory_preview.gd")
 var last_trajectory_preview: Dictionary = {}
+var ground_balls := preload("res://scripts/ground_ball.gd").new()
 var _preview_mesh := ImmediateMesh.new()
 var preview: MeshInstance3D
 var approach_footprints: Array[MeshInstance3D] = []
@@ -203,6 +204,7 @@ func open_bot_menu() -> bool:
 	return true
 
 func refresh_bot_rally() -> void:
+	if is_instance_valid(moc) and moc.acting_actor == "ground": moc.clear()
 	if is_instance_valid(contact_flow): contact_flow.start_rally()
 	training_bots.refresh_for_rally()
 	pepper.refresh_for_rally()
@@ -612,6 +614,10 @@ func _physics_process(dt: float) -> void:
 	if auto_preparation.active and armed:
 		auto_preparation.tick(world_dt,athlete,ball_shot,ball_velocity)
 	contact_flow.tick(world_dt)
+	ground_balls.tick(self,world_dt)
+	if ball_active:
+		ball.show()
+		shadow.show()
 	_check_bench()
 	if is_benched():
 		_tick_benched(world_dt)
@@ -1076,20 +1082,31 @@ func _tick_ball(dt: float) -> void:
 		var solid := get_world_3d().direct_space_state.intersect_ray(query)
 		if not solid.is_empty():
 			ball.position = solid.position + solid.normal * Geometry.BALL_RADIUS
+			var landing_velocity := ball_velocity
+			var landing_shot := ball_shot
 			_finish("Ball down / Pepper ended" if pepper.active() else "Serve hit the ground or obstacle / E to toss again")
+			if Vector3(solid.normal).y > 0.65: ground_balls.land(self,solid.position,landing_velocity,landing_shot)
 			return
 	if ball.position.y <= 0.105:
+		var landing_velocity := ball_velocity
+		var landing_shot := ball_shot
+		var landing_fraction := clampf((previous.y-0.105)/maxf(previous.y-ball.position.y,0.000001),0,1)
+		var landing_point := previous.lerp(ball.position,landing_fraction)
+		landing_point.y = 0
 		if pepper.active():
 			_finish("PEPPER ended / ball down / E to toss again")
+			ground_balls.land(self,landing_point,landing_velocity,landing_shot)
 			return
 		var floor_endpoint := ball.position
 		ball.position.y = 0.105
 		if station.running():
 			var floor_fraction := clampf((previous.y - 0.105) / maxf(previous.y - floor_endpoint.y, 0.000001), 0, 1)
 			station.on_ball_down(previous.lerp(floor_endpoint, floor_fraction))
+			ground_balls.land(self,landing_point,landing_velocity,landing_shot)
 			return
 		if drills.running():
 			drills.on_ball_down()
+			ground_balls.land(self,landing_point,landing_velocity,landing_shot)
 			return
 		if outgoing and ball.position.z < 0 and ball.position.z >= -court_half_depth and absf(ball.position.x-court_center.x) <= court_half_width:
 			returns += 1
@@ -1098,6 +1115,7 @@ func _tick_ball(dt: float) -> void:
 			_finish("OUT. Reduce power or adjust your direction.")
 		else:
 			_finish("Ball down. Prepare under the flight and confirm in reach.")
+		ground_balls.land(self,landing_point,landing_velocity,landing_shot)
 	if ball.position.length() > 120:
 		_finish("Out of the training area.")
 	shadow.position = Vector3(ball.position.x, 0.03, ball.position.z)
@@ -1174,6 +1192,9 @@ func _update_preview(draw_trajectory: bool = true) -> void:
 	landing_marker.visible = ball_active
 
 func _reset() -> void:
+	ground_balls.clear()
+	if is_instance_valid(ball): ball.show()
+	if is_instance_valid(shadow): shadow.show()
 	clear_net_responses()
 	net_bounce_pending = false
 	if is_instance_valid(impact_visual):

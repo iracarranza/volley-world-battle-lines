@@ -37,12 +37,12 @@ func _init(owner_hud: RefCounted) -> void:
 	stack.add_child(hud.label("Trajectory steering · hold a direction after contact",13))
 	steering_speed = slider(stack,"Steering speed",0.1,100,hud.lab.moc.steering_speed*100,"%",func(value: float): hud.lab.moc.steering_speed = value/100.0)
 	steering_speed.step = 0.1
-	steering_duration = slider(stack,"Steering duration",100,3000,hud.lab.moc.steering_duration*1000," ms",func(value: float): hud.lab.moc.steering_duration = value/1000.0)
+	steering_duration = slider(stack,"Full-charge duration",50,3000,hud.lab.moc.steering_duration*1000," ms",func(value: float): hud.lab.moc.steering_duration = value/1000.0)
 	steering_rate = slider(stack,"Steering rate",10,300,hud.lab.moc.steering_rate*100,"% / s",func(value: float): hud.lab.moc.steering_rate = value/100.0)
 	steering_cost = slider(stack,"HP per full DI",0,30,hud.lab.moc.steering_hp_cost," HP",func(value: float): hud.lab.moc.steering_hp_cost = value)
 	ball = toggle_control(stack,"Slow the ball",func(value: bool): hud.lab.moc.affect_ball = value)
 	actor = toggle_control(stack,"Slow the acting athlete / follow-through",func(value: bool): hud.lab.moc.affect_actor = value)
-	stack.add_child(hud.label("World, camera and other athletes always run normally.",13))
+	stack.add_child(hud.label("World/camera stay normal. Bots follow the ball’s slowdown.",13))
 	stack.add_child(hud.button("CLOSE",toggle))
 	panel.hide()
 

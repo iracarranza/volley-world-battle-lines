@@ -150,7 +150,7 @@ func run() -> void:
 	var simulated: float = lab.elapsed - initial_elapsed
 	check(is_equal_approx(simulated, step), "World physics retains its unscaled delta")
 	check(absf((lab.player.position.x - initial_player.x) - 2 * simulated * 0.6) < 0.01 and absf((lab.ball.position.x - initial_ball.x) - 2 * simulated * 0.6) < 0.01, "Contacting athlete and ball advance at 60% speed")
-	check(absf((1.0 - lab.training_bots.remaining) - simulated) < 0.001, "Other bot timers remain at full speed")
+	check(absf((1.0 - lab.training_bots.remaining) - simulated*0.6) < 0.001, "Bot timers follow slowed ball flight")
 	clock.clear()
 	# A drill's waiting interval is simulation time, not impact wall time.
 	prepare(lab, 0)

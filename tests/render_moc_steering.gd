@@ -33,6 +33,21 @@ func run() -> void:
 	await process_frame
 	await RenderingServer.frame_post_draw
 	root.get_texture().get_image().save_png("res://artifacts/moc-steering-menu.png")
+	lab.hud.moc_menu.toggle()
+	lab.hud.moc_menu.mode.item_selected.emit(MoC.Mode.NONE)
+	lab.ball_active = false
+	lab.ground_balls.land(lab,Vector3(15,0,18),Vector3(1.5,-7,-1),{"kind":"attack","charge":1})
+	for frame in range(25): lab.ground_balls.tick(lab,0.01)
+	lab.impact_visual.tick(1)
+	lab._update_contact_preview()
+	lab.hud.update()
+	await process_frame
+	await RenderingServer.frame_post_draw
+	root.get_texture().get_image().save_png("res://artifacts/ground-bounce.png")
+	for frame in range(300): lab.ground_balls.tick(lab,0.01)
+	await process_frame
+	await RenderingServer.frame_post_draw
+	root.get_texture().get_image().save_png("res://artifacts/ground-roll.png")
 	lab.queue_free()
 	await process_frame
 	quit()

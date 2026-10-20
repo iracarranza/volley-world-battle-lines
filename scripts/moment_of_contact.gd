@@ -7,8 +7,8 @@ signal impact_ended
 enum Mode { CURRENT_SLOWDOWN, TUNED_SLOWDOWN, NONE, TRAJECTORY_STEERING }
 const Steering := preload("res://scripts/moc_steering.gd")
 var steering := Steering.new()
-var steering_speed := 0.005
-var steering_duration := 1.0
+var steering_speed := 0.05
+var steering_duration := 0.40
 var steering_rate := 1.25
 var steering_hp_cost := 10.0
 var steering_ramp := 0.06
@@ -80,7 +80,8 @@ func _effect_scale() -> float:
 		_expire(_now())
 	if active and mode == Mode.TRAJECTORY_STEERING:
 		var age := float(_now()-_chain_start_usec)/1000000.0
-		return lerpf(1.0,steering_speed,smoothstep(0,steering_ramp,age))
+		var ramp := minf(steering_ramp,float(_end_usec-_chain_start_usec)/1000000.0*0.25)
+		return lerpf(1.0,steering_speed,smoothstep(0,maxf(ramp,0.0001),age))
 	return (tuned_speed if mode == Mode.TUNED_SLOWDOWN else SLOW_SCALE) if active else 1.0
 
 func simulation_scale() -> float:
@@ -90,6 +91,18 @@ func simulation_scale() -> float:
 func actor_scale(actor_id: String) -> float:
 	var scale := _effect_scale()
 	return scale if affect_actor and actor_id == acting_actor else 1.0
+
+# Helpers plan in ball-flight seconds, so they share its slowdown. A separately
+# slowed acting bot still respects its own clock when ball slowdown is disabled.
+func bot_scale(actor_id: String) -> float:
+	return minf(simulation_scale(),actor_scale(actor_id))
+
+func charge_duration(event: Dictionary) -> float:
+	var action := int(event.get("action",-1))
+	var shot: Dictionary = event.get("incoming_shot",{}) if action in [0,1,5] else event.get("outgoing_shot",{})
+	if action == 4 or shot.get("kind","") == "serve": return 0.10
+	var charge := float(shot.get("charge",event.get("charge",0.0 if action == 5 else 1.0)))
+	return lerpf(0.05,maxf(0.05,steering_duration),clampf(charge,0,1))
 
 func begin(event: Dictionary) -> void:
 	var incoming := Vector3(event.get("incoming_velocity", Vector3.ZERO))
@@ -101,7 +114,7 @@ func begin(event: Dictionary) -> void:
 		parts.total = tuned_duration
 	var duration: float = 0.0 if mode == Mode.NONE else (legacy_duration if mode == Mode.CURRENT_SLOWDOWN else parts.total)
 	if mode == Mode.TRAJECTORY_STEERING:
-		duration = steering_duration if int(event.action) in [0,1,2,3] else 0.0
+		duration = charge_duration(event) if int(event.action) in [0,1,2,3,4,5] else 0.0
 	if not bool(event.get("physical_hit", false)):
 		return
 	if mode == Mode.CURRENT_SLOWDOWN and legacy_duration <= 0 and int(event.action) != 1:
@@ -136,7 +149,7 @@ func begin(event: Dictionary) -> void:
 		_expire(now)
 	if mode == Mode.TRAJECTORY_STEERING:
 		_chain_start_usec = now
-		_end_usec = now+int(steering_duration*1000000)
+		_end_usec = now+int(duration*1000000)
 		acting_actor = str(event.get("actor","player"))
 		var vision: float = owner_lab.contact_flow.profile(acting_actor).trait_effect("court_vision") if is_instance_valid(owner_lab) else 0.0
 		steering.begin(event,vision)

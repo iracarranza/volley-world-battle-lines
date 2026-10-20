@@ -240,10 +240,10 @@ func on_player_contact(action: int, quality: float) -> void:
 	plan()
 
 func tick(dt: float) -> bool:
-	for index in range(athletes.size()): athletes[index].recover(dt,not (index == partner and planned))
-	dt *= lab.moc.actor_scale("pepper_%d" % partner)
+	for index in range(athletes.size()): athletes[index].recover(dt*lab.moc.bot_scale("pepper_%d"%index),not (index == partner and planned))
 	for index in range(3):
-		preparation.tick(index, dt)
+		preparation.tick(index,dt*lab.moc.bot_scale("pepper_%d"%index))
+	dt *= lab.moc.bot_scale("pepper_%d" % partner)
 	if not active():
 		return false
 	if planned: spend_stamina(dt*3.0)

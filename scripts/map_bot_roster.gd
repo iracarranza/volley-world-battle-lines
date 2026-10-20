@@ -361,7 +361,7 @@ func _launch(action: int,firing_slot: int = -1) -> void:
 	lab.ball_velocity = (target-origin)/maxf(time,0.1)+Vector3.UP*lab.GRAVITY*time*0.5
 
 func tick_motion(dt: float) -> void:
-	if generic_mode() and lab.ball_active: blocks.update(self,dt)
+	if generic_mode() and lab.ball_active: blocks.update(self,dt*lab.moc.simulation_scale())
 	super.tick_motion(dt)
 
 func tick_support_motion(dt: float,scales: Dictionary) -> void:

@@ -494,17 +494,19 @@ func _plan(action: int, point: Vector3, time: float, chosen_slot: int = -1) -> v
 func tick_support_motion(_dt: float,_scales: Dictionary) -> void:
 	pass
 
+var motion_clocks: Dictionary = {}
 func tick_motion(dt: float) -> void:
 	for slot in range(settings.size()):
 		if slot_enabled(slot):
-			preparation.tick(slot, dt * lab.moc.actor_scale("training_bot_%d" % slot))
+			preparation.tick(slot, dt * lab.moc.bot_scale("training_bot_%d" % slot))
 	var previous_positions: Array[Vector3] = []
 	for actor in actors:
 		previous_positions.append(actor.position)
-	returns.tick(self,dt)
 	var scales := {}
 	for slot in range(settings.size()):
-		scales[slot] = lab.moc.actor_scale("training_bot_%d" % slot)
+		scales[slot] = lab.moc.bot_scale("training_bot_%d" % slot)
+		motion_clocks[slot] = float(motion_clocks.get(slot,0))+dt*float(scales[slot])
+	returns.tick(self,dt)
 	for slot in motion.plans:
 		if float(motion.plans[slot].move_speed) >= 0: motion.plans[slot].move_speed = move_speed_for(slot)
 	motion.tick(dt, actors, rigs, scales)
@@ -514,8 +516,8 @@ func tick_motion(dt: float) -> void:
 		var ground := Vector3(target.x, actor.position.y, target.z)
 		var before := actor.position
 		actor.position = actor.position.move_toward(ground, move_speed_for(slot) * dt * float(scales[slot]))
-		var speed := actor.position.distance_to(before) / maxf(dt, 0.0001)
-		Motion.Pose.base(rigs[slot].body, float(Time.get_ticks_msec()) * 0.008, speed, 0, slot_action(slot) == 0)
+		var speed := actor.position.distance_to(before) / maxf(dt*float(scales[slot]), 0.0001)
+		Motion.Pose.base(rigs[slot].body, float(motion_clocks.get(slot,0)) * 8.0, speed, 0, slot_action(slot) == 0)
 		Motion.Pose.ground_feet(rigs[slot].body)
 	tick_support_motion(dt,scales)
 	# A move helper walks back to its placed spot once it has no ball to go to: after its contact and landing, and whenever it has been pulled away.
@@ -530,16 +532,16 @@ func tick_motion(dt: float) -> void:
 			continue
 		var from_here := actors[slot].position
 		actors[slot].position = from_here.move_toward(home_ground, move_speed_for(slot) * dt * float(scales[slot]))
-		var walked := actors[slot].position.distance_to(from_here) / maxf(dt, 0.0001)
-		Motion.Pose.base(rigs[slot].body, float(Time.get_ticks_msec()) * 0.008, walked, 0, false)
+		var walked := actors[slot].position.distance_to(from_here) / maxf(dt*float(scales[slot]), 0.0001)
+		Motion.Pose.base(rigs[slot].body, float(motion_clocks.get(slot,0)) * 8.0, walked, 0, false)
 		Motion.Pose.ground_feet(rigs[slot].body)
 	for slot in range(rigs.size()):
 		var profile := athlete_for(slot)
 		var walked := Vector2(actors[slot].position.x-previous_positions[slot].x,actors[slot].position.z-previous_positions[slot].z).length()
 		var busy: bool = motion.plans.has(slot) or move_targets.has(slot) or preparation.state_for(slot).planned
 		if settings[slot].enabled:
-			if lab.ball_active and (walked > 0.001 or busy): spend_stamina(slot,dt*3.0)
-			profile.recover(dt,not busy and walked < 0.001)
+			if lab.ball_active and (walked > 0.001 or busy): spend_stamina(slot,dt*float(scales[slot])*3.0)
+			profile.recover(dt*float(scales[slot]),not busy and walked < 0.001)
 		var action := slot_action(slot)
 		var planned := active_action == action and slot == active_slot
 		var motion_plan: Dictionary = motion.plans.get(slot, {})
@@ -549,11 +551,11 @@ func tick_motion(dt: float) -> void:
 		if not actors[slot].visible and not planned and motion_plan.is_empty() and not following_contact:
 			continue
 		var point: Vector3 = (lab.ball.position - actors[slot].position).rotated(Vector3.UP, -actors[slot].rotation.y) if planned and lab.ball_active else contact_anchor(slot)
-		var speed := Vector2(actors[slot].position.x - previous_positions[slot].x, actors[slot].position.z - previous_positions[slot].z).length() / maxf(dt, 0.001)
+		var speed := Vector2(actors[slot].position.x - previous_positions[slot].x, actors[slot].position.z - previous_positions[slot].z).length() / maxf(dt*float(scales[slot]), 0.001)
 		if action == 0 and not Geometry.contains(contact_shape(slot), point):
 			point = contact_anchor(slot)
 		var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), point, speed) if action == 0 else "planted"
-		animation.update(rigs[slot], dt * float(scales[slot]), {"action": action, "charge": float(preparation.state_for(slot).charge), "planned": planned or not motion_plan.is_empty(), "airborne": airborne, "remaining": float(motion_plan.get("contact", remaining)) - float(motion_plan.get("elapsed", 0)) if not motion_plan.is_empty() else remaining, "rise": motion_plan.get("rise", 0.4), "preserve_base": not motion_plan.is_empty(), "contact_point": point, "posture": posture, "speed": speed, "cycle": float(Time.get_ticks_msec()) * 0.008, "swing_yaw": motion_plan.get("swing_yaw", 0.0),"transition_rate":athlete_for(slot).transition_rate()})
+		animation.update(rigs[slot], dt * float(scales[slot]), {"action": action, "charge": float(preparation.state_for(slot).charge), "planned": planned or not motion_plan.is_empty(), "airborne": airborne, "remaining": float(motion_plan.get("contact", remaining)) - float(motion_plan.get("elapsed", 0)) if not motion_plan.is_empty() else remaining, "rise": motion_plan.get("rise", 0.4), "preserve_base": not motion_plan.is_empty(), "contact_point": point, "posture": posture, "speed": speed, "cycle": float(motion_clocks.get(slot,0)) * 8.0, "swing_yaw": motion_plan.get("swing_yaw", 0.0),"transition_rate":athlete_for(slot).transition_rate()})
 	for slot in range(actors.size()):
 		var travel: Vector3 = lab.contact_flow.displacement("training_bot_%d" % slot,dt*float(scales[slot])) if is_instance_valid(lab.contact_flow) else Vector3.ZERO
 		actors[slot].position += travel
@@ -581,6 +583,7 @@ func tick(dt: float) -> bool:
 var resolving_contact := false
 
 func tick_contact(dt: float) -> bool:
+	dt *= lab.moc.simulation_scale()
 	if not lab.ball_active or active_action < 0:
 		return false
 	remaining -= dt

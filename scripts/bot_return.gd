@@ -34,15 +34,16 @@ func tick(bots: Node3D,dt: float) -> void:
 		if not bots.settings[slot].enabled:
 			release(slot)
 			continue
+		var step: float = dt*bots.lab.moc.bot_scale("training_bot_%d"%slot)
 		var actor: Node3D = bots.actors[slot]
 		var home: Vector3 = bots.settings[slot].fixed_position
 		var speed := maxf(3.0,float(bots.settings[slot].move_speed))
 		var before := actor.position
-		var point := Vector3(actor.position.x,0,actor.position.z).move_toward(Vector3(home.x,0,home.z),speed*dt)
-		falling[slot] = float(falling.get(slot,0))-bots.lab.GRAVITY*dt
-		point.y = maxf(home.y,actor.position.y+float(falling[slot])*dt)
+		var point := Vector3(actor.position.x,0,actor.position.z).move_toward(Vector3(home.x,0,home.z),speed*step)
+		falling[slot] = float(falling.get(slot,0))-bots.lab.GRAVITY*step
+		point.y = maxf(home.y,actor.position.y+float(falling[slot])*step)
 		actor.position = point
-		bots.Motion.Pose.base(bots.rigs[slot].body,float(Time.get_ticks_msec())*0.008,Vector2(point.x-before.x,point.z-before.z).length()/maxf(dt,0.001),0,false)
+		bots.Motion.Pose.base(bots.rigs[slot].body,float(bots.motion_clocks.get(slot,0))*8.0,Vector2(point.x-before.x,point.z-before.z).length()/maxf(step,0.001),0,false)
 		bots.Motion.Pose.ground_feet(bots.rigs[slot].body)
 		if actor.position.distance_to(home) < 0.025:
 			actor.position = home
