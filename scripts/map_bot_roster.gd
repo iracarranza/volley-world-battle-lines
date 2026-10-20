@@ -128,18 +128,27 @@ func set_delivery_target(index: int,away: bool) -> Vector3:
 	var diagonal := 0.5/sqrt(2.0)
 	return Vector3(net.position)+Vector3(side*(-float(net.width)/2+diagonal),0,side*diagonal)
 
+func _store_paired_targets(targets: Dictionary,away: bool) -> void:
+	var source := _safe_home(lab.player.position,away)
+	var center: Vector3 = court(current_net).position
+	# A half-turn preserves team-relative left/right, unlike a Z-only reflection.
+	var opposite := Vector3(2*center.x-source.x,source.y,2*center.z-source.z)
+	targets["%d:%s" % [current_net,away]] = source
+	targets["%d:%s" % [current_net,not away]] = opposite
+
 func _capture_receive_target() -> void:
 	var away: bool = lab.player.position.z < 0
-	receive_targets["%d:%s" % [current_net,away]] = _safe_home(lab.player.position,away)
-	lab._message("RECEIVE BOT TARGET / Net %d %s / Shift+F6 retargets" % [current_net+1,"Away" if away else "Home"])
+	_store_paired_targets(receive_targets,away)
+	lab._message("RECEIVE BOT TARGET / Net %d both sides / Shift+F6 retargets" % [current_net+1])
 
 func _capture_set_target() -> void:
 	var away: bool = lab.player.position.z < 0
-	set_targets["%d:%s" % [current_net,away]] = _safe_home(lab.player.position,away)
-	# Retain the original target accessor for old debug fixtures.
-	set_target = Vector3(lab.player.position.x,3.8,absf(lab.player.position.z))
+	_store_paired_targets(set_targets,away)
+	# Retain the canonical Home target for old debug fixtures.
+	var home := set_delivery_target(current_net,false)
+	set_target = Vector3(home.x,3.8,home.z)
 	set_target_locked = true
-	lab._message("SET BOT TARGET / Net %d %s / F6 retargets" % [current_net+1,"Away" if away else "Home"])
+	lab._message("SET BOT TARGET / Net %d both sides / F6 retargets" % [current_net+1])
 
 func _safe_home(point: Vector3,away: bool) -> Vector3:
 	var side := -1.0 if away else 1.0

@@ -58,6 +58,15 @@ func run() -> void:
 	bots.ensure_receiver()
 	check(bots.settings[4].enabled and bots.settings[4].net_index == 2 and not bots.settings[4].away,"Automatic serve receiver never overwrites an existing athlete")
 	check(bots.count_net(0) == 1 and bots.settings[5].away,"Automatic receiver uses a free identity on the active court")
+	var center: Vector3 = lab.court_center
+	lab.player.position = center+Vector3(-2,0.03,4)
+	bots._capture_receive_target()
+	check(bots.receive_target(0,false).is_equal_approx(center+Vector3(-2,0,4)),"Receive target retains captured Home location")
+	check(bots.receive_target(0,true).is_equal_approx(center+Vector3(2,0,-4)),"Away receive target rotates around the active net")
+	lab.player.position = center+Vector3(1.5,0.03,-2)
+	bots._capture_set_target()
+	check(bots.set_delivery_target(0,false).is_equal_approx(center+Vector3(-1.5,0,2)),"Capturing Away set target updates Home with matching team-relative left/right")
+	check(bots.set_delivery_target(0,true).is_equal_approx(center+Vector3(1.5,0,-2)),"Away set target retains captured location")
 	lab.queue_free()
 	await process_frame
 	print("BOT RESPONSIBILITIES: %d / %d passed" % [checks-failures,checks])
