@@ -31,14 +31,14 @@ on the same net/side preserves its current position and saved placement.
 
 Each athlete has independent responsibilities for contacts **1, 2 and 3**, each
 set to None, Receive, Set or Attack. **Block** is a separate toggle; all five bots
-at a net may block. Movement can be Follow Ball, Static or Move, with separate
+on a side may block. Movement can be Follow Ball, Static or Move, with separate
 movement speed, tracking accuracy, aiming accuracy and charge accuracy controls.
 Pepper partner accuracy controls remain in the same menu.
 
-A net permits **five bots total across both teams**; a team permits **fourteen
+A net permits **five bots per side (ten total)**; a team permits **fourteen
 bots across the map**, including unassigned bots. Invalid changes leave the
 previous assignment intact. The bounded pool has 28 hidden/reusable rigs to allow
-both teams' unassigned rosters; only 15 bots can occupy the three primary nets.
+both teams' unassigned rosters; up to 28 bots can occupy the three primary nets, subject to each team’s 14-bot cap.
 Unassigned bots remain where summoned and do not chase rally balls.
 
 **Shift+F6** captures the current net/side's Receive Bot Target. Its default is

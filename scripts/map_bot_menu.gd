@@ -123,7 +123,7 @@ func refresh() -> void:
 		selected_slot = -1
 		index = 0
 	roster.select(index)
-	summary.text = "Home %d/14 · Away %d/14   |   Net 1 %d/5 · Net 2 %d/5 · Net 3 %d/5" % [bots.count_team(false),bots.count_team(true),bots.count_net(0),bots.count_net(1),bots.count_net(2)]
+	summary.text = "Home %d/14 · Away %d/14\nNet 1 H%d/5 A%d/5 · Net 2 H%d/5 A%d/5 · Net 3 H%d/5 A%d/5" % [bots.count_team(false),bots.count_team(true),bots.count_net_side(0,false),bots.count_net_side(0,true),bots.count_net_side(1,false),bots.count_net_side(1,true),bots.count_net_side(2,false),bots.count_net_side(2,true)]
 
 func update_vitals() -> void:
 	if not panel.visible: return

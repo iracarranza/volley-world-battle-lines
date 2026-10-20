@@ -10,7 +10,10 @@ func run() -> void:
 	var bots = lab.training_bots
 	check(bots.settings.size() == 28 and not bots.any_enabled(),"Map starts with an empty bounded configurable roster")
 	for i in range(5): check(bots.summon(false,0,0,1) >= 0,"Repeated contact types can be summoned on Net 1")
-	check(bots.summon(true,0,2,3) == -1 and bots.count_net(0) == 5,"Five-bot net cap includes both teams")
+	check(bots.summon(false,0,2,3) == -1,"Sixth Home bot on the same net is rejected")
+	for i in range(5): check(bots.summon(true,0,2,3) >= 0,"Away side has five independent net places")
+	check(bots.count_net(0) == 10 and bots.count_net_side(0,false) == 5 and bots.count_net_side(0,true) == 5,"A net supports five athletes on each side")
+	check(bots.summon(true,0,2,3) == -1,"Sixth Away bot on the same net is rejected")
 	for i in range(5): check(bots.summon(false,1,1,2) >= 0,"Net 2 accepts its own roster")
 	for i in range(4): check(bots.summon(false,2,2,3) >= 0,"Net 3 accepts remaining team places")
 	check(bots.count_team(false) == 14 and bots.summon(false,2,3,0) == -1,"Fourteen-bot team cap applies across primary nets")

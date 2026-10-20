@@ -2,7 +2,7 @@ extends "res://scripts/training_bots.gd"
 ## Generic athletes. Responsibilities select actions; identity and placement stay stable.
 const Policy := preload("res://scripts/bot_contact_policy.gd")
 const Blocks := preload("res://scripts/bot_block_coordinator.gd")
-const MAX_PER_NET := 5
+const MAX_PER_NET_SIDE := 5
 const MAX_PER_TEAM := 14
 const POOL_SIZE := MAX_PER_TEAM*2
 var current_net := 1
@@ -86,6 +86,12 @@ func count_net(index: int,except_slot: int = -1) -> int:
 		if slot != except_slot and settings[slot].enabled and settings[slot].net_index == index: count += 1
 	return count
 
+func count_net_side(index: int,away: bool,except_slot: int = -1) -> int:
+	var count := 0
+	for slot in range(settings.size()):
+		if slot != except_slot and settings[slot].enabled and settings[slot].net_index == index and settings[slot].away == away: count += 1
+	return count
+
 func count_team(away: bool,except_slot: int = -1) -> int:
 	var count := 0
 	for slot in range(settings.size()):
@@ -96,8 +102,8 @@ func validate_assignment(slot: int,away: bool,index: int,action: int = 0,order: 
 	last_error = ""
 	if slot < 0 or slot >= settings.size() or (index != -1 and not courts().has(index)) or action not in [0,1,2,3] or order not in [0,1,2,3]:
 		last_error = "Invalid bot assignment"
-	elif index >= 0 and count_net(index,slot) >= MAX_PER_NET:
-		last_error = "Net %d already has five bots" % (index+1)
+	elif index >= 0 and count_net_side(index,away,slot) >= MAX_PER_NET_SIDE:
+		last_error = "Net %d already has five %s bots" % [index+1,"Away" if away else "Home"]
 	elif count_team(away,slot) >= MAX_PER_TEAM:
 		last_error = "%s team already has fourteen bots" % ("Away" if away else "Home")
 	return last_error.is_empty()
