@@ -35,6 +35,7 @@ func run() -> void:
 			check(arrival.distance_to(lab.station.target_world(0)) < 0.01,"Each remote serve actually lands on its own drill target")
 		else:
 			check(lab.drills.in_zone(),"Marker %s selects its live course"%marker.id)
+			lab.inventory.give() # Setups take a held ball to start (the map ball economy)
 			lab.drills.interact()
 			if marker.type == "box":
 				check(lab.drills.box_state == lab.drills.State.ACTIVE,"Both towers can start at their physical decks")

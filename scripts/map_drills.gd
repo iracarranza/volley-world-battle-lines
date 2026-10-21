@@ -61,6 +61,9 @@ var box_enabled := true
 var spike_enabled := true
 var box_root: Node3D
 var spike_root: Node3D
+const Distributor := preload("res://scripts/setup_distributor.gd")
+var distributor := Distributor.new() # the Spike Trainer as a Setup (map ball economy)
+var setup_label: Label3D
 
 func setup(owner_lab: Node3D,anchors: Dictionary = {}) -> void:
 	lab = owner_lab
@@ -73,7 +76,14 @@ func setup(owner_lab: Node3D,anchors: Dictionary = {}) -> void:
 	spike_root.position = spike_anchor
 	add_child(spike_root)
 	if box_enabled: _build_box_course()
-	if spike_enabled: _build_spike_course()
+	if spike_enabled:
+		_build_spike_course()
+		setup_label = Label3D.new()
+		setup_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		setup_label.font_size = 26
+		setup_label.pixel_size = 0.008
+		setup_label.position = RUNWAY_START + Vector3(0, 3.2, 0.6) + spike_anchor
+		add_child(setup_label)
 	if box_enabled and spike_enabled and box_anchor == Vector3.ZERO and spike_anchor == Vector3.ZERO:
 		for x in range(-29,-6,2):
 			lab.world_builder.box(box_root if x < -22 else spike_root,Vector3(0.6,0.025,0.14),Vector3(x,0.025,14),lab.GOLD)
@@ -233,6 +243,9 @@ func interact() -> void:
 			detail = "Box Jump stopped / I to retry"
 		else:
 			start_box()
+	elif in_spike_zone() and economy():
+		_interact_setup()
+		return
 	elif in_spike_zone():
 		if running():
 			spike_state = State.IDLE
@@ -291,7 +304,7 @@ func load_spike() -> void:
 	lab.contacts = 0
 	lab.side_contacts.assign([0, 0])
 	lab.contact_memory.assign([0.0, 0.0, 0.0, 0.0])
-	lab.ball.position = Vector3(-16 + [0.0, -0.6, 0.6][spike_progress], lab.athlete.reach() + SPIKE_HEIGHT_OFFSET, SPIKE_BALL_Z) + spike_anchor
+	lab.ball.position = Vector3(-16 + [0.0, -0.6, 0.6][spike_progress % 3], lab.athlete.reach() + SPIKE_HEIGHT_OFFSET, SPIKE_BALL_Z) + spike_anchor
 	move_bonus_circle()
 	lab.ball_velocity = Vector3.ZERO
 	lab.ball_shot = {}
@@ -337,6 +350,12 @@ func tick(dt: float) -> void:
 	if is_instance_valid(spike_bonus):
 		spike_bonus.visible = spike_state in [State.ACTIVE, State.RETURNING]
 	if running():
+		if economy():
+			# A Setup never fails for leaving its area; a ball nobody hits in time is simply used up.
+			timer -= dt
+			if timer <= 0:
+				_spike_used(false, "player", "The ball was not hit in time")
+			return
 		if not in_spike_zone():
 			fail_spike("Left Spike Trainer area / I to retry")
 			return
@@ -351,6 +370,9 @@ func on_contact(action: int) -> void:
 	if spike_state != State.ACTIVE:
 		return
 	if action != 2 or not lab.motion.jumped or lab.motion.airborne_action != 2:
+		if economy():
+			_spike_used(false, "player", "A jumping Attack is required")
+			return
 		fail_spike("A jumping Attack is required / I to retry")
 		return
 	spike_state = State.RETURNING
@@ -359,6 +381,9 @@ func on_contact(action: int) -> void:
 	lab._message(detail)
 
 func on_ball_down() -> void:
+	if economy():
+		_economy_ball_down()
+		return
 	if spike_state != State.RETURNING:
 		fail_spike("Missed suspended spike / I to retry")
 		return
@@ -378,6 +403,84 @@ func on_ball_down() -> void:
 		lab._message(detail)
 	else:
 		load_spike()
+
+# --- Setup (ball economy) -----------------------------------------------------------------------------------------------------------
+func economy() -> bool:
+	return lab.inventory.enabled and spike_enabled
+
+func tick_setup(dt: float) -> void:
+	distributor.tick(dt)
+	if is_instance_valid(setup_label):
+		setup_label.visible = economy()
+		var text: String = distributor.status()
+		if setup_label.text != text:
+			setup_label.text = text
+
+func _interact_setup() -> void:
+	if distributor.pile > 0 and distributor.pile_owner == "player" and not lab.inventory.held:
+		if distributor.claim("player"):
+			lab.inventory.give()
+			lab._message("SPIKE TRAINER / reward ball taken / %d left" % distributor.pile)
+		return
+	if distributor.pile > 0 and distributor.pile_owner == "player":
+		lab._message("Hands full / %d reward balls waiting" % distributor.pile)
+		return
+	if distributor.ready():
+		if not lab.inventory.consume():
+			lab._message("SPIKE TRAINER / give up a ball to start (take one from a cart)")
+			return
+		clear_preparation()
+		distributor.activate("player")
+		spike_progress = 0
+		spike_points = 0
+		_send_next_spike()
+		return
+	lab._message(distributor.status())
+
+# The distributor sends the next ball to hang at the spike point.
+func _send_next_spike() -> void:
+	if not distributor.send():
+		spike_state = State.IDLE
+		lab.ball_active = false
+		detail = "SPIKE TRAINER / out of balls / reactivates in %ds" % ceili(distributor.cooldown)
+		lab._message(detail)
+		return
+	load_spike()
+	detail = "SPIKE %d of %d / %d errors / %d balls left / jump, confirm Attack, land in the gold circle" % [distributor.reps + 1, distributor.min_reps, distributor.errors, distributor.balls]
+	lab._message(detail)
+
+# A sent ball has been used, counted as a rep or not. Whoever lands the final rep takes the reward (only the player is modelled so far).
+func _spike_used(success: bool, actor: String, reason: String) -> void:
+	lab.ball_active = false
+	spike_state = State.IDLE
+	var result: String = distributor.record(success, actor)
+	if success:
+		lab.athlete.hp = minf(100, lab.athlete.hp + 5)
+	match result:
+		"complete":
+			reward(30, 20, 10)
+			detail = "SPIKE TRAINER COMPLETE / %d reward balls to claim (I) / +30 lab XP / reactivates in %ds" % [distributor.pile, ceili(distributor.cooldown)]
+			lab._message(detail)
+		"failed":
+			detail = "SPIKE TRAINER FAILED / out of balls / reactivates in %ds" % ceili(distributor.cooldown)
+			lab._message(detail)
+		_:
+			if not reason.is_empty():
+				lab._message("%s / ball used up" % reason)
+			_send_next_spike()
+
+func _economy_ball_down() -> void:
+	if spike_state != State.RETURNING:
+		_spike_used(false, "player", "Missed the suspended ball")
+		return
+	var offset := Vector2(lab.ball.position.x - spike_anchor.x - SPIKE_GOAL.x, lab.ball.position.z - spike_anchor.z - SPIKE_GOAL.z)
+	if offset.length() > GOAL_RADIUS:
+		_spike_used(false, "player", "Spike missed the gold target")
+		return
+	var in_bonus := offset.distance_to(spike_bonus_center - Vector2(SPIKE_GOAL.x, SPIKE_GOAL.z)) <= BONUS_RADIUS
+	spike_points += 2 if in_bonus else 1
+	spike_progress += 1
+	_spike_used(true, "player", "")
 
 func fail_spike(reason: String) -> void:
 	spike_state = State.FAILED

@@ -122,6 +122,8 @@ func consume_nearby() -> bool:
 	return true
 
 func tick(dt: float) -> void:
+	for course in courses:
+		if course.has_method("tick_setup"): course.tick_setup(dt)
 	for drink in drinks:
 		drink.remaining = maxf(0,drink.remaining-dt)
 		drink.can.visible = drink.remaining <= 0
