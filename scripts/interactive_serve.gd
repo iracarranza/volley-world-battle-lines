@@ -222,7 +222,7 @@ func _finish_strike(incoming: Vector3, sweet: bool) -> void:
 	follow_time = 0.22
 	lab.outgoing = true
 	lab.attempts += 1
-	lab.athlete.spend(4)
+	lab.athlete.spend_resolved(float(lab.athlete.stamina_quote("serve").total))
 	if main_court:
 		if not lab.training_bots.is_enabled(0,-lab.player.position.z):
 			lab.training_bots.ensure_receiver(lab.player.position.z < 0)

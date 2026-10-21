@@ -17,9 +17,10 @@ static func refresh(athlete: LabAthlete) -> void:
 	athlete.stamina = athlete.max_stamina()
 	athlete.hp = 100.0
 
-static func spend(athlete: LabAthlete,cost: float,flow: Node3D,actor_id: String) -> void:
+static func spend(athlete: LabAthlete,cost: float,flow: Node3D,actor_id: String,resolved: bool = false) -> void:
 	var epoch := athlete.fatigue_epoch
-	athlete.spend(cost)
+	if resolved: athlete.spend_resolved(cost)
+	else: athlete.spend(cost)
 	if athlete.fatigue_epoch != epoch and is_instance_valid(flow):
 		flow.actor_fatigue_changed(actor_id)
 		flow.values[actor_id] = 0.0

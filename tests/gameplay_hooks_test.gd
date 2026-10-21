@@ -120,8 +120,11 @@ func run() -> void:
 	flow.on_attack_charge("training_bot_0")
 	check(lab.athlete.stat("swing_power") == 65,"Same ally cannot refresh a consumed rally allowance")
 	var stamina_before: float = bot.stamina
-	flow.serve_consequences("training_bot_0",{"incoming_shot":{"actor":"player","serve_effects":{"mismatch_stamina_drain":100,"transition_speed_penalty":10}},"charge_match":{"severity":1},"recovery_seconds":0.55})
-	check(bot.stamina < stamina_before and bot.stat("transition_speed") == 55,"Serve mismatch drains receiver and applies recovery debuff")
+	var penalty_event := {"incoming_shot":{"actor":"player","serve_effects":{"mismatch_stamina_drain":100,"transition_speed_penalty":10}},"charge_match":{"severity":1},"recovery_seconds":0.55}
+	bot.spend_resolved(bot.contact_cost(0,1,penalty_event,penalty_event.incoming_shot).x)
+	var paid_once: float = bot.stamina
+	flow.serve_consequences("training_bot_0",penalty_event)
+	check(bot.stamina < stamina_before and bot.stamina == paid_once and bot.stat("transition_speed") == 55,"Contact quote includes mismatch drain once; serve effects apply recovery debuff without a second charge")
 	bot.modifiers.tick(0.55)
 	check(bot.stat("transition_speed") == 65,"Serve recovery penalty expires")
 	lab.athlete.stamina = 100

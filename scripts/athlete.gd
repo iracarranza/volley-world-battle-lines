@@ -23,6 +23,10 @@ var flow := 0.0
 var fatigue_epoch := 0
 var hp := 100.0
 var stamina := 100.0
+var stationary_seconds := 0.0
+var last_stamina_cost: Dictionary = {}
+const Costs := preload("res://scripts/stamina_costs.gd")
+const Morphology := preload("res://scripts/morphology_runtime.gd")
 var exhausted := false
 var winded := false
 var winded_remaining := 0.0
@@ -158,7 +162,7 @@ func low_stamina_factor() -> float:
 		return 1.0 # Keep the existing explicit Exhausted penalties.
 	var fraction := clampf(stamina/max_stamina(),0,1)
 	var deficit := clampf((0.30-fraction)/0.30,0,1)
-	return 1.0-0.20*deficit*Stats.work_penalty(stat("work_rate"))
+	return 1.0-0.20*deficit
 
 func stabilize_set(assessment: Dictionary) -> Dictionary:
 	var result := assessment.duplicate(true)
@@ -176,11 +180,18 @@ func has_trait(trait_id: String) -> bool:
 func serve_speed_factor(charge: float) -> float:
 	return (1.0+0.5*effective_serve_charge(charge))/maxf(0.1,1.0+0.5*charge)
 
+func stamina_quote(kind: String,mismatch: float = 0.0,sourspot: float = 0.0) -> Dictionary:
+	last_stamina_cost = Costs.quote(kind,build,stat("work_rate"),trait_effect("exertion_efficiency"),mismatch,sourspot)
+	return last_stamina_cost
+
 func jump_stamina_cost() -> float:
-	return 19.0 * (1.3 - 65.0 / 200.0) * float(build.height) / 1.86
+	return float(stamina_quote("jump").total)
 
 func quick_step_stamina_cost() -> float:
-	return jump_stamina_cost() * 0.5
+	return float(stamina_quote("quick_step").total)
+
+func movement_stamina_rate(sprinting: bool = false) -> float:
+	return float(stamina_quote("sprint" if sprinting else "movement").total)
 
 func ball_control() -> float:
 	return Stats.anchor(stat("ball_control"))
@@ -192,7 +203,7 @@ func reach() -> float:
 	return 1.215 * float(build.height) + 0.32 * (float(build.span) - float(build.height))
 
 func stride() -> float:
-	return clampf(0.43 * float(build.height), 0.55, 1.15)
+	return clampf(0.43 * float(build.height), 0.55, 1.15)*Morphology.stride_ratio(build)
 
 func speed() -> float:
 	return (3.6 + Stats.anchor(clampf(float(build.speed)+trait_effect("speed")+modifiers.total("stats","speed"),50,99)) * 0.035) * stride() / 0.80 * (0.55 if exhausted else 1.0)
@@ -233,8 +244,11 @@ func attack_jump_floor() -> float:
 	return 1.2 * fresh_leap()
 
 func spend(sta: float, hitting: float = 0.0) -> void:
+	spend_resolved(maxf(0,sta)*maxf(0.1,1.0-trait_effect("exertion_efficiency")/100.0),hitting)
+
+func spend_resolved(sta: float,hitting: float = 0.0) -> void:
 	var before := stamina
-	stamina = maxf(0.0, stamina - maxf(0, sta)*maxf(0.1,1.0-trait_effect("exertion_efficiency")/100.0))
+	stamina = maxf(0.0,stamina-maxf(0,sta))
 	hp = maxf(0.0, hp - hitting * (1.5 if exhausted else 1.0))
 	# Repeated costs at zero are not a second depletion event.
 	if before > 0.0 and stamina <= 0.0 and not exhausted:
@@ -258,6 +272,8 @@ func _enter_winded() -> void:
 		second_wind_cooldown = 30.0
 
 func reset_fatigue() -> void:
+	stationary_seconds = 0.0
+	last_stamina_cost = {}
 	second_wind_cooldown = 0.0
 	jump_power_bonus = 0.0
 	modifiers.clear()
@@ -272,32 +288,43 @@ func fatigue_text() -> String:
 	return "WINDED %.1fs" % winded_remaining if winded else ""
 
 func recover(delta: float, resting: bool) -> void:
-	second_wind_cooldown = maxf(0,second_wind_cooldown-delta)
-	var remaining := maxf(0, delta)
-	var rate := (9.0 if resting else 2.0)*(1.0+trait_effect("stamina_recovery")/100.0)
-	if exhausted:
-		stamina = 0.0
-		var locked := minf(remaining, exhaustion_remaining)
-		exhaustion_remaining = maxf(0, exhaustion_remaining - locked)
-		remaining -= locked
-		if exhaustion_remaining > 0.000001:
-			return
-		exhausted = false
-		exhaustion_remaining = 0.0
-		_enter_winded()
-	if winded:
-		var slowed := minf(remaining, winded_remaining)
-		stamina = minf(max_stamina(), stamina + slowed * rate * WINDED_REGEN_FACTOR)
-		winded_remaining = maxf(0, winded_remaining - slowed)
-		remaining -= slowed
-		if winded_remaining <= 0.000001:
-			winded = false
-			winded_remaining = 0.0
-	stamina = minf(max_stamina(), stamina + remaining * rate)
+	var remaining := maxf(0,delta)
+	if not resting: stationary_seconds = 0.0
+	# Split at fatigue and rest-delay boundaries so large/small timesteps agree.
+	while remaining > 0.000001:
+		var segment := remaining
+		if exhausted:
+			segment = minf(segment,exhaustion_remaining)
+			second_wind_cooldown = maxf(0,second_wind_cooldown-segment)
+			stamina = 0.0
+			exhaustion_remaining = maxf(0,exhaustion_remaining-segment)
+			if resting: stationary_seconds += segment
+			remaining -= segment
+			if exhaustion_remaining <= 0.000001:
+				exhausted = false
+				_enter_winded()
+			continue
+		var fast := resting and stationary_seconds >= 3.0-0.000001
+		if resting and not fast: segment = minf(segment,3.0-stationary_seconds)
+		if winded: segment = minf(segment,winded_remaining)
+		var rate := (6.0 if fast else 2.0)*(1.0+trait_effect("stamina_recovery")/100.0)*(WINDED_REGEN_FACTOR if winded else 1.0)
+		second_wind_cooldown = maxf(0,second_wind_cooldown-segment)
+		stamina = minf(max_stamina(),stamina+segment*rate)
+		if resting: stationary_seconds += segment
+		remaining -= segment
+		if winded:
+			winded_remaining = maxf(0,winded_remaining-segment)
+			if winded_remaining <= 0.000001:
+				winded = false
+				winded_remaining = 0.0
 
-func contact_cost(_action: int, _repeat: int) -> Vector2:
-	# Ordinary volleyball contacts spend stamina. HP is reserved for abilities.
-	return Vector2(8.0 * (1.25 - 65.0 / 200.0), 0.0)
+func contact_cost(_action: int, _repeat: int,assessment: Dictionary = {},incoming_shot: Dictionary = {}) -> Vector2:
+	var severity := float(assessment.get("charge_match",{}).get("severity",0))
+	var modifier := maxf(0,float(incoming_shot.get("serve_effects",{}).get("mismatch_stamina_drain",0)))
+	# Existing ball-carried mismatch effects remain active. New base surcharges
+	# have no accepted coefficients and remain zero, independently inspectable.
+	var mismatch := 15.0*modifier/100.0*severity if _action == 0 else 0.0
+	return Vector2(float(stamina_quote("contact",mismatch,0).total),0)
 
 func contact_copy(effects: Dictionary) -> LabAthlete:
 	var copy := LabAthlete.new()

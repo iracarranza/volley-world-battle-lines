@@ -77,7 +77,7 @@ func run() -> void:
 	a.trait_ids = ["endurance_stamina_recovery"]
 	a.stamina = 20
 	a.recover(1,true)
-	check(is_equal_approx(a.stamina,30.35),"Stamina Recovery is now a trait effect")
+	check(is_equal_approx(a.stamina,22.3),"Stamina Recovery is now a trait effect")
 	a.trait_ids = ["endurance_exertion_efficiency"]
 	a.stamina = 100
 	a.spend(10)

@@ -364,7 +364,7 @@ func _raw_hurtbox_definition(action: int) -> Dictionary:
 	var scale_to_world := height / visual_rig_height
 	var shoulder := arms[1].position.y * scale_to_world if arms.size() > 1 else height * 0.815
 	var shoulder_x := absf(arms[1].position.x) * scale_to_world if arms.size() > 1 else height * 0.17
-	var shape := Geometry.definition(action, height, athlete.reach(), motion.jumped and motion.airborne_action == 0, -1.0 if dominant_hand == "Left" else 1.0, shoulder, shoulder_x, athlete.ball_control(), Geometry.arm_length(arms[0 if dominant_hand == "Left" else 1], scale_to_world))
+	var shape := Geometry.definition(action, height, athlete.reach(), motion.jumped and motion.airborne_action == 0, -1.0 if dominant_hand == "Left" else 1.0, shoulder, shoulder_x, athlete.ball_control(), Geometry.arm_length(arms[0 if dominant_hand == "Left" else 1], scale_to_world),athlete.build)
 	if action == 0:
 		shape["platform_quality"] = athlete.trait_effect("platform_quality")
 	if is_instance_valid(contact_flow):
@@ -672,7 +672,7 @@ func _physics_process(dt: float) -> void:
 			committed_intent = {}
 			armed = false
 			auto_preparation.clear()
-			athlete.spend(2.0)
+			athlete.spend_resolved(float(athlete.stamina_quote("timing_miss").total))
 			_message("Missed timing / reach. Move under the ball and try again.")
 	_check_bench()
 	if not is_benched():
@@ -1006,8 +1006,9 @@ func _contact() -> void:
 	ball_shot = contact_flow.decorate_shot(ball_shot,request.incoming_shot,"player",locked_action,assessment)
 	if locked_action == 2 and assessment.hit:
 		contact_flow.consume_attack("player")
-	var cost: Vector2 = athlete.contact_cost(locked_action, contacts)
-	athlete.spend(cost.x)
+	var cost: Vector2 = request.athlete.contact_cost(locked_action, contacts,assessment,incoming_shot)
+	athlete.last_stamina_cost = request.athlete.last_stamina_cost
+	athlete.spend_resolved(cost.x)
 	contact_memory = [0.0, 0.0, 0.0, 0.0]
 	last_contact = elapsed
 	outgoing = true
@@ -1090,7 +1091,7 @@ func _tick_ball(dt: float) -> void:
 	ball_velocity = net_result.velocity
 	if previous.z*ball.position.z < 0 and not bool(net_result.pocket) and net_result.contact == "":
 		var crossing := previous.lerp(ball.position,previous.z/(previous.z-ball.position.z))
-		if not station.running() and not drills.running() and not pepper.active() and absf(crossing.x-court_center.x)+Geometry.VISUAL_BALL_RADIUS > net_response.web_half_width:
+		if not station.running() and not drills.running() and not pepper.active() and (serve.state != serve.State.FLIGHT or serve.main_court) and absf(crossing.x-court_center.x)+Geometry.VISUAL_BALL_RADIUS > net_response.web_half_width:
 			_finish_fault("OUTSIDE-ANTENNA FAULT / Ball crossed outside the net",rally_rules.last_touch_side)
 			return
 		if absf(crossing.x-Vector3(net_result.net_origin).x) <= float(net_result.net_half_width) and crossing.y < float(net_result.net_bottom)-NetResponse.RADIUS:
@@ -1254,6 +1255,7 @@ func _reset() -> void:
 		serve.clear()
 	if is_instance_valid(pepper):
 		pepper.stop()
+		pepper.refresh_for_rally()
 	camera_rig.ball_camera_offset_ready = false
 	camera_rig.ball_movement_yaw = 0.0
 	animation.receive_posture = "planted"

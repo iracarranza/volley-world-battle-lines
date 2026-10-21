@@ -20,7 +20,7 @@ All six audit steps are implemented against the designer's latest definitions. T
 | Auto input-charge ceiling | .35 | .48 | .61 | .65 | .70 | .75 | .80 | .85 |
 | Maximum Stamina | 70 | 90 | 100 | 110 | 120 | 130 | 140 | 150 |
 | Cushioning additive charge points | -8 | -4 | 0 | 4 | 8 | 12 | 16 | 20 |
-| Work Rate/Stability penalty multiplier | 1.50 | 1.15 | 1.00 | .85 | .70 | .55 | .40 | .25 |
+| Stability penalty multiplier | 1.50 | 1.15 | 1.00 | .85 | .70 | .55 | .40 | .25 |
 
 Positive pace means speed, not a direct percentage subtraction from duration: a 1.40 pace has duration baseline/1.40. Tuning beyond the explicitly requested 8%/4% increments is provisional.
 
@@ -28,7 +28,7 @@ Explosiveness scales approach progress and step speeds together to retain run-up
 
 Acceleration changes velocity convergence, not the speed cap. Reaction Speed controls Auto charge adaptation, matching error and its input ceiling. The facing-relative strafe penalty remains fixed at the neutral .75 fraction. Transition Speed scales post-contact follow-through, receive pose recovery, rescue swings, rolling/get-up clocks, explicit action endlag, landing endlag and the minimum repeat-contact interval. It does not move sweet-window boundaries, change confirmation windows or speed ball flight. Nominal input/movement recovery budgets: receive .16 s, set .12 s, attack .22 s, block .16 s, serve .22 s, landing .12 s; existing animation follow-through and floor recovery durations remain their separate base budgets.
 
-Low-Stamina performance decreases smoothly below 30% of actual capacity, with a neutral maximum 20% loss at zero. Work Rate scales that loss; it does not raise fresh output. Jump performance, dive speed, receive charge availability and outgoing contacts use this layer. Explicit Exhausted movement/leap penalties and the 7 s / 10.5 s status rules remain independent. Never Stay Down bypasses jump deterioration above its authored 15% Stamina threshold.
+Low-Stamina performance decreases smoothly below 30% of actual capacity, with a neutral maximum 20% loss at zero. Work Rate no longer scales that loss. It now reduces eligible discrete Stamina costs by two per positive tier, up to ten, with the final five-point floor. See `stamina-economy.md` for calibrated base costs, morphology and regeneration. Jump performance, dive speed, receive charge availability and outgoing contacts use this layer. Explicit Exhausted movement/leap penalties and the 7 s / 10.5 s status rules remain independent. Never Stay Down bypasses jump deterioration above its authored 15% Stamina threshold.
 
 Stability reduces execution loss on weaker sets without upgrading their quality-zone label or sweet eligibility. Ball Control governs set-column width and ordinary receive/set fidelity; Timing independently amplifies sweet-contact effects. Their effective values use band anchors. Platform Quality owns the receiving fan's graded-zone overlaps; it does not expand outer reach, change charge or timing, or substitute for Ball Control's set column.
 
@@ -65,3 +65,5 @@ New suites cover tier boundaries and within-band identity; real approach pacing/
 Relevant regression suites cover prototype behavior, serving, charge matching, receive outcomes, set geometry, contact execution, Flow/knockback, bot rally motion, Pepper, fatigue, blocking, previews and MoC continuous motion. Graphical captures verify the roster and effect inspector; the real Compatibility-renderer contact profile verifies no reintroduced contact stall. Provisional values should be playtested against controlled 65 reference builds before balancing across the full range.
 
 See [Auto preparation and Set Isolation](auto-charge.md) for tap/hold behavior and provisional Reaction Speed tuning.
+
+The October 20 stamina calibration supersedes the earlier Work Rate output-protection role. Body momentum, new Sprint speed coefficients and receive aim reversal remain separately uncalibrated.

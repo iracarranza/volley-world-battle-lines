@@ -10,10 +10,10 @@ const BALL_RADIUS := VISUAL_BALL_RADIUS * 1.25
 const EDGE_ZONE := 0.78
 const ZONE_COLORS := {"SWEET SPOT": Color("67f3a3"), "FAIR": Color("ffcf70"), "WEAK": Color("f69c69"), "SOUR SPOT": Color("ee617b")}
 
-static func definition(action: int, height: float, reach: float, dive: bool, dominant_sign: float, shoulder_height: float = -1.0, shoulder_x: float = -1.0, ball_control: float = 65.0, arm_length: float = -1.0) -> Dictionary:
+static func definition(action: int, height: float, reach: float, dive: bool, dominant_sign: float, shoulder_height: float = -1.0, shoulder_x: float = -1.0, ball_control: float = 65.0, arm_length: float = -1.0,morphology: Dictionary = {}) -> Dictionary:
 	match action:
 		0:
-			return ReceivePlatform.definition(height, dive)
+			return ReceivePlatform.definition(height, dive,0,morphology)
 		1:
 			return SetHurtbox.definition(height, reach, ball_control)
 		2:

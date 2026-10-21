@@ -31,9 +31,6 @@ static func capacity(rating: float) -> float:
 	return 70.0 if band == -2 else (90.0 if band == -1 else 100.0+10.0*band)
 static func cushioning(rating: float) -> float:
 	return 0.04*tier(rating)
-static func work_penalty(rating: float) -> float:
-	var band := tier(rating)
-	return 1.50 if band == -2 else (1.15 if band == -1 else 1.0-0.15*band)
 static func set_quality(quality: float, rating: float) -> float:
 	var band := tier(rating)
 	var penalty := 1.50 if band == -2 else (1.15 if band == -1 else 1.0-0.15*band)

@@ -51,6 +51,14 @@ func run() -> void:
 	check("OUTSIDE-ANTENNA" in lab.feedback and "AWAY POINT" in lab.feedback,"Crossing outside antennas faults the last touching side")
 	lab._reset()
 	lab.ball_active = true
+	lab.serve.state = lab.serve.State.FLIGHT
+	lab.serve.main_court = false
+	lab.ball.position = Vector3(lab.net_response.web_half_width+1,3,0.2)
+	lab.ball_velocity = Vector3(0,0,-20)
+	lab._tick_ball(0.02)
+	check(lab.ball_active,"Exploration serves toward Pepper do not incur a main-court antenna fault")
+	lab._reset()
+	lab.ball_active = true
 	for hit in range(2):
 		lab.locked_action = 1
 		lab.armed = true

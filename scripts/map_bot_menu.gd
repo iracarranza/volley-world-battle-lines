@@ -34,6 +34,7 @@ func _init(owner_hud: RefCounted) -> void:
 	scroll.add_child(stack)
 	stack.add_child(hud.label("MAP BOTS / SUMMON & ASSIGN",22,hud.TEAL))
 	vitals = hud.label("",14,hud.GOLD)
+	vitals.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	stack.add_child(vitals)
 	summary = hud.label("",14)
 	stack.add_child(summary)
@@ -149,6 +150,10 @@ func update_vitals() -> void:
 		return
 	var athlete: LabAthlete = hud.lab.training_bots.athlete_for(selected_slot)
 	vitals.text = "Stamina %.0f / %.0f   %s" % [athlete.stamina,athlete.max_stamina(),athlete.fatigue_text()]
+	var cost := athlete.last_stamina_cost
+	if not cost.is_empty():
+		vitals.text += "\n%s %.2f %s · base %.2f · height %+.2f · stride %+.2f · wingspan %+.2f · mismatch %.2f · sourspot %.2f · efficiency %.0f%% · Work Rate −%.2f · floor %.2f" % [cost.kind,cost.total,cost.units,cost.base,cost.height,cost.stride,cost.wingspan,cost.mismatch,cost.sourspot,cost.efficiency_percent,cost.work_rate,cost.floor]
+
 
 func load_selected() -> void:
 	update_vitals()

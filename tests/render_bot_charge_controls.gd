@@ -8,6 +8,7 @@ func run() -> void:
 	lab.set_physics_process(false)
 	var slot: int = lab.training_bots.summon_generic(false,1,{1:0,2:1,3:2},true)
 	lab.training_bots.set_intended_charge(slot,false,0.8)
+	lab.training_bots.athlete_for(slot).stamina_quote("contact")
 	lab.open_bot_menu()
 	var menu = lab.bot_menu
 	menu.selected_slot = slot

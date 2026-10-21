@@ -78,7 +78,7 @@ func setup(owner_lab: Node3D) -> void:
 		var rig := Visual.build(lab, actor, "Feli", {"palette_index": 0, "marking": "none"}, physique.build)
 		rigs.append(rig)
 		var scale: float = physique.build.height / rig.rig_height
-		var shape := Geometry.definition(action, physique.build.height, physique.reach(), false, 1.0, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale))
+		var shape := Geometry.definition(action, physique.build.height, physique.reach(), false, 1.0, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
 		if action == 0:
 			shape["platform_quality"] = physique.trait_effect("platform_quality")
 		shapes.append(shape)
@@ -317,11 +317,11 @@ func athlete_for(slot: int) -> LabAthlete:
 func move_speed_for(slot: int) -> float:
 	return settings[slot].move_speed*(0.55 if athlete_for(slot).exhausted else 1.0)
 
-func spend_stamina(slot: int,cost: float) -> void:
-	Vitals.spend(athlete_for(slot),cost,lab.contact_flow,"training_bot_%d" % slot)
+func spend_stamina(slot: int,cost: float,resolved: bool = false) -> void:
+	Vitals.spend(athlete_for(slot),cost,lab.contact_flow,"training_bot_%d" % slot,resolved)
 
 func spend_jump(slot: int) -> void:
-	spend_stamina(slot,athlete_for(slot).jump_stamina_cost())
+	spend_stamina(slot,athlete_for(slot).jump_stamina_cost(),true)
 
 func refresh_for_rally() -> void:
 	for athlete in athletes: Vitals.refresh(athlete)
@@ -553,10 +553,9 @@ func tick_motion(dt: float) -> void:
 	for slot in range(rigs.size()):
 		var profile := athlete_for(slot)
 		var walked := Vector2(actors[slot].position.x-previous_positions[slot].x,actors[slot].position.z-previous_positions[slot].z).length()
-		var busy: bool = motion.plans.has(slot) or move_targets.has(slot) or preparation.state_for(slot).planned
 		if settings[slot].enabled:
-			if lab.ball_active and (walked > 0.001 or busy): spend_stamina(slot,dt*float(scales[slot])*3.0)
-			profile.recover(dt*float(scales[slot]),not busy and walked < 0.001)
+			if walked > 0.00001 and actors[slot].position.y <= 0.01: spend_stamina(slot,dt*float(scales[slot])*profile.movement_stamina_rate(),true)
+			profile.recover(dt*float(scales[slot]),walked <= 0.00001 and actors[slot].position.y <= 0.01)
 		var action := slot_action(slot)
 		var planned := active_action == action and slot == active_slot
 		var motion_plan: Dictionary = motion.plans.get(slot, {})
@@ -740,7 +739,9 @@ func tick_contact(dt: float) -> bool:
 	var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), local_contact, move_speed_for(slot) if settings[slot].moves else 0.0) if action == 0 else "planted"
 	var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actors[slot].rotation.y, -PI, PI) if action == 2 else 0.0
 	animation.contact(rigs[slot], action, local_contact, posture, swing_yaw, execution.get("rescue", false))
-	spend_stamina(slot,athlete_for(slot).contact_cost(action,1).x)
+	var contact_cost: float = request.athlete.contact_cost(action,1,execution,incoming_shot).x
+	athlete_for(slot).last_stamina_cost = request.athlete.last_stamina_cost
+	spend_stamina(slot,contact_cost,true)
 	total_contacts += 1
 	last_action = action
 	lab.trail_points.clear()
@@ -829,6 +830,9 @@ func disable_side(away: bool) -> void:
 var geometry_cache: Dictionary = {}
 func contact_shape(slot: int) -> Dictionary:
 	var base: Dictionary = shapes[slot]
+	if slot_action(slot) == 0:
+		var profile := athlete_for(slot)
+		base = Geometry.ReceivePlatform.definition(float(profile.build.height),false,0,profile.build)
 	if not is_instance_valid(lab.contact_flow): return base
 	var effects: Dictionary = lab.contact_flow.shape_effects("training_bot_%d"%slot,slot_action(slot))
 	var control := athlete_for(slot).ball_control()

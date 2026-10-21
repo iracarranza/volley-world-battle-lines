@@ -74,8 +74,8 @@ func athlete_for(index: int) -> LabAthlete:
 func refresh_for_rally() -> void:
 	for athlete in athletes: Vitals.refresh(athlete)
 
-func spend_stamina(cost: float) -> void:
-	Vitals.spend(athlete_for(partner),cost,lab.contact_flow,"pepper_%d" % partner)
+func spend_stamina(cost: float,resolved: bool = false) -> void:
+	Vitals.spend(athlete_for(partner),cost,lab.contact_flow,"pepper_%d" % partner,resolved)
 
 func set_charge_accuracy(index: int, value: float) -> void:
 	settings[index].charge_accuracy = clampf(value, 0, 100)
@@ -133,7 +133,7 @@ func shape() -> Dictionary:
 	var rig := rigs[partner]
 	var physique = athlete_for(partner)
 	var scale: float = physique.build.height / rig.rig_height
-	var definition := Geometry.definition(stage, physique.build.height, physique.reach(), false, 1, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale))
+	var definition := Geometry.definition(stage, physique.build.height, physique.reach(), false, 1, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
 	if stage == 0:
 		definition["platform_quality"] = physique.trait_effect("platform_quality")
 	var effects: Dictionary = lab.contact_flow.shape_effects("pepper_%d"%partner,stage)
@@ -192,7 +192,7 @@ func plan() -> void:
 	jump_height = clampf(desired.y - ground.y, 0.25, 1.7*athlete_for(partner).leap(1,1,lab.contact_flow.jump_bonus("pepper_%d"%partner))/(athlete_for(partner).JUMP_HEIGHT_MULTIPLIER*(0.20+65.0*0.007))) if stage in [1, 2] else 0
 	if stage in [1,2]:
 		lab.contact_flow.consume_jump("pepper_%d"%partner)
-		spend_stamina(athlete_for(partner).jump_stamina_cost())
+		spend_stamina(athlete_for(partner).jump_stamina_cost(),true)
 	rise_time = minf(sqrt(2 * maxf(jump_height, 0.01) / lab.GRAVITY)/athlete_for(partner).explosiveness_rate(), remaining)
 	planned = true
 	if stage == 2: lab.contact_flow.on_attack_charge("pepper_%d"%partner)
@@ -240,13 +240,13 @@ func on_player_contact(action: int, quality: float) -> void:
 	plan()
 
 func tick(dt: float) -> bool:
-	for index in range(athletes.size()): athletes[index].recover(dt*lab.moc.bot_scale("pepper_%d"%index),not (index == partner and planned))
+	for index in range(athletes.size()):
+		if not (active() and index == partner): athletes[index].recover(dt*lab.moc.bot_scale("pepper_%d"%index),actors[index].position.y <= SPOTS[index].y+0.01)
 	for index in range(3):
 		preparation.tick(index,dt*lab.moc.bot_scale("pepper_%d"%index))
 	dt *= lab.moc.bot_scale("pepper_%d" % partner)
 	if not active():
 		return false
-	if planned: spend_stamina(dt*3.0)
 	var actor := actors[partner]
 	if is_instance_valid(lab.contact_flow):
 		actor.position += lab.contact_flow.displacement("pepper_%d" % partner,dt)
@@ -258,6 +258,7 @@ func tick(dt: float) -> bool:
 		if actor.position.y <= ground.y:
 			recovering = false
 	if not planned:
+		athlete_for(partner).recover(dt,actor.position.y <= ground.y+0.01)
 		_animate(dt, 0.0)
 		return false
 	remaining -= dt
@@ -265,6 +266,7 @@ func tick(dt: float) -> bool:
 	var horizontal_target := Vector3(move_target.x, actor.position.y, move_target.z)
 	actor.position = actor.position.move_toward(horizontal_target, MOVE_SPEED * (0.55 if athlete_for(partner).exhausted else 1.0) * dt)
 	var travelled := Vector2(actor.position.x - before.x, actor.position.z - before.z).length()
+	if travelled > 0.00001 and actor.position.y <= ground.y+0.01: spend_stamina(dt*athlete_for(partner).movement_stamina_rate(),true)
 	movement_cycle += travelled / maxf(athlete_for(partner).stride() * 2, 0.1) * TAU
 	if stage not in [1, 2] or remaining > rise_time:
 		actor.rotation.y = lerp_angle(actor.rotation.y, approach_yaw, 1 - exp(-dt * 12))
@@ -278,6 +280,7 @@ func tick(dt: float) -> bool:
 			child.material_override.albedo_color = Color.WHITE if precision else Color(0.96, 0.61, 0.41, 0.18)
 	if stage in [1, 2] and remaining <= rise_time:
 		actor.position.y = ground.y + jump_height * maxf(0, 1 - pow(remaining / maxf(rise_time, 0.01), 2))
+	athlete_for(partner).recover(dt,travelled <= 0.00001 and actor.position.y <= ground.y+0.01)
 	_animate(dt, travelled / maxf(dt, 0.001))
 
 	if remaining > 0:
@@ -366,7 +369,9 @@ func tick(dt: float) -> bool:
 	var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actor.rotation.y, -PI, PI) if stage == 2 else 0.0
 	animation.contact(rig, stage, local_contact, posture, swing_yaw, assessment.get("rescue", false))
 	_animate(0, 0)
-	spend_stamina(athlete_for(partner).contact_cost(stage,1).x)
+	var contact_cost: float = request.athlete.contact_cost(stage,1,assessment,incoming_shot).x
+	athlete_for(partner).last_stamina_cost = request.athlete.last_stamina_cost
+	spend_stamina(contact_cost,true)
 	last_delivery = {"action": stage, "quality": assessment.quality, "required_action": player_action, "target": target, "origin": origin, "velocity": lab.ball_velocity, "duration": duration, "aim": last_aim, "preparation": preparation.evidence(partner), "incoming_shot": incoming_shot, "charge_match": assessment.get("charge_match", {}), "receive_outcome":assessment.get("receive_outcome",{})}
 	last_delivery.make_read_only()
 	preparation.finish(partner)

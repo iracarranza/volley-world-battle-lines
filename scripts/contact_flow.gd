@@ -255,7 +255,7 @@ func record(event: Dictionary) -> void:
 	var weight := Vector3(di.get("world_input",Vector3.ZERO)).length()
 	var actor_profile = profile(actor_id)
 	var cost_factor := weight*maxf(0,1.0-actor_profile.trait_effect("di_cost_reduction")/100.0)
-	actor_profile.spend(maxf(0,actor_profile.trait_effect("di_stamina_cost"))*cost_factor,maxf(0,actor_profile.trait_effect("di_hp_cost"))*cost_factor)
+	actor_profile.spend_resolved(0,maxf(0,actor_profile.trait_effect("di_hp_cost"))*cost_factor)
 	var delta := change_for(event)
 	if delta > 0: delta *= maxf(0,1.0+actor_profile.trait_effect("flow_state")/100.0)
 	if actor_id == "player" and (_fatigue_changed() or lab.athlete.exhausted):
@@ -406,9 +406,8 @@ func serve_consequences(actor_id: String,event: Dictionary) -> void:
 	var shot: Dictionary = event.get("incoming_shot",{})
 	var effects: Dictionary = shot.get("serve_effects",{})
 	if effects.is_empty(): return
-	var severity := float(event.get("charge_match",{}).get("severity",0))
 	var athlete = profile(actor_id)
-	athlete.spend(maxf(0,float(effects.get("mismatch_stamina_drain",0)))*severity/100.0*athlete.contact_cost(0,1).x)
+	# Mismatch stamina is included in the contact quote before the final floor.
 	var duration := float(event.get("recovery_seconds",0))
 	if duration <= 0: return
 	var authored := float(effects.get("inflicted_recovery_duration",0))

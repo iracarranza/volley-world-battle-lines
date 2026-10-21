@@ -36,7 +36,7 @@ const EXTENSIONS := {
  "transition_speed_penalty":["Transition Speed Penalty","pts","consequences",[4],"Serve-carried temporary recovery stat penalty."],
  "inflicted_recovery_duration":["Inflicted Recovery Duration","s","consequences",[4],"Duration of a serve-inflicted modifier."],
  "charge_aim_variance":["Charge Aim Variance","deg","redirection",[],"Charge/DI dispersion, moderated by Ball Control."],
- "di_stamina_cost":["DI Stamina Cost","STA","consequences",[],"Configured full-DI stamina cost."],
+ "di_stamina_cost":["DI Stamina Cost","STA","consequences",[],"Legacy compatibility key; ignored. DI spends HP only."],
  "di_hp_cost":["DI HP Cost","HP","consequences",[],"Configured full-DI HP cost."],
  "di_cost_reduction":["DI Cost Reduction","%","consequences",[],"Reduces configured DI costs."],
 }

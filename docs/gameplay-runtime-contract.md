@@ -44,7 +44,8 @@ for a direct additive receive-charge bonus instead.
 | `transition_speed_penalty` | rating points | Serve-carried temporary Transition Speed penalty on an inflicted recovery |
 | `inflicted_recovery_duration` | seconds | Duration for that serve-carried temporary penalty; defaults to the recovery outcome's duration when omitted |
 | `charge_aim_variance` | degrees at 100% input charge | Self contact dispersion, increased by DI and reduced by Ball Control; zero means no added dispersion |
-| `di_stamina_cost`, `di_hp_cost` | resource points at full DI | Self costs on actual contact, zero by default |
+| `di_hp_cost` | HP at full DI | Self cost on actual contact, zero by default |
+| `di_stamina_cost` | legacy compatibility key | Retained for old data; ignored. DI never spends Stamina. |
 | `di_cost_reduction` | % | Reduces those explicitly configured DI costs; 100 makes them free |
 | `flow_attack_velocity`, `revenge_spike_velocity`, `revenge_jump_power`, `second_wind`, `jump_stamina_threshold` | existing units | Compatibility hooks for old definitions. Prefer structured rules for new Flow behavior |
 

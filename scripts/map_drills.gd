@@ -304,7 +304,7 @@ func tick(dt: float) -> void:
 			var p: Vector3 = lab.player.position - box_anchor
 			if absf(p.x - next.x) <= half.x - 0.1 and absf(p.z - next.z) <= half.y - 0.1 and absf(p.y - next.y) < 0.16:
 				box_progress += 1
-				lab.athlete.spend(3.0)
+				lab.athlete.spend_resolved(float(lab.athlete.stamina_quote("drill_step").total))
 				if box_progress == course_tops().size():
 					box_state = State.COMPLETE
 					reward(35, 18, 10)

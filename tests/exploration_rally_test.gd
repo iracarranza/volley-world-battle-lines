@@ -68,7 +68,7 @@ func run() -> void:
 	lab.ball_velocity = Vector3.ZERO
 	lab._physics_process(0.1)
 	var rally_cost: float = 100.0 - lab.athlete.stamina
-	check(exploration_cost < rally_cost * 0.3, "Exploration sprint costs substantially less stamina than rally sprint")
+	check(absf(exploration_cost-rally_cost) < 0.01, "Sprint has the same calibrated cost during exploration and rallies")
 	key(KEY_D, false)
 	key(KEY_SHIFT, false)
 	await process_frame

@@ -52,8 +52,8 @@ func run() -> void:
 	var worker := athlete("work_rate",99)
 	base.stamina = 15
 	worker.stamina = 15
-	check(worker.low_stamina_factor() > base.low_stamina_factor(),"Work Rate mitigates low-stamina output penalty")
-	check(worker.leap(1,1) > base.leap(1,1),"Work Rate preserves low-stamina jump performance")
+	check(is_equal_approx(worker.low_stamina_factor(),base.low_stamina_factor()),"Work Rate does not change the neutral low-stamina output penalty")
+	check(is_equal_approx(worker.leap(1,1),base.leap(1,1)) and worker.jump_stamina_cost() < base.jump_stamina_cost(),"Work Rate changes cost instead of low-stamina jump height")
 	worker.stamina = worker.max_stamina()
 	base.stamina = base.max_stamina()
 	check(worker.low_stamina_factor() == 1 and is_equal_approx(worker.leap(1,1),base.leap(1,1)),"Work Rate does not raise fresh output")

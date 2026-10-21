@@ -1,13 +1,26 @@
 extends RefCounted
 
 const REFERENCE_HEIGHT := 1.86
+const Morphology := preload("res://scripts/morphology_runtime.gd")
 const EDGE_ZONE := 0.78
 const COLORS := {"CLEAN": Color("67f3a3"), "FAIR": Color("ffcf70"), "WEAK": Color("f69c69"), "SOUR SPOT": Color("ee617b")}
 # A vertically extruded forward half-ellipse, not an ellipsoid. All dimensions
 # scale uniformly with height; future Platform Quality profiles own proportions.
-static func definition(height: float, dive: bool, platform_quality: float = 0.0) -> Dictionary:
+static func definition(height: float, dive: bool, platform_quality: float = 0.0,build: Dictionary = {}) -> Dictionary:
+	var physique := build.duplicate()
+	physique["height"] = height
 	var scale := height / REFERENCE_HEIGHT
-	return {"shape": "receive_fan", "receive_platform": true, "center": Vector3(0, 0.35 if dive else 0.95, -0.65) * scale, "size": Vector3(2.30, 1.10 if dive else 1.60, 1.85) * scale, "side_reach": 1.15 * scale, "forward_reach": 1.85 * scale, "edge_zone": EDGE_ZONE,"platform_quality":platform_quality}
+	var leg_shift := 0.0 if dive else Morphology.leg_difference(physique)
+	var arm_shift := Morphology.arm_difference(physique)
+	var center := Vector3(0,(0.35 if dive else 0.95)*scale+leg_shift-arm_shift,-0.65*scale-arm_shift)
+	var side := 1.15*scale+arm_shift
+	var forward := 1.85*scale+arm_shift
+	var size := Vector3(side*2,(1.10 if dive else 1.60)*scale,forward)
+	var anatomical_bottom := center.y-size.y*0.5
+	# Keep grading against the anatomical extent; floor clipping must not stretch
+	# the remaining lower band back upward and erase the long-arm benefit.
+	var lower_band_top := anatomical_bottom+size.y/3.0
+	return {"shape":"receive_fan","receive_platform":true,"center":center,"size":size,"side_reach":side,"forward_reach":forward,"edge_zone":EDGE_ZONE,"platform_quality":platform_quality,"morphology":{"height":height,"stride_ratio":Morphology.stride_ratio(physique),"wingspan_ratio":Morphology.wingspan_ratio(physique),"leg_shift":leg_shift,"arm_shift":arm_shift,"anatomical_bottom":anatomical_bottom,"floor_bottom":maxf(0,anatomical_bottom),"exposed_lower_height":maxf(0,lower_band_top-maxf(0,anatomical_bottom))}}
 
 static func contains(shape: Dictionary, local_ball: Vector3, ball_radius: float = 0.105) -> bool:
 	# No rear grace: even a ball whose center is behind the body cannot be hit.
@@ -57,7 +70,7 @@ static func evaluate(shape: Dictionary, point: Vector3) -> Dictionary:
 		zone = "SOUR SPOT"
 		quality = 0.40
 	var contact_posture := posture(shape, local_ball, 0)
-	return {"hit": true, "zone": zone, "quality": quality, "strength": 1.0, "edge": edge, "band": contact_posture.to_upper(), "posture": contact_posture, "platform_coord": coord}
+	return {"hit": true, "zone": zone, "quality": quality, "strength": 1.0, "edge": edge, "band": contact_posture.to_upper(), "posture": contact_posture, "platform_coord": coord,"morphology":shape.get("morphology",{})}
 
 static func redirect(base: Vector3, origin: Vector3, yaw: float, incoming: Vector3, assessment: Dictionary, gravity: float, floor_height: float = 0.105) -> Vector3:
 	var coord: Vector3 = assessment.get("penalty_platform_coord",assessment.platform_coord)
@@ -117,7 +130,7 @@ static func mesh(shape: Dictionary, wire: bool = false) -> ImmediateMesh:
 	return result
 
 static func _point(shape: Dictionary, radius: float, angle: float, height_sign: float) -> Vector3:
-	return Vector3(float(shape.side_reach) * radius * sin(angle), float(shape.center.y) + height_sign * float(shape.size.y) * 0.5, -float(shape.forward_reach) * radius * maxf(cos(angle), 0.0))
+	return Vector3(float(shape.side_reach) * radius * sin(angle), maxf(0,float(shape.center.y) + height_sign * float(shape.size.y) * 0.5), -float(shape.forward_reach) * radius * maxf(cos(angle), 0.0))
 
 static func _quad(result: ImmediateMesh, points: Array, center: Vector3) -> void:
 	for index in [0, 1, 2, 0, 2, 3]:

@@ -116,7 +116,6 @@ func tick(dt: float, motion_scale: float) -> void:
 				lab.player.velocity.y = sqrt(2.0 * GRAVITY * pow(lab.athlete.explosiveness_rate(),2) * 0.15)
 				lab.player.velocity.x = approach_direction.x * lab.athlete.speed() * 1.10 * lab.athlete.explosiveness_rate()
 				lab.player.velocity.z = approach_direction.z * lab.athlete.speed() * 1.10 * lab.athlete.explosiveness_rate()
-				lab.athlete.spend(3.0)
 		else:
 			lab.player.velocity.y -= jump_gravity * dt
 	elif lab.animation.floor_input_locked() and lab.player.is_on_floor():
@@ -163,11 +162,13 @@ func tick(dt: float, motion_scale: float) -> void:
 			jump_charge = approach_release_progress
 			approach_release_pending = false
 			takeoff()
-	if sprint:
-		lab.athlete.spend(dt * (10.0 if lab.ball_active or lab.station.running() else 3.0))
-	lab.athlete.recover(dt, move.length() < 0.1 and lab.player.is_on_floor() and jump_charge < 0)
+	var ground_distance := Vector2(lab.player.position.x-before_move.x,lab.player.position.z-before_move.z).length()
+	var grounded := lab.player.is_on_floor() and not jumped and not approach_bound
+	if grounded and ground_distance > 0.00001:
+		lab.athlete.spend_resolved(dt*lab.athlete.movement_stamina_rate(sprint))
+	lab.athlete.recover(dt,grounded and ground_distance <= 0.00001 and jump_charge < 0)
 	if jump_charge >= 0:
-		lab.athlete.spend(dt * 3.0)
+		lab.athlete.spend_resolved(dt*float(lab.athlete.stamina_quote("jump_charge").total))
 		if (generic_jump or approach_action != 0) and jump_charge >= (1.0 if generic_jump or approach_action in [1,3] else Approach.LAUNCH_START):
 			takeoff()
 	if lab.charging:
@@ -203,7 +204,7 @@ func quick_step(tapped: Vector3 = Vector3(0, 0, -1)) -> void:
 	quick_step_time = QUICK_STEP_TIME
 	var in_rally: bool = lab.ball_active or lab.station.running() or lab.drills.running()
 	quick_step_cooldown = QUICK_STEP_COOLDOWN_RALLY if in_rally else QUICK_STEP_COOLDOWN_EXPLORE
-	lab.athlete.spend(cost, LabAthlete.QUICK_STEP_HP)
+	lab.athlete.spend_resolved(cost, LabAthlete.QUICK_STEP_HP)
 	lab._message("QUICK STEP / cooldown %ds" % int(quick_step_cooldown))
 
 func begin_jump() -> void:
@@ -244,7 +245,7 @@ func travel_takeoff() -> void:
 	lab.armed = false
 	lab.charging = false
 	lab.contact_flow.consume_jump("player")
-	lab.athlete.spend(5.0)
+	lab.athlete.spend_resolved(float(lab.athlete.stamina_quote("travel_jump").total))
 	lab._message("TRAVEL JUMP / %.1fm high / %.1fm distance" % [last_jump_height, distance if direction.length_squared() > 0 else 0.0])
 
 func begin_approach() -> void:
@@ -264,7 +265,6 @@ func begin_approach() -> void:
 		approach_bound = true
 		approach_bound_started = true
 		lab.player.velocity = approach_direction * lab.athlete.speed() * SPLIT_SPEED + Vector3.UP * sqrt(2.0*GRAVITY*pow(lab.athlete.explosiveness_rate(),2)*SPLIT_HEIGHT)
-		lab.athlete.spend(1.5)
 
 func cancel_receive_preparation() -> void:
 	if jumped or jump_charge < 0 or approach_action != 0:
@@ -370,7 +370,7 @@ func takeoff() -> void:
 		lab.animation.spike_flight_time = lab.athlete.jump_flight_time(last_jump_height,GRAVITY)
 	if airborne_action != 0:
 		lab.contact_flow.consume_jump("player")
-	lab.athlete.spend(lab.athlete.jump_stamina_cost())
+	lab.athlete.spend_resolved(lab.athlete.jump_stamina_cost())
 	jump_charge = -1
 	approach_action = -1
 	jumped = true
