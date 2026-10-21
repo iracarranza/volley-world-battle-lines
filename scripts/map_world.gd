@@ -189,6 +189,9 @@ func _build_pits() -> void:
 				continue   # the north and south openings, where the teams come in
 			var tangent := Vector3(-sin(angle), 0.0, cos(angle))
 			_wall(Vector3(0.8, 2.4, length), _at(center + direction * radius + Vector3(0.0, 1.2, 0.0), atan2(tangent.x, tangent.z)), WALL_COLOR.darkened(0.1))
+		# The short wall that makes the Pits asymmetrical (see Layout.pit_short_wall).
+		var short_wall: Dictionary = Layout.pit_short_wall(side)
+		_wall(Vector3(float(short_wall.length), 2.4, 0.8), _at(Vector3(short_wall.center) + Vector3(0.0, 1.2, 0.0), 0.0), WALL_COLOR.darkened(0.1))
 		_label("PIT", center + Vector3(0.0, 4.2, 5.0), 44, ORANGE)
 
 # Low walls beside each lane, with gaps: alternately a wall you can jump and one you have to go around.
@@ -225,11 +228,9 @@ func _build_sector(center: Vector2) -> void:
 	_build_sector_walls(center)
 
 func _build_sector_walls(center: Vector2) -> void:
-	var mx := -signf(center.x)
-	var mz := signf(center.y)
-	for local_x in [-6.0, 6.0]:
-		var yaw := deg_to_rad(15.0) * mx * mz * (1.0 if local_x < 0.0 else -1.0)
-		_wall(Vector3(8.0, 2.0, 0.6), _at(Layout.sector_point(center, local_x, -6.0) + Vector3(0.0, 1.0, 0.0), yaw), WALL_COLOR)
+	# The one short diagonal wall of a sector; the Serve Receive pad and its machine are laid out from it (Layout.serve_receive_frame).
+	var frame: Dictionary = Layout.serve_receive_frame(center)
+	_wall(Vector3(8.0, 2.0, 0.6), _at(Vector3(frame.wall) + Vector3(0.0, 1.0, 0.0), float(frame.wall_yaw)), WALL_COLOR)
 
 # Markers and gameplay share Layout's positions. Hosted drills supply their own visuals.
 func _build_markers() -> void:

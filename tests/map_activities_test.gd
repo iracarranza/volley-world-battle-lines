@@ -26,7 +26,7 @@ func run() -> void:
 		lab.player.position = marker.position+Vector3.UP*0.03
 		manager.select_nearby()
 		if marker.type == "receive":
-			check(lab.station.in_zone() and lab.station.origin.distance_to(marker.position-Vector3(16,0,4.5)) < 0.001,"Receive marker selects its own station")
+			check(lab.station.in_zone() and lab.station.origin.distance_to(preload("res://scripts/map_layout.gd").serve_receive_frame(marker.sector).origin) < 0.001,"Receive marker selects its own station")
 			lab.station.start()
 			lab.station.force_next_feed = 0
 			lab.station.serve()
@@ -40,7 +40,7 @@ func run() -> void:
 			if marker.type == "box":
 				check(lab.drills.box_state == lab.drills.State.ACTIVE,"Both towers can start at their physical decks")
 			elif marker.type == "spike":
-				check(lab.drills.holding_ball() and absf(lab.ball.position.x-marker.position.x) < 0.01,"Every spike marker suspends a local practice ball")
+				check(lab.drills.holding_ball() and Vector2(lab.ball.position.x-marker.position.x,lab.ball.position.z-marker.position.z).length() < 1.05,"Every spike marker suspends a local practice ball")
 			else:
 				var drill = lab.drills
 				drill.tick(1.01)

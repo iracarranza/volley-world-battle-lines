@@ -67,7 +67,7 @@ func run() -> void:
 	# Complete five reps directly
 	for i in range(5):
 		drill.spike_state = drill.State.RETURNING
-		lab.ball.position = Vector3(drill.spike_anchor.x + drill.SPIKE_GOAL.x, 0.1, drill.spike_anchor.z + drill.SPIKE_GOAL.z)
+		lab.ball.position = drill.spike_to_world(Vector3(drill.SPIKE_GOAL.x, 0.1, drill.SPIKE_GOAL.z))
 		drill._economy_ball_down()
 	check(drill.distributor.last_result == "complete" and drill.distributor.pile == 5 and drill.distributor.pile_owner == "player", "Five rep landings complete it: 3 balls left + 1 given up + ... = pile %d" % drill.distributor.pile)
 	lab.player.global_position = drill.spike_start_world()
@@ -113,7 +113,7 @@ func run() -> void:
 	for i in range(5):
 		station.state = station.State.RETURNING
 		station.cleared = true
-		lab.ball.position = station.start_world() + Vector3(0.5, 0, -3.0)
+		lab.ball.position = station.to_world(Vector3(14.5, 0.1, 2.0)) # inside the scoring half, in the station's own (turned) frame
 		station.on_ball_down()
 	check(station.distributor.last_result == "complete" or station.distributor.reps >= 1, "Scoring returns count as reps (%d)" % station.distributor.reps)
 	# Parking and the rack on the Spike Trainer
@@ -143,7 +143,7 @@ func run() -> void:
 	check(not spike.parked and spike.running() and lab.ball_active, "Back at the spot with the live ball free, the ball resumes")
 	for i in range(5):
 		spike.spike_state = spike.State.RETURNING
-		lab.ball.position = Vector3(spike.spike_anchor.x + spike.SPIKE_GOAL.x, 0.1, spike.spike_anchor.z + spike.SPIKE_GOAL.z)
+		lab.ball.position = spike.spike_to_world(Vector3(spike.SPIKE_GOAL.x, 0.1, spike.SPIKE_GOAL.z))
 		spike._economy_ball_down()
 	spike.tick_setup(3.0)
 	var pile: int = spike.distributor.pile

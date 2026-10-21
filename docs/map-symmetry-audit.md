@@ -40,3 +40,11 @@ Red = Blue rotated 180 degrees about the map centre: (x, z) -> (-x, -z), and eve
 - How far out should the side lanes go (about x = +/-78 is my starting guess), and do the side Nets keep their different sizes (top 0.8, bottom 1.2)? Under a rotation the small Net is Blue's top and Red's bottom.
 - Should Red's "top" lane be the +x lane (true rotation), so the same physical Net is Blue's top and Red's bottom?
 - Which drills must be flipped, and which positions kept fixed? (Box Jump and Transition Set swap sides under rotation.)
+
+## Decisions and what was built (2026-10-21)
+
+- **Pit walls** are the eight-segment ring and the jungle-sector dividers. **Rotation applies to Pit access only for now**: the west (top-lane) Pit is narrowed on Blue's side by a short wall (so it is open to Red), the east (bottom-lane) Pit on Red's side (more access for Blue); the two walls are 180-degree rotations of each other (`Layout.pit_short_wall`). Lane identity stays League-style (the same physical Net is each team's top or bottom lane), and top and bottom jungles may differ later.
+- **Side lanes at 64 m** (was 46.8 m). Box Jump moved outside the top lane (10 m past the lane centre) with its pad cut to its real footprint (7 x 15.5 m); Transition Set outside the bottom lane (12 m past). The four Spike Trainers lie horizontally at x = +/-46, z = +/-28.6, hitting outward toward the lane (turn about their marker by `spike_yaw`).
+- **Serve Receive** pads lie along their sector's diagonal wall, machine beside the wall's middle, serving perpendicular to it (`Layout.serve_receive_frame`); one wall per sector is built.
+- **Energy Drinks:** a mirrored pair beyond the bottom Net between the Transition Set spots, and a mirrored pair at each top-lane vertex inside the Box Jump area.
+- Not yet done: rotating the other drills by the League-side rule, the lane walls, and top/bottom jungle differences.

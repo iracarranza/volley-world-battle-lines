@@ -25,7 +25,7 @@ func _init() -> void:
 	start_position = Vector3(0.0, 0.03, Layout.BASE_Z)
 	box_origin = Layout.drill_marker("box_jump_blue").position-Vector3(-36,0,4)
 	spike_origin = Layout.drill_marker("spike_0").position-Vector3(-16,0,1.5)
-	station_origin = Layout.drill_marker("receive_1").position-Vector3(16,0,4.5)
+	station_origin = Layout.serve_receive_frame(Layout.drill_marker("receive_1").sector).origin
 
 func _ready() -> void:
 	super._ready()

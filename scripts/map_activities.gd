@@ -17,6 +17,7 @@ func setup(host: Node3D) -> void:
 	lab = host
 	# Keep the first box/spike pair together for the lab's common drill interface.
 	var first := Drills.new()
+	first.spike_yaw = float(Layout.drill_marker("spike_0").get("yaw",0.0))
 	add_child(first)
 	first.setup(lab)
 	courses.append(first)
@@ -26,7 +27,9 @@ func setup(host: Node3D) -> void:
 			"receive":
 				var station := Station.new()
 				add_child(station)
-				station.setup(lab,marker.position-Vector3(16,0,Station.HALF))
+				var frame: Dictionary = Layout.serve_receive_frame(marker.sector)
+				station.yaw = float(frame.yaw)
+				station.setup(lab,frame.origin)
 				stations.append(station)
 				locations.append({"node":station,"position":marker.position,"type":marker.type})
 			"box", "spike":
@@ -36,6 +39,7 @@ func setup(host: Node3D) -> void:
 				var drill := Drills.new()
 				drill.box_enabled = marker.type == "box"
 				drill.spike_enabled = marker.type == "spike"
+				drill.spike_yaw = float(marker.get("yaw",0.0))
 				add_child(drill)
 				drill.setup(lab,{"box":marker.position-Vector3(Drills.TOWER_X,0,Drills.TOWER_Z),"spike":marker.position-Vector3(-16,0,1.5)})
 				courses.append(drill)

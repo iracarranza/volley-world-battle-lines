@@ -61,7 +61,7 @@ func run() -> void:
 		heights[net.id] = net.height
 	check(heights.top > heights.bottom and heights.pit_east == heights.pit_west, "the lane Nets differ in height and the Pit Nets are the standard")
 	# The lab's blockout lanes are gone; the map's lanes are there.
-	check(Layout.zone_at(Vector3(-36*Layout.SPACING, 0, 15*Layout.SPACING)).begins_with("TOP LANE") and lab.map_world != null and lab.map_world.solids.size() > 20, "the map is built under the lab")
+	check(Layout.zone_at(Vector3(-64.0, 0, 15*Layout.SPACING)).begins_with("TOP LANE") and lab.map_world != null and lab.map_world.solids.size() > 20, "the map is built under the lab")
 	# The three Drills sit on the map and work there.
 	var drills = lab.drills
 	await stand(lab, Vector3(drills.TOWER_X, 0.03, drills.TOWER_Z) + drills.box_anchor)
@@ -109,12 +109,12 @@ func run() -> void:
 	station.state = station.State.WAITING
 	station.force_next_feed = 0
 	station.serve()
-	check(lab.ball.position.distance_to(Vector3(16, 0, station.SERVE_BASELINE_Z) + station.origin) < 3.0, "the serve machine tosses from its new place (%s)" % str(lab.ball.position))
+	check(lab.ball.position.distance_to(station.to_world(Vector3(16, 0, station.SERVE_BASELINE_Z))) < 3.0, "the serve machine tosses from its new place (%s)" % str(lab.ball.position))
 	station.strike_feed()
 	var arrival: Vector3 = lab.ball.position + lab.ball_velocity * station.serve_duration + Vector3.DOWN * lab.GRAVITY * station.serve_duration * station.serve_duration * 0.5
 	check(arrival.distance_to(station.target_world(0)) < 0.05, "the feed lands on the station's own target in the world (%s vs %s)" % [str(arrival), str(station.target_world(0))])
 	var scoring_spot := Vector3(17.0, 0.0, 1.8)   # inside the 2-point quarter, in the station's own coordinates
-	check(station.landing_points(scoring_spot + station.origin) == 2 and station.landing_points(scoring_spot) == 0, "scoring reads the court where the station is now, not where it used to be")
+	check(station.landing_points(station.to_world(scoring_spot)) == 2 and station.landing_points(scoring_spot) == 0, "scoring reads the court where the station is now, not where it used to be")
 	station.stop()
 	lab.ball_active = false
 	# The overview.

@@ -56,6 +56,15 @@ var spike_rng := RandomNumberGenerator.new()
 # below is written in each drill's own coordinates.
 var box_anchor := Vector3.ZERO
 var spike_anchor := Vector3.ZERO
+var spike_yaw := 0.0 # the Spike Trainer is turned about its marker (the drill's reference point) by this angle
+const SPIKE_REFERENCE := Vector3(-16, 0, 1.5)
+
+# The drill's own coordinates (the SPIKE_* constants) to the world and back, through the yaw about the marker.
+func spike_to_world(local: Vector3) -> Vector3:
+	return spike_anchor + SPIKE_REFERENCE + Basis(Vector3.UP, spike_yaw) * (local - SPIKE_REFERENCE)
+
+func spike_to_local(world: Vector3) -> Vector3:
+	return SPIKE_REFERENCE + Basis(Vector3.UP, spike_yaw).inverse() * (world - spike_anchor - SPIKE_REFERENCE)
 var interaction_enabled := true
 var box_enabled := true
 var spike_enabled := true
@@ -76,7 +85,8 @@ func setup(owner_lab: Node3D,anchors: Dictionary = {}) -> void:
 	box_root.position = box_anchor
 	add_child(box_root)
 	spike_root = Node3D.new()
-	spike_root.position = spike_anchor
+	spike_root.position = spike_anchor + SPIKE_REFERENCE - Basis(Vector3.UP, spike_yaw) * SPIKE_REFERENCE
+	spike_root.rotation.y = spike_yaw
 	add_child(spike_root)
 	if box_enabled: _build_box_course()
 	if spike_enabled:
@@ -85,10 +95,11 @@ func setup(owner_lab: Node3D,anchors: Dictionary = {}) -> void:
 		setup_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		setup_label.font_size = 26
 		setup_label.pixel_size = 0.008
-		setup_label.position = RUNWAY_START + Vector3(0, 3.2, 0.6) + spike_anchor
+		setup_label.position = spike_to_world(RUNWAY_START + Vector3(0, 3.2, 0.6))
 		add_child(setup_label)
 		rack = preload("res://scripts/setup_rack.gd").new()
-		rack.position = RUNWAY_START + Vector3(2.6, 0, 0.8) + spike_anchor
+		rack.position = spike_to_world(RUNWAY_START + Vector3(2.6, 0, 0.8))
+		rack.rotation.y = spike_yaw
 		add_child(rack)
 		rack.build(lab)
 	if box_enabled and spike_enabled and box_anchor == Vector3.ZERO and spike_anchor == Vector3.ZERO:
@@ -97,7 +108,7 @@ func setup(owner_lab: Node3D,anchors: Dictionary = {}) -> void:
 		lab.world_builder.world_label("← SPIKE TRAINER / BOX JUMP",Vector3(-7,0.1,13),25,lab.GOLD)
 
 func _build_box_course() -> void:
-	lab.world_builder.box(box_root, Vector3(20, 0.03, 28), Vector3(-34, -0.015, 5), Color("34423d"))
+	lab.world_builder.box(box_root, Vector3(7, 0.03, 15.5), Vector3(-36, -0.015, 8.25), Color("34423d"))
 	attack_group = Node3D.new()
 	box_root.add_child(attack_group)
 	_build_attack_decks()
@@ -108,8 +119,8 @@ func _build_box_course() -> void:
 func _build_spike_course() -> void:
 	var pad := Footprints.SPIKE_PAD
 	lab.world_builder.box(spike_root,Vector3(pad.size.x,0.03,pad.size.y),Vector3(pad.get_center().x,-0.015,pad.get_center().y),Color("493b3c"))
-	lab.world_builder.world_label("SPIKE TRAINER / 3 JUMP HITS", RUNWAY_START + Vector3(0,0.15,0.8) + spike_anchor, 34, Color("ffb46e"))
-	lab.world_builder.world_label("I START / JUMP + ATTACK INTO GOLD TARGET", RUNWAY_START + Vector3(0,0.1,0.35) + spike_anchor, 24, Color("ffb46e"))
+	lab.world_builder.world_label("SPIKE TRAINER / 3 JUMP HITS", spike_to_world(RUNWAY_START + Vector3(0,0.15,0.8)), 34, Color("ffb46e"))
+	lab.world_builder.world_label("I START / JUMP + ATTACK INTO GOLD TARGET", spike_to_world(RUNWAY_START + Vector3(0,0.1,0.35)), 24, Color("ffb46e"))
 	# A floor runway with start/plant stripes and the long-short-inward rhythm.
 	lab.world_builder.box(spike_root, Vector3(1.5, 0.015, RUNWAY_START.z - RUNWAY_END.z), (RUNWAY_START + RUNWAY_END) * 0.5, Color("765842"))
 	for z in [RUNWAY_START.z, RUNWAY_END.z]:
@@ -118,10 +129,10 @@ func _build_spike_course() -> void:
 		var z: float = lerpf(RUNWAY_START.z, RUNWAY_END.z, [0.58, 0.82, 1.0][step])
 		var x: float = -16.0 + [0.18, -0.18, 0.055][step]
 		lab.world_builder.box(spike_root, Vector3(0.18, 0.025, 0.34), Vector3(x, 0.06, z), lab.GOLD)
-	lab.world_builder.world_label("APPROACH START / FACE BALL", RUNWAY_START + Vector3(0, 0.1, 0.5) + spike_anchor, 21, lab.GOLD)
-	lab.world_builder.world_label("PLANT / JUMP", RUNWAY_END + Vector3(0, 0.1, -0.3) + spike_anchor, 20, lab.GOLD)
+	lab.world_builder.world_label("APPROACH START / FACE BALL", spike_to_world(RUNWAY_START + Vector3(0, 0.1, 0.5)), 21, lab.GOLD)
+	lab.world_builder.world_label("PLANT / JUMP", spike_to_world(RUNWAY_END + Vector3(0, 0.1, -0.3)), 20, lab.GOLD)
 	spike_goal = lab.world_builder.ring(GOAL_RADIUS, lab.GOLD)
-	spike_goal.position = SPIKE_GOAL + Vector3.UP * 0.02 + spike_anchor
+	spike_goal.position = spike_to_world(SPIKE_GOAL + Vector3.UP * 0.02)
 	spike_bonus = lab.world_builder.ring(BONUS_RADIUS, Color("fff2a8"))
 	spike_bonus.position = spike_goal.position + Vector3.UP * 0.01
 	spike_bonus.visible = false
@@ -217,10 +228,10 @@ func _build_attack_decks() -> void:
 
 func in_box_zone() -> bool:
 	var p: Vector3 = lab.player.position - box_anchor
-	return box_enabled and p.x >= -43 and p.x <= -25 and p.z >= -4 and p.z <= 20
+	return box_enabled and p.x >= -39.5 and p.x <= -32.5 and p.z >= 0.5 and p.z <= 16.0
 
 func in_spike_zone() -> bool:
-	var p: Vector3 = lab.player.position - spike_anchor
+	var p: Vector3 = spike_to_local(lab.player.position)
 	return spike_enabled and Footprints.SPIKE_PAD.grow(0.001).has_point(Vector2(p.x,p.z))
 
 # Where things are in the world, for callers that start from a drill's own coordinates.
@@ -228,7 +239,7 @@ func box_start_world() -> Vector3:
 	return BOX_START + box_anchor
 
 func spike_start_world() -> Vector3:
-	return SPIKE_START + spike_anchor
+	return spike_to_world(SPIKE_START)
 
 func course_top_world(index: int) -> Vector3:
 	return (course_tops()[index] as Vector3) + box_anchor
@@ -298,7 +309,7 @@ func move_bonus_circle() -> void:
 	var reach := (GOAL_RADIUS - BONUS_RADIUS) * sqrt(spike_rng.randf())
 	spike_bonus_center = Vector2(SPIKE_GOAL.x + cos(angle) * reach, SPIKE_GOAL.z + sin(angle) * reach)
 	if is_instance_valid(spike_bonus):
-		spike_bonus.position = Vector3(spike_bonus_center.x, 0.03, spike_bonus_center.y) + spike_anchor
+		spike_bonus.position = spike_to_world(Vector3(spike_bonus_center.x, 0.03, spike_bonus_center.y))
 		spike_bonus.visible = true
 
 func load_spike() -> void:
@@ -311,7 +322,7 @@ func load_spike() -> void:
 	lab.contacts = 0
 	lab.side_contacts.assign([0, 0])
 	lab.contact_memory.assign([0.0, 0.0, 0.0, 0.0])
-	lab.ball.position = Vector3(-16 + [0.0, -0.6, 0.6][spike_progress % 3], lab.athlete.reach() + SPIKE_HEIGHT_OFFSET, SPIKE_BALL_Z) + spike_anchor
+	lab.ball.position = spike_to_world(Vector3(-16 + [0.0, -0.6, 0.6][spike_progress % 3], lab.athlete.reach() + SPIKE_HEIGHT_OFFSET, SPIKE_BALL_Z))
 	move_bonus_circle()
 	lab.ball_velocity = Vector3.ZERO
 	lab.ball_shot = {}
@@ -394,7 +405,8 @@ func on_ball_down() -> void:
 	if spike_state != State.RETURNING:
 		fail_spike("Missed suspended spike / I to retry")
 		return
-	var offset := Vector2(lab.ball.position.x - spike_anchor.x - SPIKE_GOAL.x, lab.ball.position.z - spike_anchor.z - SPIKE_GOAL.z)
+	var ball_local := spike_to_local(lab.ball.position)
+	var offset := Vector2(ball_local.x - SPIKE_GOAL.x, ball_local.z - SPIKE_GOAL.z)
 	if offset.length() > GOAL_RADIUS:
 		fail_spike("Spike missed gold target / I to retry")
 		return
@@ -527,7 +539,8 @@ func _economy_ball_down() -> void:
 	if spike_state != State.RETURNING:
 		_spike_used(false, "player", "Missed the suspended ball")
 		return
-	var offset := Vector2(lab.ball.position.x - spike_anchor.x - SPIKE_GOAL.x, lab.ball.position.z - spike_anchor.z - SPIKE_GOAL.z)
+	var ball_local := spike_to_local(lab.ball.position)
+	var offset := Vector2(ball_local.x - SPIKE_GOAL.x, ball_local.z - SPIKE_GOAL.z)
 	if offset.length() > GOAL_RADIUS:
 		_spike_used(false, "player", "Spike missed the gold target")
 		return

@@ -49,6 +49,14 @@ var cross_height := 0.0
 var previous_ball := Vector3.INF
 # Where the whole station sits in the world. Zero in the Contact Lab; a hosting scene moves it (LabHost: lab.station_origin).
 var origin := Vector3.ZERO
+var yaw := 0.0 # the station is turned about its origin to lie along its sector's diagonal wall
+
+# The station's own frame to the world and back (pad corner at local (0,0), serves travel along local +z).
+func to_world(local: Vector3) -> Vector3:
+	return origin + Basis(Vector3.UP, yaw) * local
+
+func world_to_station(world: Vector3) -> Vector3:
+	return Basis(Vector3.UP, yaw).inverse() * (world - origin)
 const Distributor := preload("res://scripts/setup_distributor.gd")
 var distributor := Distributor.new() # the Serve Machine as a Setup (map ball economy)
 var setup_label: Label3D
@@ -58,6 +66,7 @@ func setup(owner_lab: Node3D,anchor: Vector3 = Vector3.INF) -> void:
 	lab = owner_lab
 	origin = lab.station_origin if anchor == Vector3.INF else anchor
 	position = origin
+	rotation.y = yaw
 	lab.world_builder.box(self, Vector3(WIDTH, 0.12, LENGTH), Vector3(16, -0.06, HALF), Color("304d69"))
 	for x in [13.0, 19.0]:
 		lab.world_builder.box(self, Vector3(0.06, 0.025, LENGTH), Vector3(x, 0.025, HALF), Color("91b8f2"))
@@ -68,19 +77,19 @@ func setup(owner_lab: Node3D,anchor: Vector3 = Vector3.INF) -> void:
 	lab.world_builder.box(self, Vector3(0.04, 0.025, HALF), Vector3(16.0, 0.04, HALF * 0.5), Color("b7d6bd"))
 	lab.world_builder.box(self, Vector3(WIDTH * 0.5, 0.025, 0.04), Vector3(17.5, 0.04, TWO_LENGTH), Color("b7d6bd"))
 	_build_barrier()
-	lab.world_builder.world_label("RECEIVE HERE / 1 PT", Vector3(14.5, 0.15, HALF * 0.5) + origin, 24, Color("9ce5d8"))
-	lab.world_builder.world_label("2 PTS", Vector3(17.5, 0.15, TWO_LENGTH * 0.5) + origin, 28, Color("ffe28a"))
+	lab.world_builder.world_label("RECEIVE HERE / 1 PT", to_world(Vector3(14.5, 0.15, HALF * 0.5)), 24, Color("9ce5d8"))
+	lab.world_builder.world_label("2 PTS", to_world(Vector3(17.5, 0.15, TWO_LENGTH * 0.5)), 28, Color("ffe28a"))
 	if anchor == Vector3.INF: # The old lab connector is not a map drill footprint.
 		for x in range(5,13):
 			lab.world_builder.box(self,Vector3(0.6,0.025,0.14),Vector3(x,0.025,6),Color("8bbdf4"))
-		lab.world_builder.world_label("SERVE RECEIVE →",Vector3(6.5,0.2,5)+origin,30,Color("8bbdf4"))
-	lab.world_builder.world_label("SERVE RECEIVE / 8 POINTS",Vector3(16,0.4,-0.4)+origin,42,Color("8bbdf4"))
-	lab.world_builder.world_label("I / START OR RETRY", START + Vector3(0, 0.2, 1.5) + origin, 27, Color("cbdfff"))
+		lab.world_builder.world_label("SERVE RECEIVE →",to_world(Vector3(6.5,0.2,5)),30,Color("8bbdf4"))
+	lab.world_builder.world_label("SERVE RECEIVE / 8 POINTS",to_world(Vector3(16,0.4,-0.4)),42,Color("8bbdf4"))
+	lab.world_builder.world_label("I / START OR RETRY", to_world(START + Vector3(0, 0.2, 1.5)), 27, Color("cbdfff"))
 	marker = lab.world_builder.ring(1.25, Color("8bbdf4"))
-	marker.position = START + Vector3.UP * 0.04 + origin
+	marker.position = to_world(START + Vector3.UP * 0.04)
 	for target in TARGETS:
 		var target_ring: MeshInstance3D = lab.world_builder.ring(0.38, Color("547da4"))
-		target_ring.position = Vector3(target.x, 0.025, target.z) + origin
+		target_ring.position = to_world(Vector3(target.x, 0.025, target.z))
 	var machine: MeshInstance3D = lab.world_builder.box(self, Vector3(1.0, 1.3, 1), Vector3(16, 0.65, SERVE_BASELINE_Z), Color("607f9e"))
 	lab.world_builder.box(self, Vector3(0.15, 3.6, 0.15), Vector3(15.35, 2.45, SERVE_BASELINE_Z), Color("607f9e"))
 	striker = lab.world_builder.box(self, Vector3(0.65, 0.18, 0.55), Vector3(16, 4.5, SERVE_BASELINE_Z), Color("ffb46e"))
@@ -151,15 +160,15 @@ func _strip(size: Vector3, position_in_barrier: Vector3, color: Color) -> MeshIn
 	return node
 
 func in_zone() -> bool:
-	var p: Vector3 = lab.player.position - origin
+	var p: Vector3 = world_to_station(lab.player.position)
 	return p.x >= 13 and p.x <= 19 and p.z >= 0 and p.z <= LENGTH
 
 # Where things are in the world, for callers that start from the station's own coordinates.
 func start_world() -> Vector3:
-	return START + origin
+	return to_world(START)
 
 func target_world(index: int) -> Vector3:
-	return TARGETS[index] + origin
+	return to_world(TARGETS[index])
 
 func running() -> bool:
 	return state in [State.WAITING, State.TOSS, State.SERVING, State.RETURNING]
@@ -300,8 +309,8 @@ func _track_height() -> void:
 	if crossed:
 		return
 	var here: Vector3 = lab.ball.position
-	if previous_ball != Vector3.INF and previous_ball.z - origin.z > HALF and here.z - origin.z <= HALF:
-		var along := (previous_ball.z - origin.z - HALF) / maxf(previous_ball.z - here.z, 0.0001)
+	if previous_ball != Vector3.INF and world_to_station(previous_ball).z > HALF and world_to_station(here).z <= HALF:
+		var along := (world_to_station(previous_ball).z - HALF) / maxf(world_to_station(previous_ball).z - world_to_station(here).z, 0.0001)
 		_record_crossing(lerpf(previous_ball.y, here.y, along))
 	previous_ball = here
 
@@ -346,7 +355,7 @@ func serve() -> void:
 	state = State.TOSS
 	feed_index = next_feed()
 	toss_elapsed = 0
-	lab.ball.position = Vector3(16 + sin(feed_index * 1.5), TOSS_HEIGHT, SERVE_BASELINE_Z) + origin
+	lab.ball.position = to_world(Vector3(16 + sin(feed_index * 1.5), TOSS_HEIGHT, SERVE_BASELINE_Z))
 	lab.ball_velocity = Vector3.UP * ((SERVE_CONTACT_HEIGHT - TOSS_HEIGHT) / TOSS_SECONDS + lab.GRAVITY * TOSS_SECONDS * 0.5)
 	lab.ball_shot = {}
 	lab.ball_active = true
@@ -365,8 +374,8 @@ func strike_feed() -> void:
 	var feed := feed_index
 	serves_sent += 1
 	lab.attempts += 1
-	lab.ball.position = Vector3(16 + sin(feed * 1.5) * 1.0, SERVE_CONTACT_HEIGHT, SERVE_BASELINE_Z) + origin
-	var target: Vector3 = TARGETS[feed] + origin
+	lab.ball.position = to_world(Vector3(16 + sin(feed * 1.5) * 1.0, SERVE_CONTACT_HEIGHT, SERVE_BASELINE_Z))
+	var target: Vector3 = to_world(TARGETS[feed])
 	var horizontal_distance := Vector2(target.x - lab.ball.position.x, target.z - lab.ball.position.z).length()
 	var duration := horizontal_distance / (22.0 + feed * 0.6)
 	serve_duration = duration
@@ -402,14 +411,14 @@ func on_contact(action: int, charge_matched: bool = true) -> void:
 	cross_height = 0.0
 	previous_ball = Vector3.INF
 	# Received from inside the scoring half: the ball is already past the line, so its height now is the height that counts.
-	if lab.ball.position.z - origin.z <= HALF:
+	if world_to_station(lab.ball.position).z <= HALF:
 		_record_crossing(lab.ball.position.y)
 	lab.returns += 1
 	detail = ("SHANK / " if not charge_matched else "RECEIVED / ") + "clear the red barrier and land in the scoring half: 1 point, far-right quarter: 2."
 	lab._message(detail)
 
 func landing_points(point_in_world: Vector3) -> int:
-	var point := point_in_world - origin
+	var point := world_to_station(point_in_world)
 	if point.x < 13 or point.x > 19 or point.z < 0 or point.z > HALF:
 		return 0
 	return 2 if point.x >= 16 and point.z <= TWO_LENGTH else 1
@@ -458,5 +467,6 @@ func fail(reason: String) -> void:
 func hud_text() -> String:
 	if in_zone() or running():
 		return "SERVE RECEIVE  /  %d OF 8 POINTS  /  I %s\n%s\nLab XP earned: %d" % [points, "STOP" if running() else "START / RETRY", detail, earned_xp]
-	var distance := Vector2(lab.player.position.x - origin.x - START.x, lab.player.position.z - origin.z - START.z).length()
+	var here := start_world()
+	var distance := Vector2(lab.player.position.x - here.x, lab.player.position.z - here.z).length()
 	return "SERVE RECEIVE STATION  →  EAST  /  %.0f m\nFollow the blue ground path. Walk into the blue court, then press I." % distance
