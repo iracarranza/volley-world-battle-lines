@@ -1,0 +1,33 @@
+name: Render spike angle videos
+on:
+  workflow_dispatch:
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install renderer dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb ffmpeg unzip wget
+          wget -q https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip -O /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          sudo install /tmp/Godot_v4.4.1-stable_linux.x86_64 /usr/local/bin/godot
+      - name: Import project
+        run: godot --headless --path . --editor --import --quit
+      - name: Render five attack angles
+        run: |
+          mkdir -p artifacts/spike-video
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-method gl_compatibility --script res://tests/render_spike_angle_video.gd -- --output=artifacts/spike-video
+      - name: Encode individual videos and montage
+        run: |
+          cd artifacts/spike-video
+          for angle in minus60 minus30 zero plus30 plus60; do
+            ffmpeg -hide_banner -loglevel error -y -framerate 30 -i "${angle}_%03d.png" -c:v libx264 -pix_fmt yuv420p "${angle}.mp4"
+          done
+          ffmpeg -hide_banner -loglevel error -y -i minus60.mp4 -i minus30.mp4 -i zero.mp4 -i plus30.mp4 -i plus60.mp4 -filter_complex "[0:v]scale=480:270[v0];[1:v]scale=480:270[v1];[2:v]scale=480:270[v2];[3:v]scale=480:270[v3];[4:v]scale=480:270[v4];[v0][v1][v2][v3][v4]xstack=inputs=5:layout=0_0|480_0|960_0|240_270|720_270:fill=black[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p montage.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spike-angle-videos
+          path: artifacts/spike-video/*.mp4
