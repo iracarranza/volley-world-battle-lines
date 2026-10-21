@@ -1,6 +1,6 @@
 extends Node3D
 
-enum State { IDLE, TOSS, SWING, FLIGHT, CHANNEL }
+enum State { IDLE, TOSS, SWING, FLIGHT, CHANNEL, TOSS_CHARGE }
 const HOLD_THRESHOLD := 0.18
 const CHANNEL_SECONDS := 1.0
 var input_held := false
@@ -15,6 +15,11 @@ var evidence: Dictionary = {}
 var main_court := false
 var hand_volume: MeshInstance3D
 const HAND_RADIUS := 0.28
+# With the ball economy on: holding E charges the toss for this long; release tosses between the two speeds.
+const TOSS_CHARGE_SECONDS := 1.0
+const TOSS_SPEED_MIN := 5.2
+const TOSS_SPEED_MAX := 8.6
+var toss_charge := 0.0
 const SWING_DURATION := 0.24
 
 func setup(owner_lab: Node3D) -> void:
@@ -34,12 +39,23 @@ func clear() -> void:
 	hand_volume.hide()
 
 func input_press() -> void:
+	if lab.inventory.enabled and state in [State.IDLE, State.FLIGHT] and not lab.ball_active:
+		_start_toss_charge()
+		return
 	var starting: bool = state in [State.IDLE, State.FLIGHT] and not lab.ball_active
 	press()
 	input_held = starting and state == State.TOSS
 	held_time = 0.0
 
 func release() -> void:
+	if state == State.TOSS_CHARGE:
+		input_held = false
+		var charge := clampf(toss_charge / TOSS_CHARGE_SECONDS, 0.0, 1.0)
+		toss_charge = 0.0
+		state = State.IDLE
+		if lab.inventory.consume():
+			_begin_toss(lerpf(TOSS_SPEED_MIN, TOSS_SPEED_MAX, charge))
+		return
 	input_held = false
 	if state == State.CHANNEL:
 		clear()
@@ -48,6 +64,29 @@ func release() -> void:
 
 func channeling() -> bool:
 	return state == State.CHANNEL
+
+# A toss can begin: the same conditions press() uses, without starting anything.
+func _can_begin() -> bool:
+	if lab.athlete.exhausted or lab.is_benched():
+		lab._message("Cannot serve while Exhausted or Benched")
+		return false
+	if lab.paused or lab.station.running() or lab.drills.running() or lab.pepper.active():
+		return false
+	if lab.ball_active or lab.motion.jumped or lab.motion.jump_charge >= 0:
+		return false
+	return true
+
+# Ball economy: E starts charging the toss, but only with a ball in hand.
+func _start_toss_charge() -> void:
+	if not _can_begin():
+		return
+	if not lab.inventory.held:
+		lab._message("No ball / pick one up (I) at a cart or from the ground")
+		return
+	state = State.TOSS_CHARGE
+	toss_charge = 0.0
+	input_held = true
+	lab._message("TOSS / hold E to charge / release to toss")
 
 func press() -> void:
 	if lab.athlete.exhausted or lab.is_benched():
@@ -64,8 +103,22 @@ func press() -> void:
 		return
 	if lab.ball_active or lab.motion.jumped or lab.motion.jump_charge >= 0:
 		return
+	if lab.inventory.enabled:
+		# Without a charge step (a direct press) the economy still needs the ball and tosses at the base speed.
+		if not lab.inventory.consume():
+			lab._message("No ball / pick one up (I) at a cart or from the ground")
+			return
+	_begin_toss(TOSS_SPEED_MIN)
+
+func _begin_toss(up_speed: float) -> void:
+	if lab.inventory.enabled:
+		lab.inventory.pending_origin = lab.inventory.release_origin()
+		lab.inventory.pending_opposing = lab.inventory.pending_origin >= 0 and is_instance_valid(lab.ball_carts) and lab.ball_carts.carts[lab.inventory.pending_origin].team != lab.player_team()
 	lab.prepare_serve_context()
 	if not lab.training_bots.ready_to_serve():
+		if lab.inventory.enabled:
+			lab.inventory.give() # the toss did not start: the ball stays in hand
+			lab.inventory.origin_cart = lab.inventory.pending_origin
 		lab._message("Wait for bots to clear the net")
 		return
 	lab.refresh_bot_rally()
@@ -90,7 +143,7 @@ func press() -> void:
 	var shoulder: Vector3 = lab.arms[0 if sign < 0 else 1].position * (float(lab.athlete.build.height) / lab.visual_rig_height)
 	var local := Vector3(shoulder.x, float(lab.athlete.build.height) * 0.68, -0.55)
 	lab.ball.position = lab.player.position + local.rotated(Vector3.UP, lab.camera_rig.facing_yaw)
-	lab.ball_velocity = Vector3.UP * 5.2 + Vector3.FORWARD.rotated(Vector3.UP, lab.camera_rig.facing_yaw) * 0.18
+	lab.ball_velocity = Vector3.UP * up_speed + Vector3.FORWARD.rotated(Vector3.UP, lab.camera_rig.facing_yaw) * 0.18
 	lab.ball_active = true
 	lab.outgoing = false
 	lab._message("TOSS / E again to strike / early rising contact lofts higher; late contact drives flatter")
@@ -112,6 +165,16 @@ func apply_pose() -> void:
 	lab.arms[1 - dominant].rotation.x = 1.15 if state == State.TOSS else 0.5
 
 func tick(dt: float, previous_ball: Vector3) -> void:
+	if state == State.TOSS_CHARGE:
+		if lab.athlete.exhausted or lab.is_benched() or lab.paused:
+			state = State.IDLE
+			input_held = false
+			toss_charge = 0.0
+			lab._message("Toss cancelled")
+		else:
+			toss_charge = minf(toss_charge + dt, TOSS_CHARGE_SECONDS)
+			lab._message("TOSS / %d%% / release to toss" % roundi(toss_charge / TOSS_CHARGE_SECONDS * 100.0))
+		return
 	if tossing() and (lab.athlete.exhausted or lab.is_benched()):
 		clear()
 		lab.ball_active = false

@@ -4,6 +4,7 @@ func _initialize() -> void:
 func run() -> void:
 	var lab = load("res://map_graybox.tscn").instantiate()
 	root.add_child(lab)
+	lab.inventory.enabled = false # these suites exercise the practice-lab serve flow (hold E, endless balls); the map economy has its own suite
 	lab.set_process(false)
 	lab.set_physics_process(false)
 	lab.moc.enabled = false

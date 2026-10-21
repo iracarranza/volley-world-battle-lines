@@ -66,6 +66,12 @@ func _build_activities() -> void:
 	activities = preload("res://scripts/map_activities.gd").new()
 	add_child(activities)
 	activities.setup(self)
+	# The map ball economy: Net carts hold the balls, and a Toss needs one in hand (the practice lab keeps endless serves).
+	ball_carts = preload("res://scripts/ball_carts.gd").new()
+	add_child(ball_carts)
+	ball_carts.setup(self)
+	inventory.enabled = true
+	inventory.give() # a starting ball until base carts exist
 
 func _build_ui() -> void:
 	super._build_ui()
@@ -85,6 +91,9 @@ func _process(dt: float) -> void:
 		zone_label.text = "MAP / NET %d · %s   x %.0f  z %.0f%s" % [current_net+1,Layout.zone_at(p), p.x, p.z, "   (N: back to the athlete)" if overview else "   (N: overview)"]
 		var drink: int = activities.nearby_drink() if is_instance_valid(activities) else -1
 		if drink >= 0: zone_label.text += "   [I] ENERGY DRINK"
+		if is_instance_valid(ball_carts) and not inventory.held and ball_carts.nearest_with_ball(p) >= 0: zone_label.text += "   [I] TAKE A BALL"
+		elif inventory.enabled and not inventory.held and ground_balls.pickable_count() > 0: zone_label.text += "   [I] PICK UP BALL"
+		if inventory.enabled: zone_label.text += "   BALL: %s" % ("HELD" if inventory.held else "none")
 		var nearby := nearby_bot()
 		if nearby >= 0:
 			zone_label.text += "   [I] BOT #%d SETTINGS" % (nearby+1)
@@ -93,6 +102,8 @@ func _physics_process(dt: float) -> void:
 	if is_instance_valid(activities) and not paused:
 		activities.select_nearby()
 		activities.tick(dt)
+	if is_instance_valid(ball_carts) and not paused:
+		ball_carts.tick(dt)
 	if not ball_active and not station.running() and not drills.running():
 		select_net(nearest_primary_net())
 	super._physics_process(dt)

@@ -3,6 +3,7 @@ extends RefCounted
 const RADIUS := 0.105
 const MAX_BALLS := 3
 var balls: Array[Dictionary] = []
+var last_origin := -1 # the cart the most recently taken ball came from
 
 func clear() -> void:
 	for entry in balls:
@@ -29,7 +30,9 @@ func land(lab: Node3D,point: Vector3,incoming: Vector3,shot: Dictionary) -> void
 	lab.add_child(shade)
 	shade.global_position = point+Vector3.UP*0.025
 	var velocity := Vector3(incoming.x*0.78,absf(incoming.y)*0.42,incoming.z*0.78)
-	balls.append({"mesh":mesh,"shadow":shade,"velocity":velocity,"floor":point.y,"age":0.0})
+	# With the ball economy on, an unstruck tossed ball (no shot recorded) can be picked up by anyone until it despawns.
+	var pickable: bool = lab.inventory.enabled and shot.is_empty()
+	balls.append({"mesh":mesh,"shadow":shade,"velocity":velocity,"floor":point.y,"age":0.0,"pickable":pickable,"origin":lab.inventory.pending_origin if pickable else -1,"opposing":lab.inventory.pending_opposing if pickable else false})
 	lab.moc.clear()
 	lab.moc.begin({"id":"ground:%d"%Time.get_ticks_usec(),"actor":"ground","action":5,"physical_hit":true,"point":mesh.global_position,"incoming_velocity":incoming,"outgoing_velocity":velocity,"incoming_shot":shot})
 	lab.ball.visible = lab.ball_active
@@ -65,7 +68,39 @@ func tick(lab: Node3D,dt: float) -> void:
 		if axis.length_squared() > 0.00001: mesh.rotate(axis.normalized(),axis.length()*step/RADIUS)
 		entry.shadow.global_position = Vector3(mesh.global_position.x,float(entry.floor)+0.025,mesh.global_position.z)
 		entry.velocity = velocity
-		if entry.age > 7:
+		if entry.age > (lab.inventory.DESPAWN_SECONDS if entry.get("pickable", false) else 7.0):
+			# A ball an opposing player tossed from a team's cart and let go to waste returns to that cart instead of being lost.
+			if entry.get("pickable", false) and bool(entry.get("opposing", false)) and int(entry.get("origin", -1)) >= 0 and is_instance_valid(lab.ball_carts):
+				lab.ball_carts.give_back(int(entry.origin))
 			mesh.queue_free()
 			entry.shadow.queue_free()
 			balls.remove_at(index)
+
+# Removes and returns true for the nearest pickable ball within `radius` of `point` (horizontal distance).
+func take_near(point: Vector3, radius: float) -> bool:
+	var best := -1
+	var best_distance := radius
+	for index in range(balls.size()):
+		var entry: Dictionary = balls[index]
+		if not entry.get("pickable", false):
+			continue
+		var at: Vector3 = entry.mesh.global_position
+		var distance := Vector2(at.x - point.x, at.z - point.z).length()
+		if distance <= best_distance:
+			best = index
+			best_distance = distance
+	if best < 0:
+		return false
+	var taken: Dictionary = balls[best]
+	last_origin = int(taken.get("origin", -1))
+	taken.mesh.queue_free()
+	taken.shadow.queue_free()
+	balls.remove_at(best)
+	return true
+
+func pickable_count() -> int:
+	var count := 0
+	for entry in balls:
+		if entry.get("pickable", false):
+			count += 1
+	return count

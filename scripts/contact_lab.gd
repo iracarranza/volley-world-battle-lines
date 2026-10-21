@@ -90,6 +90,12 @@ const TrajectoryPreview := preload("res://scripts/trajectory_preview.gd")
 var last_trajectory_preview: Dictionary = {}
 var block_state := preload("res://scripts/block_state.gd").new()
 var ground_balls := preload("res://scripts/ground_ball.gd").new()
+var inventory := preload("res://scripts/ball_inventory.gd").new()
+var ball_carts: Node3D # the map's net carts (null in the practice lab)
+
+# The player's team by court side: Blue plays the z > 0 half of the map.
+func player_team() -> String:
+	return "blue" if player.position.z >= 0.0 else "red"
 var _preview_mesh := ImmediateMesh.new()
 var preview: MeshInstance3D
 var approach_footprints: Array[MeshInstance3D] = []
@@ -569,6 +575,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_message("Feed follows player again")
 			KEY_G: training_bots.spawn_at_player()
 			KEY_I:
+				if inventory.try_pickup(self):
+					return
 				if interact_nearby_bot():
 					return
 				if pepper.active() or serve.tossing():
