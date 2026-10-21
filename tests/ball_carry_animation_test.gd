@@ -75,10 +75,10 @@ func run() -> void:
 	lab.last_contact_result = {"physical_hit":true,"action":2,"point":impact}
 	lab.animation.spike_impact_latched = false
 	lab.ball.position = Vector3(20,5,20)
-	lab.animation._apply_spike_pose()
+	lab.animation.update()
 	check(lab.animation.spike_impact_latched and lab.animation.spike_impact_world == impact,"Spike follow-through latches the published impact point")
 	lab.ball.position = Vector3(-20,9,20)
-	lab.animation._apply_spike_pose()
+	lab.animation.update()
 	check(lab.animation.spike_impact_world == impact,"Outgoing ball cannot pull the swing's contact target around")
 	lab.queue_free()
 	await process_frame
