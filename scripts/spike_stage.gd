@@ -15,7 +15,7 @@ const BASE_POSE := "ready_stance"
 # Share of the chest's turn and lean carried by the waist; the rest is the upper back.
 const WAIST_SHARE := 0.4
 const ARM_DIRECTION_GAIN := 1.65
-const CHEST_TURN_LIMIT := 10.0
+const CHEST_TURN_LIMIT := 24.0
 
 # The swing has two clocks. Until the click the body only loads: from takeoff to the cocked position (the
 # striking arm back behind the head, the other arm pointing at the ball) and it holds there. The click starts
@@ -93,8 +93,8 @@ static func pose_for(phase: float, hand: float, power: float = 0.5, attack_type:
 		_aim(flat, phase, hand, strike, strike_index, context)
 	# The head keeps looking at the ball: chin up through the swing.
 	flat["neck_flexion"] = lerpf(0.0, -14.0, smoothstep(-0.5, -0.1, phase)) * (1.0 - smoothstep(0.1, 0.5, phase))
-	# Preserve the facing cue through the swing; let the arm carry the shot angle.
-	var facing_weight := lerpf(0.55,0.22,smoothstep(LOADED,0.0,phase))
+	# Preserve the athlete's facing without forcing cross-body rotation entirely into the shoulder.
+	var facing_weight := lerpf(0.65,0.60,smoothstep(LOADED,0.0,phase))
 	var chest_turn := clampf((float(flat["lumbar_twist"])+float(flat["thoracic_twist"]))*facing_weight,-CHEST_TURN_LIMIT,CHEST_TURN_LIMIT)
 	flat["lumbar_twist"] = chest_turn*WAIST_SHARE
 	flat["thoracic_twist"] = chest_turn*(1.0-WAIST_SHARE)
