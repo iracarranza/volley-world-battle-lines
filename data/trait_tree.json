@@ -204,7 +204,7 @@
 			"carried": {},
 			"cost": 0,
 			"effects": {
-				"second_wind": 23.0
+				"second_wind": 10.0
 			},
 			"exclusive": "",
 			"flow": false,
@@ -222,7 +222,7 @@
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Passive: When you become Winded, gain an additional 23 Stamina after the base 50% restoration. (CD: 30s)",
+			"text": "+10 Second Wind: when you become Winded, restore 10 Stamina, which shortens the time spent Winded. (CD: 30s)",
 			"weight": 1,
 			"merges": [],
 			"gameplay": []
