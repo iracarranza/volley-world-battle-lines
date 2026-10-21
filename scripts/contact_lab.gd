@@ -964,9 +964,9 @@ func _contact() -> void:
 		return
 	if not serve.contacts_allowed():
 		return
-	if pepper.active() and (pepper.npc_turn or locked_action != pepper.required_player_action()):
 	if serve.state == serve.State.TOSS:
 		serve.clear() # played with an action: no longer a serve attempt (it stays a free ball)
+	if pepper.active() and (pepper.npc_turn or locked_action != pepper.required_player_action()):
 		_message("PEPPER / next contact: " + ACTIONS[pepper.player_action])
 		return
 	if locked_action == 0 and _local_contact_position().z > 0:
