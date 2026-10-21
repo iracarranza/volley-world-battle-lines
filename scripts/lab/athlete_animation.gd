@@ -36,6 +36,9 @@ var spike_contacted := false
 var set_air_time := 0.0
 var set_flight_time := 0.5
 var spike_swing_yaw := 0.0
+# Preserve the impact target during follow-through; never chase the outgoing ball.
+var spike_impact_world := Vector3.ZERO
+var spike_impact_latched := false
 var pose_smoother := PoseSmoother.new()
 var pose_smoothing := true
 var pose_frame_dt := 0.0
@@ -189,7 +192,15 @@ func update() -> void:
 			lab.body.position.y = 0.0
 			lab.legs[Approach.LEAD_FOOT].rotation.x = -0.45
 			lab.legs[1-Approach.LEAD_FOOT].rotation.x = 0.30
+	if not lab.motion.jumped or lab.motion.airborne_action != 2:
+		spike_impact_latched = false
 	if lab.motion.jumped and lab.motion.airborne_action == 2 and roll_lock <= 0.0:
+		if not spike_contacted:
+			spike_impact_latched = false
+		elif not spike_impact_latched:
+			# Prefer the last resolved contact position, captured before the ball moves away.
+			spike_impact_world = lab.last_contact_result.get("ball_position", lab.ball.position) if lab.ball_active else lab.player.global_position + Vector3.UP * lab.athlete.reach()
+			spike_impact_latched = true
 		var swing_yaw := spike_swing_yaw
 		if not spike_contacted and lab.ball_active:
 			var preview_assessment := lab._contact_assessment(2)
@@ -198,7 +209,9 @@ func update() -> void:
 				var preview := SpikeDirection.resolve(lab._shot_velocity(lab.ball.position, 2, lab.locked_charge), preview_assessment, lab.directional_input.value(), forward)
 				swing_yaw = preview.shot_yaw_radians
 		var aim_context := {"shot_yaw": swing_yaw}
-		if lab.ball_active:
+		if spike_impact_latched:
+			aim_context["ball_local"] = lab.body.global_transform.affine_inverse() * spike_impact_world
+		elif lab.ball_active:
 			aim_context["ball_local"] = lab.body.global_transform.affine_inverse() * lab.ball.position
 		SpikeStage.apply(lab.body, SpikeStage.phase_for(spike_air_time, spike_flight_time, spike_swing_time, spike_hit_time), -1.0 if lab.dominant_hand == "Left" else 1.0, lab.locked_charge, "Power swing", aim_context)
 	if dive_recovery_time >= 0.0 and roll_lock <= 0.0:
