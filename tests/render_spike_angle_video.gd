@@ -47,7 +47,7 @@ func _render() -> void:
 			label = "zero"
 		for frame in range(FRAMES):
 			var t := float(frame) / FPS
-			var phase := Spike.phase_for(0.4, 0.6, t, 0.14)
+			var phase := Spike.phase_for(0.4, 0.6, t, 0.14 if t >= 0.14 else -1.0)
 			lab.body.rotation = Vector3.ZERO
 			lab.body.position = Vector3.ZERO
 			lab.body.scale = Vector3.ONE * float(lab.athlete.build.height) / lab.visual_rig_height
