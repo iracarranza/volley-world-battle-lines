@@ -52,8 +52,8 @@ func _render() -> void:
 			lab.body.position = Vector3.ZERO
 			lab.body.scale = Vector3.ONE * float(lab.athlete.build.height) / lab.visual_rig_height
 			Spike.apply(lab.body, phase, 1.0, 0.8, "Power swing", {"shot_yaw": deg_to_rad(angle), "ball_local": ball_local})
-			var impact := lab.body.global_transform * ball_local
-			var direction := Vector3.FORWARD.rotated(Vector3.UP, deg_to_rad(angle))
+			var impact: Vector3 = lab.body.global_transform * ball_local
+			var direction: Vector3 = Vector3.FORWARD.rotated(Vector3.UP, deg_to_rad(angle))
 			ball.global_position = impact + direction * maxf(0.0, t - 0.14) * 8.0
 			cam.global_position = lab.player.global_position + Vector3(2.9, 2.7, 4.6)
 			cam.look_at(lab.player.global_position + Vector3(0.0, 1.5, -0.5))
