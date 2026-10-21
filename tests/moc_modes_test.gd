@@ -15,7 +15,8 @@ func run() -> void:
 	lab.auto_feed = false
 	await physics_frame
 	var clock = lab.moc
-	check(clock.mode == Clock.Mode.CURRENT_SLOWDOWN and lab.hud.moc_button.text.contains("CURRENT"), "Existing MoC is default baseline")
+	check(clock.mode == Clock.Mode.TRAJECTORY_STEERING and lab.hud.moc_button.text.contains("STEERING"), "Trajectory steering is the default")
+	clock.set_mode(Clock.Mode.CURRENT_SLOWDOWN)
 	clock.begin(event("baseline",2))
 	check(Engine.time_scale == 1.0 and clock.simulation_scale() == 0.60 and clock.simulation_scale() > 0.0, "Baseline keeps 60% speed behavior")
 	lab.hud.toggle_moc_mode()

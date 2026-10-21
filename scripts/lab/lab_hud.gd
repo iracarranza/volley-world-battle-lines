@@ -209,7 +209,7 @@ func build() -> void:
 	toolbar.add_child(button("BOTS [F9]", toggle_bot_menu))
 	debug_button = button("BOXES: ON [K]", toggle_debug_volumes)
 	toolbar.add_child(debug_button)
-	moc_button = button("MoC: CURRENT [O]", toggle_moc_mode)
+	moc_button = button("MoC: STEERING [O]", toggle_moc_mode)
 	moc_button.tooltip_text = "Cycle Current, Tuned, Off and Trajectory Steering; open MoC Settings to tune local slowdown."
 	toolbar.add_child(moc_button)
 	moc_menu = preload("res://scripts/lab/moc_menu.gd").new(self)

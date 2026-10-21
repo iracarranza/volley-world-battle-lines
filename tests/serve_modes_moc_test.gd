@@ -76,6 +76,7 @@ func run() -> void:
 		var base := Clock.duration_for(action, Vector3(0,-5,10), Vector3(0,6,-10))
 		check(absf(Clock.duration_for(action, Vector3(0,-5,10), Vector3(0,6,-10), true) - base - Clock.SWEET_BONUS) < 0.00001, "Sweet MoC adds to velocity MoC for every contact type")
 	check(Clock.duration_for(3, Vector3.ZERO, Vector3.ZERO, true) == Clock.SWEET_BONUS+Clock.DURATION_EXTENSION, "Sweet contact alone starts MoC")
+	lab.moc.set_mode(Clock.Mode.CURRENT_SLOWDOWN)
 	lab.moc.enabled = true
 	lab.moc.clear()
 	var event := {"id": "additive-a", "action": 2, "physical_hit": true, "sweet": true, "incoming_velocity": Vector3(0,0,1), "outgoing_velocity": Vector3(0,0,-1)}

@@ -15,6 +15,7 @@ func _ready() -> void:
 	back.color = Style.SURFACE_INSET
 	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(back)
+	add_child(preload("res://scripts/title_rally_backdrop.gd").new())
 	var court := Control.new()
 	court.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	court.mouse_filter = Control.MOUSE_FILTER_IGNORE

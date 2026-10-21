@@ -86,6 +86,7 @@ func run() -> void:
 	lab.motion.jumped = false
 
 	var clock = lab.moc
+	clock.set_mode(Clock.Mode.CURRENT_SLOWDOWN)
 	clock.enabled = true
 	clock.begin(event())
 	check(clock.active and is_equal_approx(clock.simulation_scale(), 0.6) and Engine.time_scale == 1, "Impact slows simulation without changing engine clock")
