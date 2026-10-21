@@ -10,7 +10,7 @@ func _initialize() -> void:
 	call_deferred("_render")
 
 func _render() -> void:
-	var output := "user://spike_angle_frames"
+	var output := "res://artifacts/spike-video"
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--output="):
 			output = arg.trim_prefix("--output=")
@@ -59,7 +59,11 @@ func _render() -> void:
 			cam.look_at(lab.player.global_position + Vector3(0.0, 1.5, -0.5))
 			await RenderingServer.frame_post_draw
 			var img := root.get_texture().get_image()
-			img.save_png(output.path_join("%s_%03d.png" % [label, frame]))
+			var status := img.save_png(output.path_join("%s_%03d.png" % [label, frame]))
+			if status != OK:
+				push_error("Failed to save spike frame: %s" % error_string(status))
+				quit(1)
+				return
 	print("Rendered %d frames into %s" % [ANGLES.size() * FRAMES, output])
 	lab.queue_free()
 	quit()
