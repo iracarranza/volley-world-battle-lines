@@ -88,9 +88,10 @@ func _ready() -> void:
 	menu_box.add_child(HSeparator.new())
 	menu_box.add_child(Style.nav_button("01   ENTER MAP", _enter_map))
 	menu_box.add_child(Style.nav_button("02   CONTACT LAB", _enter_lab))
-	menu_box.add_child(Style.nav_button("03   ATHLETES", _open_menu))
-	menu_box.add_child(Style.nav_button("04   TRAIT TREE EDITOR", _open_trait_editor))
-	menu_box.add_child(Style.nav_button("05   QUIT", func(): get_tree().quit()))
+	menu_box.add_child(Style.nav_button("03   DRILL LAB", _enter_drill_lab))
+	menu_box.add_child(Style.nav_button("04   ATHLETES", _open_menu))
+	menu_box.add_child(Style.nav_button("05   TRAIT TREE EDITOR", _open_trait_editor))
+	menu_box.add_child(Style.nav_button("06   QUIT", func(): get_tree().quit()))
 	_refresh_selected()
 
 func _refresh_selected() -> void:
@@ -109,6 +110,10 @@ func _enter_map() -> void:
 func _enter_lab() -> void:
 	get_tree().set_meta(preload("res://scripts/bot_roster_presets.gd").STARTUP_META,true)
 	get_tree().change_scene_to_file("res://main.tscn")
+
+func _enter_drill_lab() -> void:
+	get_tree().set_meta(preload("res://scripts/bot_roster_presets.gd").STARTUP_META,true)
+	get_tree().change_scene_to_file("res://drill_lab.tscn")
 
 func _open_menu() -> void:
 	title_box.hide()

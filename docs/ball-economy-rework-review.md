@@ -141,3 +141,15 @@ Jungle and second-floor ideas: a rooftop Salmon Ladder, drink machines (Stamina)
 5. A 1% receive charge means any contact is a hugely mismatched receive; that is the intent.
 
 Verification note (2026-10-21): after the Second Wind change (`new_trait_2`: +10 Second Wind) the full isolated suite passes 124/124 once `six_step_completion_test` is updated from 23 to 10.
+
+## Drill Lab (workouts and setups in one row)
+
+`drill_lab.tscn` (title menu: DRILL LAB) is the Contact Lab with the map ball economy on and eight drills in a row, west to east:
+Inclined Obstacles (Explosiveness), Salmon Ladder (Work Rate), Box Parkour, Weighted Balancing (Stability) | Spike Trainer, Serve Machine,
+Balance Ball Setting, Transition Set. Bins beside the Setups hold five balls and refill every 20 s.
+
+- **Workouts** extend `workout_drill.gd`: no ball, Solo, a timed run that is abandoned (not failed) on leaving the area, XP and HP on completion,
+  and a 30 s reactivation. Each completion counts toward its sub-attribute through `workout_progress.gd`: the neutral band needs 3 completions
+  per +1 point, and higher bands need more (2, 2, 3, 4, 6, 9, 13, 18 for tiers -2..5). Counts live in `build.workout_counts`.
+- **Provisional**: the Balance Ball Setting reward was left as "?" in the design notes; it pays +1 Stability progress on a completed Setup. The
+  Setups other than Balance Ball Setting do not grant sub-attribute progress yet (Spike Velocity, Platform Quality, Placement / Court Vision).
