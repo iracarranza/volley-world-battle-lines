@@ -131,6 +131,7 @@ func run() -> void:
 	lab.ball_shot = {"kind":"attack","charge":0.4}
 	lab.ball.position = bots.actors[blocker].position+bots.contact_anchor(blocker).rotated(Vector3.UP,PI)
 	lab.ball_velocity = Vector3(0,-3,-15)
+	bots.intercept = lab.ball.position # this fixture installs the passive plan directly
 	check(bots.tick_contact(0.01),"Bot passive field contacts before scheduled confirmation")
 	check(bots.block_state_for(blocker).latched and not bots.block_state_for(blocker).used_confirmation,"Bot passive contact latches without consuming its press")
 	lab.queue_free()

@@ -38,25 +38,26 @@ static func resolve(request: RefCounted,assessment: Dictionary) -> Dictionary:
 	var reflected := incoming.bounce(normal)
 	var pace := incoming.length()
 	var flow := clampf(request.flow/100.0,0,1)
-	var controlled := Vector3(side*pace*edge*0.20,-(0.6+lerpf(0.8,4.0,timing)*float(response.sweet_weight)),-maxf(2.5,absf(incoming.z)*0.42))
-	controlled.y += incoming.y*0.25-0.8*flow
-	controlled *= 1.0-0.15*flow
-	# Deflection direction and force are independent: an upper touch can be a
-	# useful soft ball behind the blocker rather than a full-speed tool-out.
-	var retention := lerpf(0.14,0.44,severity)*(1.0-0.15*flow)
+	# Capacity absorbs pace first; geometry and DI still select where the touch goes.
+	# Mismatch progressively releases more incoming energy into the deflection.
+	var retention := lerpf(0.12,0.48,severity)*(1.0-edge*0.4)*(1.0-0.15*flow)
+	var controlled := Vector3(side*edge*0.20,-(0.18+0.30*timing*float(response.sweet_weight)),-1.0)
+	controlled.y += incoming.y/maxf(pace,1)*0.25-0.08*flow
+	controlled = controlled.normalized()*pace*retention
 	var escape := reflected.normalized()*pace*retention
 	var upper := smoothstep(0.62,0.94,height)*smoothstep(0.08,0.55,edge)
 	var soft_back := Vector3(side*0.55,maxf(0.25,-incoming.y/maxf(pace,1)*0.5),0.65).normalized()*pace*retention
 	escape = escape.lerp(soft_back,upper*(0.65+0.20*severity))
 	if escape.length_squared() > 0.001:
 		escape = (escape.normalized()+Vector3(side*edge*0.35,0,0)).normalized()*escape.length()
-	var mix := clampf(edge*0.85+severity*0.45+upper*0.45,0,1)
+	var mix := clampf(edge*0.65+severity*0.60+upper*0.45,0,1)
 	var outgoing := controlled.lerp(escape,mix)
 	response["retention"] = retention
 	response["outcome"] = "soft_backward" if outgoing.z > 0 and severity < 0.5 else ("overpowered_touch" if severity >= 0.5 else ("soft_outward" if absf(side) > 0.5 else "controlled_return"))
 	var scatter: float = sin(float(request.response_seed)*1.73+incoming.y*0.21)*edge*(0.04+0.14*severity)/(1.0+request.athlete.ball_control()/100.0)
 	outgoing = outgoing.rotated(Vector3.UP,scatter)
-	if outgoing.length() < 1: outgoing = normal+Vector3.UP*0.1
+	response["speed_retention"] = outgoing.length()/maxf(pace,0.001)
+	response["absorbed_speed_fraction"] = 1.0-float(response.speed_retention)
 	var world := outgoing.rotated(Vector3.UP,yaw)
 	var point: Vector3 = request.local_point
 	var shape: Dictionary = request.shape

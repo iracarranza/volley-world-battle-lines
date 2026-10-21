@@ -29,9 +29,9 @@ func clear() -> void:
 	clear_side = 0.0
 	last_contact = ""
 
-static func tape_velocity(velocity: Vector3,normal: Vector3) -> Vector3:
+static func tape_velocity(velocity: Vector3,normal: Vector3,tangent_retention: float = 0.82,normal_retention: float = 0.22) -> Vector3:
 	var approach := velocity.dot(normal)
-	return velocity if approach >= 0 else (velocity-normal*approach)*0.82-normal*approach*0.22
+	return velocity if approach >= 0 else (velocity-normal*approach)*tangent_retention-normal*approach*normal_retention
 
 static func slab_hit(from: Vector3,to: Vector3,minimum: Vector3,maximum: Vector3) -> float:
 	var lo := 0.0
@@ -80,7 +80,7 @@ func _step_local(previous: Vector3,position: Vector3,velocity: Vector3,dt: float
 				normal = Vector3(0,0,signf(previous.z) if previous.z != 0 else -signf(velocity.z))
 			var approach := velocity.dot(normal)
 			if approach < 0:
-				result.velocity = tape_velocity(velocity,normal)
+				result.velocity = tape_velocity(velocity,normal,0.55,0.10)
 				result.position = nearest+normal*(RADIUS+0.002)+Vector3(result.velocity)*dt*(1.0-tape)
 				result.contact = "tape"
 				tape_cooldown = 0.045
@@ -89,10 +89,11 @@ func _step_local(previous: Vector3,position: Vector3,velocity: Vector3,dt: float
 			if entry_side == 0: entry_side = 1.0
 			normal_speed = maxf(0,-velocity.z*entry_side)
 			var pressure := clampf(normal_speed/25.0+maxf(charge,0)*0.25,0,1)
-			damping = lerpf(32.0,7.0,pressure)
+			damping = lerpf(38.0,14.0,pressure)
 			compression = 0.0
 			pocket_time = 0.0
 			pocket = true
+			result.velocity = Vector3(velocity.x*0.55,velocity.y*0.45,velocity.z)
 			result.position = previous.lerp(position,web)
 			advance_pocket(result,dt*(1.0-web))
 			result.contact = "webbing"

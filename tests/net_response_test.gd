@@ -5,7 +5,7 @@ func _initialize() -> void:
 func run() -> void:
 	var net := Net.new()
 	var tape := net.step(Vector3(0,2.43,1),Vector3(0,2.43,-1),Vector3(0,0,-20),0.1,0.7)
-	check(tape.contact == "tape" and tape.velocity.z > 0,"Tape arrests and rebounds a direct strike without ending play")
+	check(tape.contact == "tape" and tape.velocity.z > 0 and tape.velocity.length() <= 2.01,"Tape arrests and rebounds a direct strike without ending play")
 	net.clear()
 	var dribble := net.step(Vector3(0,2.8,0.03),Vector3(0,2.4,-0.03),Vector3(0,-4,-0.6),0.1,0.1)
 	check(dribble.contact == "tape" and dribble.velocity.y > 0 and dribble.velocity.z < 0,"Top-tape contact can bounce upward and dribble across")
@@ -30,7 +30,7 @@ func run() -> void:
 			if speed < 5:
 				check(absf(velocity.z) < 1,"Soft webbing contact absorbs normal speed for a drop")
 			else:
-				check(deepest > 0.1 and velocity.z*side > 2,"Hard contact stretches through the net plane then rebounds")
+				check(deepest > 0.1 and velocity.z*side > 0 and absf(velocity.z) < speed*0.15,"Hard contact stretches through the net then releases with most pace absorbed")
 	check(Net.body_touches(Vector3(0,0,0.5),Vector3(0,0,-0.5)),"Swept athlete body crossing the webbing is a fault")
 	check(not Net.body_touches(Vector3(0,-0.4,0.1),Vector3(0,-0.4,0.1)),"Body entirely below webbing does not touch the net")
 	check(not Net.body_touches(Vector3(6,0,0.1),Vector3(6,0,0.1)),"Athlete outside net width does not fault")
