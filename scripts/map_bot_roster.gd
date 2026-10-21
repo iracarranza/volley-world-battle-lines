@@ -118,15 +118,16 @@ func receive_target(index: int,away: bool) -> Vector3:
 	var key := "%d:%s" % [index,away]
 	if receive_targets.has(key): return receive_targets[key]
 	var bounds := playable_bounds(index,away)
-	return Vector3(bounds.center)+Vector3(0,0,float(bounds.side)*float(bounds.half_depth)*0.5)
+	# Full 9 x 18 m court: 3 m in from team-right, 1 m back from the net.
+	# Normalize both offsets so reduced courts preserve the same relative spot.
+	return Vector3(bounds.center)+Vector3(float(bounds.side)*float(bounds.half_width)/3.0,0,float(bounds.side)*float(bounds.half_depth)/9.0)
 
 func set_delivery_target(index: int,away: bool) -> Vector3:
 	var key := "%d:%s" % [index,away]
 	if set_targets.has(key): return set_targets[key]
-	var net := court(index)
-	var side := -1.0 if away else 1.0
-	var diagonal := 0.5/sqrt(2.0)
-	return Vector3(net.position)+Vector3(side*(-float(net.width)/2+diagonal),0,side*diagonal)
+	var bounds := playable_bounds(index,away)
+	var diagonal := 1.0/sqrt(2.0)
+	return Vector3(bounds.center)+Vector3(float(bounds.side)*float(bounds.half_width)*(-4.5+diagonal)/4.5,0,float(bounds.side)*float(bounds.half_depth)*diagonal/9.0)
 
 func _store_paired_targets(targets: Dictionary,away: bool) -> void:
 	var source := _safe_home(lab.player.position,away)
