@@ -1,24 +1,31 @@
 extends "res://scripts/map_drills.gd"
 ## Provisional cooperative practice: a receiving partner passes; the athlete sets into a goal.
 const PASSES_REQUIRED := 3
-const TARGET_RADIUS := 2.0
+const Basket := preload("res://scripts/drill_basket.gd")
+const TARGETS := [Vector3(5,3.4,-7),Vector3(-5,3.4,-7),Vector3(4,3.8,-6),Vector3(-4,3.8,-6),Vector3(6,3.2,-8),Vector3(-6,3.2,-8)]
 var anchor := Vector3.ZERO
 var partner: Node3D
 var partner_body: Node3D
-var goal: MeshInstance3D
+var basket: Node3D
+var goal_label: Label3D
+var target_index := -1
+var target_rng := RandomNumberGenerator.new()
 var progress := 0
 var waiting := false
 var pose_time := 0.0
 
 func setup(host: Node3D,_anchors: Dictionary = {}) -> void:
 	lab = host
+	target_rng.randomize()
 	box_enabled = false
 	spike_enabled = false
 	lab.world_builder.box(self,Vector3(8,0.03,8),anchor-Vector3.UP*0.015,Color("315967"))
-	lab.world_builder.world_label("TRANSITION SET / I START / 3 SETS INTO GOLD",anchor+Vector3(0,0.2,4.5),28,lab.GOLD)
-	goal = lab.world_builder.ring(TARGET_RADIUS,lab.GOLD)
-	goal.position = target_world()
-	lab.world_builder.world_label("SET TARGET",target_world()+Vector3.UP*0.2,24,lab.GOLD)
+	lab.world_builder.world_label("TRANSITION SET / I START / 3 SETS THROUGH BASKET",anchor+Vector3(0,0.2,4.5),28,lab.GOLD)
+	basket = Basket.new()
+	add_child(basket)
+	basket.build(lab.GOLD)
+	goal_label = lab.world_builder.world_label("",anchor,24,lab.GOLD)
+	move_target()
 	partner = Node3D.new()
 	partner.position = anchor+Vector3(-5,0,-5)
 	add_child(partner)
@@ -27,10 +34,20 @@ func setup(host: Node3D,_anchors: Dictionary = {}) -> void:
 	partner_body = rig.body
 	partner.look_at(anchor)
 	lab.world_builder.world_label("RECEIVE PARTNER",partner.position+Vector3.UP*2.3,22,lab.TEAL)
-	detail = "I to start / receive partner passes to the pad; Set into the gold circle"
+	detail = "I to start / receive partner passes to the pad; Set down through the gold basket from the front"
 
 func target_world() -> Vector3:
-	return anchor+Vector3(0,0.105,-8)
+	return basket.global_position
+
+func move_target() -> void:
+	var next := target_rng.randi_range(0,TARGETS.size()-2) if target_index >= 0 else target_rng.randi_range(0,TARGETS.size()-1)
+	if target_index >= 0 and next >= target_index: next += 1
+	target_index = next
+	var center: Vector3 = anchor+TARGETS[target_index]
+	var toward := Vector3(anchor.x-center.x,0,anchor.z-center.z).normalized()
+	basket.place(center,Vector3.UP*0.8+toward*0.6)
+	goal_label.position = center+Vector3.UP*1.15
+	goal_label.text = "SET BASKET / %.1f m / ENTER DOWN + FROM FRONT"%center.y
 
 func in_zone() -> bool:
 	var p: Vector3 = lab.player.position-anchor
@@ -58,6 +75,7 @@ func interact() -> void:
 
 func feed() -> void:
 	waiting = false
+	move_target()
 	pose_time = 0.4
 	var start: Vector3 = partner.position+Vector3(0,1.0,0)
 	var destination: Vector3 = anchor+Vector3.UP*lab.athlete.reach()
@@ -72,7 +90,7 @@ func feed() -> void:
 	lab.trail_points.clear()
 	lab.selected = 1
 	timer = 10
-	detail = "TRANSITION SET / %d of %d / Set the receive into gold"%[progress,PASSES_REQUIRED]
+	detail = "TRANSITION SET / %d of %d / Set the receive through the basket"%[progress,PASSES_REQUIRED]
 	lab._message(detail)
 
 func tick(dt: float) -> void:
@@ -94,16 +112,22 @@ func on_contact(action: int) -> void:
 		return
 	spike_state = State.RETURNING
 	timer = 8
-	detail = "Set in flight / land inside gold"
+	detail = "Set in flight / descend through the front of the basket"
+
+func sweep_ball(previous: Vector3,dt: float) -> bool:
+	if spike_state != State.RETURNING: return false
+	var result: Dictionary = basket.step(previous,lab.ball.position,lab.ball_velocity,dt)
+	lab.ball.position = result.position
+	lab.ball_velocity = result.velocity
+	if result.scored:
+		_score()
+		return true
+	return false
 
 func on_ball_down() -> void:
-	if spike_state != State.RETURNING:
-		fail("Missed partner's receive / I to retry")
-		return
-	var delta: Vector3 = lab.ball.position-target_world()
-	if Vector2(delta.x,delta.z).length() > TARGET_RADIUS:
-		fail("Set missed gold / I to retry")
-		return
+	fail("Missed basket / Set must enter down through its front / I to retry")
+
+func _score() -> void:
 	lab.ball_active = false
 	progress += 1
 	if progress >= PASSES_REQUIRED:

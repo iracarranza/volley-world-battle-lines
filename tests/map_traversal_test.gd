@@ -20,22 +20,6 @@ func stand(position_in_world: Vector3) -> void:
 	for i in range(12):
 		player.tick(1.0 / 60.0, Vector3.ZERO, false)
 		await physics_frame
-# Stand still holding Space for `held` seconds, then jump and head for `target`. Returns once it has landed.
-func jump_toward(target: Vector3, held: float) -> void:
-	player.charge = 0.0
-	var flat := Vector3(target.x - player.global_position.x, 0.0, target.z - player.global_position.z).normalized()
-	for i in range(int(held * 60.0)):
-		player.tick(1.0 / 60.0, Vector3.ZERO, false)
-		await physics_frame
-	player.release_jump()
-	for i in range(240):
-		player.tick(1.0 / 60.0, flat, false)
-		await physics_frame
-		if i > 20 and player.is_on_floor():
-			break
-	for i in range(10):
-		player.tick(1.0 / 60.0, Vector3.ZERO, false)
-		await physics_frame
 func run() -> void:
 	# --- Layout data ---
 	var nets := Layout.nets()
@@ -90,43 +74,8 @@ func run() -> void:
 	await stand(Vector3(-Layout.PIT_X, 0.1, 16.0))
 	var into := await walk_to(Vector3(-Layout.PIT_X, 0.0, 4.0), 8.0, 0.6)
 	check(into < 1.0, "the pit opening lets you walk in from the north (%.1f m short)" % into)
-	# Ledges: the stair in the west Blue sector, 0.7 / 1.2 / 1.7 m. A body stands still half a metre from the face, then jumps at it.
-	var center := Layout.sectors()[0]
-	var step_a := Layout.sector_step(center,0)
-	var step_b := Layout.sector_step(center,1)
-	var step_c := Layout.sector_step(center,2)
-	var before_a := Vector3(step_a.x - 1.5 - 0.4, 0.1, step_a.z)
-	var edge_a := step_a.x - 1.5
-	await stand(before_a)
-	await jump_toward(step_a, 0.0)
-	check(not (player.global_position.x > edge_a + 0.05 and player.global_position.y > 0.6), "a tap jump (0.6 m) does not get onto the 0.7 m ledge (x %.2f, y %.2f, edge x %.2f)" % [player.global_position.x, player.global_position.y, edge_a])
-	await stand(before_a)
-	await jump_toward(step_a, 0.2)
-	check(player.global_position.x > edge_a + 0.05 and absf(player.global_position.y - 0.7) < 0.15, "a short charge gets onto the 0.7 m ledge (x %.2f, y %.2f)" % [player.global_position.x, player.global_position.y])
-	await stand(Vector3(step_a.x + 0.6, 0.8, step_a.z))
-	await jump_toward(step_b, 0.1)
-	check(absf(player.global_position.y - 1.2) < 0.15, "from the first ledge a little charge gets onto the 1.2 m ledge (y %.2f)" % player.global_position.y)
-	await stand(Vector3(step_b.x + 0.6, 1.3, step_b.z))
-	await jump_toward(step_c, 0.1)
-	check(absf(player.global_position.y - 1.7) < 0.15, "and from there onto the 1.7 m ledge (y %.2f)" % player.global_position.y)
-	# From the floor a full charge tops out at 1.6 m, so 1.7 m is out of reach in one jump, and 1.2 m is not.
-	await stand(Vector3(step_c.x, 0.1, step_c.z - 3.0))
-	await jump_toward(step_c, 0.8)
-	check(player.global_position.y < 1.3, "a full-charge jump from the floor does not reach the 1.7 m ledge (y %.2f)" % player.global_position.y)
-	await stand(Vector3(step_c.x, 0.1, step_c.z - 3.0))
-	var low_step := Vector3(step_c.x, 0.0, step_c.z)
-	await stand(Vector3(step_b.x, 0.1, step_b.z - 3.0))
-	await jump_toward(step_b, 0.7)
-	check(absf(player.global_position.y - 1.2) < 0.15, "a charge of 0.7 s from the floor gets onto the 1.2 m ledge (y %.2f)" % player.global_position.y)
-	# The 2.2 m ledge: out of reach without a mobility jump.
-	var block := Layout.sector_point(center, -10.0, -9.0)
-	await stand(Vector3(block.x, 0.1, block.z + 3.0))
-	await jump_toward(block, 0.8)
-	check(player.global_position.y < 0.3, "the 2.2 m ledge cannot be reached from the floor (y %.2f)" % player.global_position.y)
-	player.mobility = true
-	await stand(Vector3(block.x, 0.1, block.z + 3.0))
-	await jump_toward(block, 0.8)
-	check(absf(player.global_position.y - 2.2) < 0.2, "with a mobility jump it can (y %.2f)" % player.global_position.y)
-	player.mobility = false
+	# Traversal clutter is gone: only floor, nets and retained walls have map colliders.
+	for body in map.world.solids:
+		check(body.get_meta("map_geometry","") in ["floor","net","wall"],"Map solid is floor, net or wall; no ramp/ledge/block remains")
 	print("MAP TRAVERSAL CHECKS: %d passed / %d total" % [checks - failures, checks])
 	quit(1 if failures > 0 else 0)

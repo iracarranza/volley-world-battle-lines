@@ -1093,6 +1093,8 @@ func _tick_ball(dt: float) -> void:
 		pepper.try_start(previous)
 		if pepper.tick(world_dt):
 			return
+	if drills.running() and drills.sweep_ball(previous,dt):
+		return
 	if _try_swept_player_block(previous, dt):
 		return
 	var net_result := resolve_ball_net(previous,dt)

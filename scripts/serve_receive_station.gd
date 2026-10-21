@@ -66,11 +66,11 @@ func setup(owner_lab: Node3D,anchor: Vector3 = Vector3.INF) -> void:
 	_build_barrier()
 	lab.world_builder.world_label("RECEIVE HERE / 1 PT", Vector3(14.5, 0.15, HALF * 0.5) + origin, 24, Color("9ce5d8"))
 	lab.world_builder.world_label("2 PTS", Vector3(17.5, 0.15, TWO_LENGTH * 0.5) + origin, 28, Color("ffe28a"))
-	# A continuous traversable connection, no teleport or scene change.
-	for x in range(5, 13):
-		lab.world_builder.box(self, Vector3(0.6, 0.025, 0.14), Vector3(x, 0.025, 6), Color("8bbdf4"))
-	lab.world_builder.world_label("SERVE RECEIVE  /  8 POINTS", Vector3(16, 0.4, -0.4) + origin, 42, Color("8bbdf4"))
-	lab.world_builder.world_label("SERVE RECEIVE  →", Vector3(6.5, 0.2, 5) + origin, 30, Color("8bbdf4"))
+	if anchor == Vector3.INF: # The old lab connector is not a map drill footprint.
+		for x in range(5,13):
+			lab.world_builder.box(self,Vector3(0.6,0.025,0.14),Vector3(x,0.025,6),Color("8bbdf4"))
+		lab.world_builder.world_label("SERVE RECEIVE →",Vector3(6.5,0.2,5)+origin,30,Color("8bbdf4"))
+	lab.world_builder.world_label("SERVE RECEIVE / 8 POINTS",Vector3(16,0.4,-0.4)+origin,42,Color("8bbdf4"))
 	lab.world_builder.world_label("I / START OR RETRY", START + Vector3(0, 0.2, 1.5) + origin, 27, Color("cbdfff"))
 	marker = lab.world_builder.ring(1.25, Color("8bbdf4"))
 	marker.position = START + Vector3.UP * 0.04 + origin

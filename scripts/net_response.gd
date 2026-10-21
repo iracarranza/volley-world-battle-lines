@@ -29,6 +29,10 @@ func clear() -> void:
 	clear_side = 0.0
 	last_contact = ""
 
+static func tape_velocity(velocity: Vector3,normal: Vector3) -> Vector3:
+	var approach := velocity.dot(normal)
+	return velocity if approach >= 0 else (velocity-normal*approach)*0.82-normal*approach*0.22
+
 static func slab_hit(from: Vector3,to: Vector3,minimum: Vector3,maximum: Vector3) -> float:
 	var lo := 0.0
 	var hi := 1.0
@@ -76,7 +80,7 @@ func _step_local(previous: Vector3,position: Vector3,velocity: Vector3,dt: float
 				normal = Vector3(0,0,signf(previous.z) if previous.z != 0 else -signf(velocity.z))
 			var approach := velocity.dot(normal)
 			if approach < 0:
-				result.velocity = (velocity-normal*approach)*0.82-normal*approach*0.22
+				result.velocity = tape_velocity(velocity,normal)
 				result.position = nearest+normal*(RADIUS+0.002)+Vector3(result.velocity)*dt*(1.0-tape)
 				result.contact = "tape"
 				tape_cooldown = 0.045

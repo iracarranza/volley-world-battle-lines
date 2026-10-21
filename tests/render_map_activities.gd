@@ -27,6 +27,11 @@ func run() -> void:
 			camera.look_at(marker.position+Vector3.UP)
 			lab.hud.update()
 			await capture("res://artifacts/map-activities-%s.png"%kind)
+			if kind == "transition":
+				var basket: Node3D = lab.drills.basket
+				camera.position = basket.global_position+basket.normal*6+Vector3(3,2,0)
+				camera.look_at(basket.global_position)
+				await capture("res://artifacts/map-activities-basket.png")
 			break
 	var drink: Dictionary = lab.activities.drinks[0]
 	lab.player.position = drink.root.position+Vector3(0,0,1)

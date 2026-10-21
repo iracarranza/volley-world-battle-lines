@@ -1,6 +1,7 @@
 extends Node3D
 
 # Provisional, world-space drills using the same movement and action contacts.
+const Footprints := preload("res://scripts/drill_layout.gd")
 const BOX_START := Vector3(-36, 0, 13)
 # The ball hangs half a metre from the Net on the home side, in line with the approach; the runway ends beneath it.
 const SPIKE_BALL_Z := 0.5
@@ -23,7 +24,6 @@ const ONE_WAY_MARGIN := 0.02
 const ApproachRun := preload("res://scripts/approach_run.gd")
 const SPIKE_GOAL := Vector3(-16, 0.105, -6.9)
 const SPIKE_HEIGHT_OFFSET := 1.40
-const SPIKE_WIDTH := 6.0
 const RUNWAY_START := Vector3(-16, 0.035, 4.0)
 const RUNWAY_END := Vector3(-16, 0.035, 1.0)
 const GOAL_RADIUS := 2.8
@@ -89,9 +89,10 @@ func _build_box_course() -> void:
 	lab.world_builder.world_label("CHARGE ATTACK / RUN THE DECK / HOLD SPACE LONGER FOR EACH LAYER, RELEASE TO JUMP", Vector3(TOWER_X, 0.15, 9.2) + box_anchor, 20, Color("ffb46e"))
 
 func _build_spike_course() -> void:
-	lab.world_builder.box(spike_root, Vector3(SPIKE_WIDTH, 0.03, 32), Vector3(-16, -0.015, 1.5), Color("493b3c"))
-	lab.world_builder.world_label("SPIKE TRAINER / 3 JUMP HITS", Vector3(-16, 0.15, 16) + spike_anchor, 34, Color("ffb46e"))
-	lab.world_builder.world_label("I START / JUMP + ATTACK INTO GOLD TARGET", SPIKE_START + Vector3(0, 0.1, 3) + spike_anchor, 24, Color("ffb46e"))
+	var pad := Footprints.SPIKE_PAD
+	lab.world_builder.box(spike_root,Vector3(pad.size.x,0.03,pad.size.y),Vector3(pad.get_center().x,-0.015,pad.get_center().y),Color("493b3c"))
+	lab.world_builder.world_label("SPIKE TRAINER / 3 JUMP HITS", RUNWAY_START + Vector3(0,0.15,0.8) + spike_anchor, 34, Color("ffb46e"))
+	lab.world_builder.world_label("I START / JUMP + ATTACK INTO GOLD TARGET", RUNWAY_START + Vector3(0,0.1,0.35) + spike_anchor, 24, Color("ffb46e"))
 	# A floor runway with start/plant stripes and the long-short-inward rhythm.
 	lab.world_builder.box(spike_root, Vector3(1.5, 0.015, RUNWAY_START.z - RUNWAY_END.z), (RUNWAY_START + RUNWAY_END) * 0.5, Color("765842"))
 	for z in [RUNWAY_START.z, RUNWAY_END.z]:
@@ -203,7 +204,7 @@ func in_box_zone() -> bool:
 
 func in_spike_zone() -> bool:
 	var p: Vector3 = lab.player.position - spike_anchor
-	return spike_enabled and p.x >= -19 and p.x <= -13 and p.z >= 0 and p.z <= 17
+	return spike_enabled and Footprints.SPIKE_PAD.grow(0.001).has_point(Vector2(p.x,p.z))
 
 # Where things are in the world, for callers that start from a drill's own coordinates.
 func box_start_world() -> Vector3:
@@ -342,6 +343,9 @@ func tick(dt: float) -> void:
 		timer -= dt
 		if timer <= 0:
 			fail_spike("Spike Trainer timed out / I to retry")
+
+func sweep_ball(_previous: Vector3,_dt: float) -> bool:
+	return false
 
 func on_contact(action: int) -> void:
 	if spike_state != State.ACTIVE:

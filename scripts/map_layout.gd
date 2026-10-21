@@ -89,10 +89,6 @@ static func sector_point(center: Vector2, local_x: float, local_z: float) -> Vec
 	var mz := signf(center.y)
 	return Vector3(center.x + mx * local_x * SPACING, 0.0, center.y + mz * local_z * SPACING)
 
-static func sector_step(center: Vector2,index: int) -> Vector3:
-	# A stair is one obstacle assembly: move its center, preserve its local step spacing.
-	return sector_point(center,-5.8,4.0)+Vector3(-signf(center.x)*3.2*(index-1),0,0)
-
 static func distance_to_polyline(point: Vector2, points: Array[Vector2]) -> float:
 	var best := INF
 	for i in range(points.size() - 1):
@@ -131,7 +127,7 @@ static func drill_markers() -> Array:
 	var centers := sectors()
 	for i in range(centers.size()):
 		result.append({"id":"receive_%d"%i,"type":"receive","position":Vector3(centers[i].x,0,centers[i].y)})
-		result.append({"id":"spike_%d"%i,"type":"spike","position":sector_point(centers[i],3,-9)})
+		result.append({"id":"spike_%d"%i,"type":"spike","position":Vector3(signf(centers[i].x)*33,0,signf(centers[i].y)*16.5)})
 	return result
 
 static func drill_marker(id: String) -> Dictionary:
@@ -146,3 +142,8 @@ static func drink_positions() -> Array[Vector3]:
 			result.append(Vector3(x*PIT_X,0,z*13.8*SPACING))
 			result.append(Vector3(x*8,0,z*52)*SPACING)
 	return result
+
+static func overlaps_drill(bounds: Rect2,clearance: float = 0.0) -> bool:
+	for marker in drill_markers():
+		if preload("res://scripts/drill_layout.gd").footprint(marker).grow(clearance).intersects(bounds): return true
+	return false

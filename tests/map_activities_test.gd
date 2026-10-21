@@ -1,5 +1,11 @@
 extends "res://tests/support/test_case.gd"
 const Layout := preload("res://scripts/map_layout.gd")
+func score_basket(drill: Node3D,lab: Node3D) -> void:
+	var normal: Vector3 = drill.basket.normal
+	var previous: Vector3 = drill.target_world()+normal*0.5
+	lab.ball.position = drill.target_world()-normal*0.5
+	lab.ball_velocity = -normal*8
+	drill.sweep_ball(previous,0.125)
 func _initialize() -> void: call_deferred("run")
 func run() -> void:
 	var lab = load("res://map_graybox.tscn").instantiate()
@@ -51,20 +57,18 @@ func run() -> void:
 				lab.elapsed += 1
 				lab._contact()
 				check(drill.spike_state == drill.State.RETURNING and lab.ball_shot.kind == "set","Normal player contact resolver advances Transition Set")
-				lab.ball.position = drill.target_world()
-				drill.on_ball_down()
-				check(drill.progress == 1 and drill.waiting,"A set in the target scores and queues the next partner receive")
+				score_basket(drill,lab)
+				check(drill.progress == 1 and drill.waiting,"A descending set through the target scores and queues the next partner receive")
 				for attempt in range(2):
 					drill.feed()
 					drill.on_contact(1)
-					lab.ball.position = drill.target_world()
-					drill.on_ball_down()
+					score_basket(drill,lab)
 				check(drill.spike_state == drill.State.COMPLETE,"Three sets complete the provisional transition drill")
 	lab._reset()
 	var receiving_marker: Dictionary = Layout.drill_marker("receive_0")
 	lab.player.position = receiving_marker.position+Vector3(2,0.03,0)
 	manager.select_nearby()
-	check(lab.station.in_zone() and not lab.drills.in_zone(),"Overlapping floor strips select the nearest marker rather than stealing the receive interaction")
+	check(lab.station.in_zone() and not lab.drills.in_zone(),"Receive marker selects its station independently of the other courses")
 	lab._reset()
 	var drink: Dictionary = manager.drinks[0]
 	lab.player.position = drink.root.position

@@ -14,7 +14,6 @@ const GOLD := Color("ffce73")
 const ORANGE := Color("ffb46e")
 const WALL_COLOR := Color("5b6f7a")
 const LANE_COLOR := Color("27474f")
-const STEP_HEIGHTS := [0.7, 1.2, 1.7]
 
 var options := {}
 var solids: Array[Node3D] = []
@@ -68,6 +67,17 @@ func _box(size: Vector3, xform: Transform3D, color: Color, solid: bool = false, 
 	solids.append(body)
 	return body
 
+func _wall(size: Vector3,xform: Transform3D,color: Color) -> void:
+	var extent := Vector2.ZERO
+	for corner in range(8):
+		var offset: Vector3 = xform.basis*AABB(-size*0.5,size).get_endpoint(corner)
+		extent.x = maxf(extent.x,absf(offset.x))
+		extent.y = maxf(extent.y,absf(offset.z))
+	var center := Vector2(xform.origin.x,xform.origin.z)
+	if Layout.overlaps_drill(Rect2(center-extent,extent*2),0.6): return
+	var body := _box(size,xform,color,true)
+	body.set_meta("map_geometry","wall")
+
 func _at(position_in_world: Vector3, yaw: float = 0.0) -> Transform3D:
 	return Transform3D(Basis(Vector3.UP, yaw), position_in_world)
 
@@ -109,7 +119,7 @@ func _build_environment() -> void:
 	add_child(sun)
 
 func _build_floor() -> void:
-	_box(Vector3(Layout.HALF * 2.0, 0.2, Layout.HALF * 2.0), _at(Vector3(0.0, -0.1, 0.0)), Color("1a2d3d"), true)
+	_box(Vector3(Layout.HALF * 2.0, 0.2, Layout.HALF * 2.0), _at(Vector3(0.0, -0.1, 0.0)), Color("1a2d3d"), true).set_meta("map_geometry","floor")
 
 func _build_central_line() -> void:
 	_decal(Vector2(Layout.HALF * 1.7, 0.2), Vector3.ZERO, GOLD, 0.0, 0.7)
@@ -162,9 +172,9 @@ func _build_nets() -> void:
 		var height: float = net.height
 		var span := width + 0.5
 		# The Net itself is a wall: you walk around its ends or through the jungle, not across it.
-		_box(Vector3(span, height, 0.1), _at(center + Vector3(0.0, height * 0.5, 0.0)), Color("d9e6ec"), true, 0.55)
+		_box(Vector3(span, height, 0.1), _at(center + Vector3(0.0, height * 0.5, 0.0)), Color("d9e6ec"), true, 0.55).set_meta("map_geometry","net")
 		for end in [-span * 0.5, span * 0.5]:
-			_box(Vector3(0.12, height + 0.2, 0.12), _at(center + Vector3(end, (height + 0.2) * 0.5, 0.0)), GOLD, true)
+			_box(Vector3(0.12, height + 0.2, 0.12), _at(center + Vector3(end, (height + 0.2) * 0.5, 0.0)), GOLD, true).set_meta("map_geometry","net")
 		_label("%s  %.2f m" % [String(net.label), height], center + Vector3(0.0, height + 1.2, 0.0), 32, tint.lightened(0.3))
 
 func _build_pits() -> void:
@@ -178,7 +188,7 @@ func _build_pits() -> void:
 			if absf(direction.z) > 0.9:
 				continue   # the north and south openings, where the teams come in
 			var tangent := Vector3(-sin(angle), 0.0, cos(angle))
-			_box(Vector3(0.8, 2.4, length), _at(center + direction * radius + Vector3(0.0, 1.2, 0.0), atan2(tangent.x, tangent.z)), WALL_COLOR.darkened(0.1), true)
+			_wall(Vector3(0.8, 2.4, length), _at(center + direction * radius + Vector3(0.0, 1.2, 0.0), atan2(tangent.x, tangent.z)), WALL_COLOR.darkened(0.1))
 		_label("PIT", center + Vector3(0.0, 4.2, 5.0), 44, ORANGE)
 
 # Low walls beside each lane, with gaps: alternately a wall you can jump and one you have to go around.
@@ -200,44 +210,26 @@ func _build_lane_walls() -> void:
 						var height := 1.0 if piece % 2 == 0 else 2.2
 						for side in [-1.0, 1.0]:
 							var spot: Vector2 = middle + normal * side * (Layout.LANE_WIDTH * 0.5 + 0.9)
-							_box(Vector3(0.6, height, 8.0), _at(Vector3(spot.x, height * 0.5, spot.y), _segment_yaw(a, b)), WALL_COLOR, true)
+							_wall(Vector3(0.6, height, 8.0), _at(Vector3(spot.x, height * 0.5, spot.y), _segment_yaw(a, b)), WALL_COLOR)
 						piece += 1
 					along += 14.0*Layout.SPACING
 
-# One jungle sector: the Serve Receive Drill pad, dividers, a stair of ledges, a ramp and platform, and a ledge too high to reach.
+# Jungle sectors retain their divider walls; drill structures are built by MapActivities.
 func _build_sector(center: Vector2) -> void:
-	var mx := -signf(center.x)
-	var mz := signf(center.y)
 	if options.get("hosted",false):
-		_build_sector_obstacles(center)
+		_build_sector_walls(center)
 		return
 	var pad := Layout.sector_point(center, 0.0, 0.0)
 	_decal(Vector2(6.0, 6.0), pad, Color("5f6b3f"), 0.0, 0.9)
 	_label("SERVE RECEIVE" + (" (marker)" if options.get("hosted", false) else ""), pad + Vector3(0.0, 1.2, 0.0), 28, GOLD)
-	_build_sector_obstacles(center)
+	_build_sector_walls(center)
 
-func _build_sector_obstacles(center: Vector2) -> void:
+func _build_sector_walls(center: Vector2) -> void:
 	var mx := -signf(center.x)
 	var mz := signf(center.y)
 	for local_x in [-6.0, 6.0]:
 		var yaw := deg_to_rad(15.0) * mx * mz * (1.0 if local_x < 0.0 else -1.0)
-		_box(Vector3(8.0, 2.0, 0.6), _at(Layout.sector_point(center, local_x, -6.0) + Vector3(0.0, 1.0, 0.0), yaw), WALL_COLOR, true)
-	for i in range(STEP_HEIGHTS.size()):
-		var height: float = STEP_HEIGHTS[i]
-		var spot := Layout.sector_step(center,i)
-		_box(Vector3(3.0, height, 4.0), _at(spot + Vector3(0.0, height * 0.5, 0.0)), Color("6d7f88").lightened(0.06 * i), true)
-	_label("LEDGES %.1f / %.1f / %.1f m" % [STEP_HEIGHTS[0], STEP_HEIGHTS[1], STEP_HEIGHTS[2]], Layout.sector_point(center, -5.8, 4.0) + Vector3(0.0, 3.2, 0.0), 22, TEAL)
-	var low := Layout.sector_point(center, 9.0, 0.0)+Vector3(0,0,-2*mz)
-	var high := Layout.sector_point(center, 9.0, 0.0)+Vector3(0,0,3*mz) + Vector3(0.0, 1.0, 0.0)
-	var slope := high - low
-	var ramp_center := (low + high) * 0.5 - Vector3(0.0, 0.2, 0.0)
-	_box(Vector3(3.0, 0.4, slope.length()), Transform3D(Basis.looking_at(slope.normalized(), Vector3.UP), ramp_center), Color("7a8d96"), true)
-	var platform := Layout.sector_point(center, 9.0, 0.0)+Vector3(0,0,5*mz)
-	_box(Vector3(3.0, 1.0, 4.0), _at(platform + Vector3(0.0, 0.5, 0.0)), Color("6d7f88"), true)
-	_label("RAMP + 1.0 m", platform + Vector3(0.0, 2.2, 0.0), 22, TEAL)
-	var block := Layout.sector_point(center, -10.0, -9.0)
-	_box(Vector3(3.0, 2.2, 3.0), _at(block + Vector3(0.0, 1.1, 0.0)), Color("8a6a5a"), true)
-	_label("HIGH LEDGE 2.2 m (needs mobility, G)", block + Vector3(0.0, 3.6, 0.0), 22, ORANGE)
+		_wall(Vector3(8.0, 2.0, 0.6), _at(Layout.sector_point(center, local_x, -6.0) + Vector3(0.0, 1.0, 0.0), yaw), WALL_COLOR)
 
 # Markers and gameplay share Layout's positions. Hosted drills supply their own visuals.
 func _build_markers() -> void:
