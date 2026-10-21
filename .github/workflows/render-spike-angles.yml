@@ -1,6 +1,9 @@
 name: Render spike angle videos
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - tools/spike-angle-video-render
 jobs:
   render:
     runs-on: ubuntu-24.04
