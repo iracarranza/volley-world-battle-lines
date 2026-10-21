@@ -1,4 +1,5 @@
 extends Node3D
+const AttackTarget := preload("res://scripts/bot_attack_target.gd")
 const BotSettings := preload("res://scripts/bot_settings.gd")
 var settings: Array[BotSettings] = []
 
@@ -47,6 +48,7 @@ var actors: Array[Node3D] = []
 var captions: Array[Label3D] = []
 var contact_boxes: Array[MeshInstance3D] = []
 var move_targets: Dictionary = {}
+var attack_targets: Dictionary = {}
 const ReturnController := preload("res://scripts/bot_return.gd")
 var returns := ReturnController.new()
 # Set after the ball comes off the net: receivers may then take a ball that drops right at the tape, and plans made on the pre-net flight are dropped.
@@ -470,7 +472,10 @@ func _plan(action: int, point: Vector3, time: float, chosen_slot: int = -1) -> v
 			actors[slot].rotation.y = atan2(-toward_setter.x, -toward_setter.z)
 	var aim_yaw: float = actors[slot].rotation.y
 	if action == 2:
-		var destination := Vector3(lab.court_center.x+1.8 * sin(total_contacts * 1.3), 1.0, -6.0 if point.z > 0 else 6.0)
+		var current_plan: Dictionary = motion.plans.get(slot,{})
+		var committed := int(current_plan.get("action",-1)) == 2 and current_plan.has("committed_yaw")
+		var destination: Vector3 = attack_targets[slot] if committed and attack_targets.has(slot) else choose_attack_target(slot,point)
+		attack_targets[slot] = destination
 		var heading := destination - point
 		aim_yaw = atan2(-heading.x, -heading.z)
 	if settings[slot].follows_ball:
@@ -754,6 +759,18 @@ func tick_contact(dt: float) -> bool:
 	replan()
 	return true
 
+func choose_attack_target(slot: int,point: Vector3) -> Vector3:
+	var blockers: Array = []
+	var defenders: Array = []
+	for other in range(settings.size()):
+		if not slot_enabled(other) or slot_away(other) == slot_away(slot): continue
+		defenders.append(actors[other].position)
+		if settings[other].can_block(): blockers.append(actors[other].position)
+	if lab.player.visible and (lab.player.position.z < 0) != slot_away(slot):
+		defenders.append(lab.player.position)
+		if lab.block_state.active or (lab.armed and lab.locked_action == 3): blockers.append(lab.player.position)
+	return AttackTarget.choose(point,lab.court_center,lab.court_half_width,lab.court_half_depth,blockers,defenders)
+
 func _bump_ceiling(height: float) -> float:
 	var charge := 0.35 + 65.0 / 250.0
 	var previous: Dictionary = lab.Flight.solve_flight(5.0 + charge * 5.5, 60.0, maxf(height - 0.105, 0))
@@ -775,7 +792,8 @@ func _launch(action: int,firing_slot: int = -1) -> void:
 			target = Vector3(set_target.x, set_target.y, side * set_target.z)
 			duration = 1.25
 		2: # Send a driven ball through the opposing court.
-			target = Vector3(lane_x, 1.0, -side * 6.0)
+			var attacker := firing_slot if firing_slot >= 0 else slot_for(2,origin.z)
+			target = attack_targets.get(attacker,origin+Vector3.FORWARD.rotated(Vector3.UP,actors[attacker].rotation.y)*6.0)
 			duration = 1.0 / (lab.SPIKE_SPEED_MULTIPLIER * lab.ATTACK_DRIVE_FACTOR)
 		3: # Redirect the block over the Net with enough lift for a receiver.
 			target = Vector3(lane_x, 1.0, -side * 5.0)
