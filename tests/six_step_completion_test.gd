@@ -67,12 +67,12 @@ func run() -> void:
 	a.trait_ids = ["new_trait_2"]
 	a.stamina = 1
 	a.spend(1)
-	check(a.winded and is_equal_approx(a.stamina,a.max_stamina()*0.23),"Second Wind restores 23% of actual capacity on Winded")
+	check(a.winded and is_equal_approx(a.stamina,a.max_stamina()*0.5+23),"Second Wind adds twenty-three to the half-capacity Winded restoration")
 	check(a.second_wind_cooldown == 30,"Second Wind has 30-second cooldown")
 	a.spend(a.stamina)
 	check(a.exhausted and a.stamina == 0,"Second depletion still exhausts; no repeated passive refill")
 	a.recover(7,true)
-	check(a.winded and a.stamina == 0 and a.second_wind_cooldown == 23,"Exhaustion returns to Winded while passive remains on cooldown")
+	check(a.winded and is_equal_approx(a.stamina,a.max_stamina()*0.5) and a.second_wind_cooldown == 23,"Exhaustion returns to Winded while passive remains on cooldown")
 	a.reset_fatigue()
 	a.trait_ids = ["endurance_stamina_recovery"]
 	a.stamina = 20

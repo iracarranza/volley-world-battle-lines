@@ -34,13 +34,13 @@ Heights use the same rounded inch representation as creation. Neutral is 72–74
 | Upper +2 | 78–80 | +0.625 per inch above 74 | 4.00 | 16.00 |
 | Giant | 81–86 | +0.75 per inch above 74 | 4.50 | 16.50 |
 
-The base Sprint premium is 12/s at every Height band. Sprint replaces ordinary movement drain. Existing efficiency traits can modify these base rates; Work Rate and limb proportions do not receive an uncalibrated per-second subtraction.
+The base Sprint premium is 12/s at every Height band. Sprint replaces ordinary movement drain. Outside rallies and Pepper, ordinary movement has a 1.5/s base and Sprint a 10/s total base, retaining the same Height-band adjustments and efficiency. Drills use these non-rally rates too. Existing efficiency traits can modify these base rates; Work Rate and limb proportions do not receive an uncalibrated per-second subtraction.
 
 Ratios 0.8–1.2 are read through `morphology_runtime.gd`. Each +0.04 adds 1 to an eligible discrete action; each −0.04 subtracts 1.5, interpolated for the sliders' intermediate values. Stride applies to leg actions; Wingspan to arm actions. Resolved Stride also feeds the existing gait/base-speed accessor, retaining the neutral ratio baseline. Jump reference values are covered at every supplied boundary/example.
 
 ## Regeneration and clocks
 
-Moving or newly stationary: 2/s. After three consecutive grounded stationary seconds: 6/s. Leaving that state resets the stationary timer. Upper-body contact preparation alone does not reset it. Airborne/jump-charging actors do not qualify as resting. Recovery traits multiply the rates. Winded halves them for 10.5 s. Exhaustion prevents regeneration for 7 s, then returns to Winded.
+Moving or newly stationary: 2/s. After three consecutive grounded stationary seconds: 6/s. Leaving that state resets the stationary timer. Upper-body contact preparation alone does not reset it. Airborne/jump-charging actors do not qualify as resting. Recovery traits multiply the rates. Winded halves them for 10.5 s. Exhaustion prevents regeneration for 7 s, then returns to Winded. Entering Winded immediately restores 50% of maximum Stamina, including the return from Exhaustion. Second Wind adds its authored flat Stamina value (currently 23), capped at capacity, with its existing 30 s cooldown. It no longer scales with capacity.
 
 Regeneration splits timesteps at rest-delay, fatigue and cooldown boundaries. Actor-local time drives player, court-bot and Pepper spending/recovery under MoC. Movement drain follows actual ground travel, rather than held inputs or a bot merely having a plan. New rallies refresh bots; debug reset also refreshes Pepper profiles.
 

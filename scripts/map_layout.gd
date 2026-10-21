@@ -3,16 +3,17 @@ extends RefCounted
 # The graybox map as data, separate from the Contact Lab. Axes: the central line runs along x at z = 0, Blue is z > 0 and Red
 # is z < 0, west is the top lane and east is the bottom lane. Nothing here is a decided number except the topology (see
 # docs/map-spec.md); heights, widths and distances are the placeholders in docs/map-build-plan.md.
-const HALF := 80.0
+const SPACING := 1.30
+const HALF := 80.0 * SPACING
 const LANE_WIDTH := 5.0
-const BASE_Z := 58.0
+const BASE_Z := 58.0 * SPACING
 const BASE_SIZE := Vector2(14.0, 8.0)
 const STANDARD_HEIGHT := 2.43
 const STANDARD_WIDTH := 9.0
 const STANDARD_DEPTH := 18.0
-const PIT_X := 18.0
+const PIT_X := 18.0 * SPACING
 const PIT_RING_RADIUS := 10.5
-const SECTOR_Z := 22.0
+const SECTOR_Z := 22.0 * SPACING
 
 # The three lane Nets: height, and the scale applied to the standard court width and depth.
 const LANE_NETS := {
@@ -28,7 +29,7 @@ static func nets() -> Array:
 		var kind: Dictionary = LANE_NETS[id]
 		out.append({
 			"id": id, "kind": "lane", "label": kind.label,
-			"position": Vector3(float(kind.x), 0.0, 0.0), "height": float(kind.height),
+			"position": Vector3(float(kind.x) * SPACING, 0.0, 0.0), "height": float(kind.height),
 			"width": STANDARD_WIDTH * float(kind.scale), "depth": STANDARD_DEPTH * float(kind.scale),
 		})
 	for side in [-1.0, 1.0]:
@@ -57,7 +58,7 @@ static func lane_points(lane: String) -> Array[Vector2]:
 	else:
 		var sign_x := -1.0 if lane == "top" else 1.0
 		points.append(Vector2(sign_x * 6.0, BASE_Z - 2.0))
-		points.append(Vector2(x, 24.0))
+		points.append(Vector2(x, 24.0 * SPACING))
 		points.append(Vector2(x, end_z))
 	return points
 
@@ -86,7 +87,11 @@ static func sectors() -> Array[Vector2]:
 static func sector_point(center: Vector2, local_x: float, local_z: float) -> Vector3:
 	var mx := -signf(center.x)
 	var mz := signf(center.y)
-	return Vector3(center.x + mx * local_x, 0.0, center.y + mz * local_z)
+	return Vector3(center.x + mx * local_x * SPACING, 0.0, center.y + mz * local_z * SPACING)
+
+static func sector_step(center: Vector2,index: int) -> Vector3:
+	# A stair is one obstacle assembly: move its center, preserve its local step spacing.
+	return sector_point(center,-5.8,4.0)+Vector3(-signf(center.x)*3.2*(index-1),0,0)
 
 static func distance_to_polyline(point: Vector2, points: Array[Vector2]) -> float:
 	var best := INF
@@ -112,6 +117,32 @@ static func zone_at(position: Vector3) -> String:
 		var line := lane_points(lane)
 		if distance_to_polyline(p, line if p.y >= 0.0 else mirrored(line)) <= LANE_WIDTH * 0.5:
 			return "%s LANE (%s)" % [lane.to_upper(), half]
-	if absf(p.x) <= 36.0 + LANE_WIDTH * 0.5:
+	if absf(p.x) <= 36.0 * SPACING + LANE_WIDTH * 0.5:
 		return "%s JUNGLE (%s)" % ["UPPER" if p.x < 0.0 else "LOWER", half]
 	return "OUTER FLOOR"
+
+# Shared activity anchors: rendering and gameplay always use these same positions.
+static func drill_markers() -> Array:
+	var result := []
+	for side in [1.0,-1.0]:
+		var half := "blue" if side > 0 else "red"
+		result.append({"id":"box_jump_"+half,"type":"box","position":Vector3(-46,0,side*22)*SPACING})
+		result.append({"id":"transition_set_"+half,"type":"transition","position":Vector3(46,0,side*22)*SPACING})
+	var centers := sectors()
+	for i in range(centers.size()):
+		result.append({"id":"receive_%d"%i,"type":"receive","position":Vector3(centers[i].x,0,centers[i].y)})
+		result.append({"id":"spike_%d"%i,"type":"spike","position":sector_point(centers[i],3,-9)})
+	return result
+
+static func drill_marker(id: String) -> Dictionary:
+	for marker in drill_markers():
+		if marker.id == id: return marker
+	return {}
+
+static func drink_positions() -> Array[Vector3]:
+	var result: Array[Vector3] = []
+	for x in [-1.0,1.0]:
+		for z in [-1.0,1.0]:
+			result.append(Vector3(x*PIT_X,0,z*13.8*SPACING))
+			result.append(Vector3(x*8,0,z*52)*SPACING)
+	return result

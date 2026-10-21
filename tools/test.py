@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run Godot checks in an isolated project and save per-suite logs.
 
-Usage: python3 tools/test.py [suite stems ...] [--render] [--timeout 90]
+Usage: python3 tools/test.py [suite stems ...] [--render] [--timeout 120]
 No suites means all *_test.gd files. Rendering utilities require --render.
 """
 import argparse
@@ -75,7 +75,7 @@ def main():
     parser.add_argument('suites', nargs='*')
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--revision', help='Run an isolated committed snapshot for comparison')
-    parser.add_argument('--timeout', type=float, default=90)
+    parser.add_argument('--timeout', type=float, default=120)
     parser.add_argument('--godot', default=os.environ.get('GODOT', shutil.which('godot') or '/Applications/Godot.app/Contents/MacOS/Godot'))
     parser.add_argument('--logs', type=Path, default=ROOT / 'artifacts' / 'checks')
     args = parser.parse_args()

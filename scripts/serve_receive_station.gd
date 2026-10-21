@@ -50,9 +50,9 @@ var previous_ball := Vector3.INF
 # Where the whole station sits in the world. Zero in the Contact Lab; a hosting scene moves it (LabHost: lab.station_origin).
 var origin := Vector3.ZERO
 
-func setup(owner_lab: Node3D) -> void:
+func setup(owner_lab: Node3D,anchor: Vector3 = Vector3.INF) -> void:
 	lab = owner_lab
-	origin = lab.station_origin
+	origin = lab.station_origin if anchor == Vector3.INF else anchor
 	position = origin
 	lab.world_builder.box(self, Vector3(WIDTH, 0.12, LENGTH), Vector3(16, -0.06, HALF), Color("304d69"))
 	for x in [13.0, 19.0]:

@@ -8,12 +8,7 @@ extends "res://scripts/contact_lab.gd"
 # Primary Nets 1–3 host the shared live rally. Pit Nets remain traversal blockout only.
 const Layout := preload("res://scripts/map_layout.gd")
 const World := preload("res://scripts/map_world.gd")
-# Where each lab Drill sits, as the offset from the coordinates it is written in. The tower comes out at (-46, 22) beside the top
-# lane, the Spike Trainer in the open floor outside the bottom lane, and the Serve Receive station in the east Blue jungle sector.
-const BOX_ANCHOR := Vector3(-10.0, 0.0, 18.0)
-const SPIKE_ANCHOR := Vector3(63.0, 0.0, 16.0)
-const STATION_ANCHOR := Vector3(2.0, 0.0, 23.0)
-const EAST_BLUE_SECTOR := 1
+var activities: Node3D
 
 var map_world: Node3D
 var overview_camera: Camera3D
@@ -28,9 +23,9 @@ var primary_responses: Array = []
 
 func _init() -> void:
 	start_position = Vector3(0.0, 0.03, Layout.BASE_Z)
-	box_origin = BOX_ANCHOR
-	spike_origin = SPIKE_ANCHOR
-	station_origin = STATION_ANCHOR
+	box_origin = Layout.drill_marker("box_jump_blue").position-Vector3(-36,0,4)
+	spike_origin = Layout.drill_marker("spike_0").position-Vector3(-16,0,1.5)
+	station_origin = Layout.drill_marker("receive_1").position-Vector3(16,0,4.5)
 
 func _ready() -> void:
 	super._ready()
@@ -45,8 +40,7 @@ func _build_lanes_and_bases() -> void:
 		"floor": false,
 		"hosted": true,
 		"skip_nets": ["top","middle","bottom"],
-		"skip_sectors": [EAST_BLUE_SECTOR],
-		"skip_markers": ["box_jump_blue", "transition_set_blue"],
+		"skip_markers": Layout.drill_markers().map(func(marker: Dictionary) -> String: return marker.id),
 	}
 	add_child(map_world)
 	map_world.build()
@@ -57,6 +51,21 @@ func _build_lanes_and_bases() -> void:
 	overview_camera.far = 400.0
 	add_child(overview_camera)
 	overview_camera.look_at(Vector3.ZERO, Vector3(0.0, 0.0, -1.0))
+
+func bench_home() -> Vector3:
+	return Vector3(0,0.03,Layout.BASE_Z)
+
+func pepper_spots() -> Array:
+	var first_tower: Vector3 = activities.courses[0].course_top_world(2)
+	return [first_tower,Vector3(8,0,5)*Layout.SPACING,Vector3(0,0,27)*Layout.SPACING]
+
+func world_half_extent() -> float:
+	return Layout.HALF
+
+func _build_activities() -> void:
+	activities = preload("res://scripts/map_activities.gd").new()
+	add_child(activities)
+	activities.setup(self)
 
 func _build_ui() -> void:
 	super._build_ui()
@@ -74,16 +83,24 @@ func _process(dt: float) -> void:
 		var p: Vector3 = player.global_position
 		zone_label.visible = hud.ui.visible
 		zone_label.text = "MAP / NET %d · %s   x %.0f  z %.0f%s" % [current_net+1,Layout.zone_at(p), p.x, p.z, "   (N: back to the athlete)" if overview else "   (N: overview)"]
+		var drink: int = activities.nearby_drink() if is_instance_valid(activities) else -1
+		if drink >= 0: zone_label.text += "   [I] ENERGY DRINK"
 		var nearby := nearby_bot()
 		if nearby >= 0:
 			zone_label.text += "   [I] BOT #%d SETTINGS" % (nearby+1)
 
 func _physics_process(dt: float) -> void:
+	if is_instance_valid(activities) and not paused:
+		activities.select_nearby()
+		activities.tick(dt)
 	if not ball_active and not station.running() and not drills.running():
 		select_net(nearest_primary_net())
 	super._physics_process(dt)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_I and not paused:
+		activities.select_nearby()
+		if activities.consume_nearby(): return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_N:
 		overview = not overview
 		overview_camera.current = overview
@@ -201,3 +218,7 @@ func athlete_touches_net(from: Vector3,to: Vector3,height: float = 1.7,radius: f
 	for response in primary_responses:
 		if response.touches_body(from,to,height,radius): return true
 	return false
+
+func _reset() -> void:
+	super._reset()
+	if is_instance_valid(activities): activities.reset()

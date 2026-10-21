@@ -47,7 +47,8 @@ for a direct additive receive-charge bonus instead.
 | `di_hp_cost` | HP at full DI | Self cost on actual contact, zero by default |
 | `di_stamina_cost` | legacy compatibility key | Retained for old data; ignored. DI never spends Stamina. |
 | `di_cost_reduction` | % | Reduces those explicitly configured DI costs; 100 makes them free |
-| `flow_attack_velocity`, `revenge_spike_velocity`, `revenge_jump_power`, `second_wind`, `jump_stamina_threshold` | existing units | Compatibility hooks for old definitions. Prefer structured rules for new Flow behavior |
+| `second_wind` | flat Stamina | Adds to the base 50%-capacity Winded restoration; 30 s cooldown |
+| `flow_attack_velocity`, `revenge_spike_velocity`, `revenge_jump_power`, `jump_stamina_threshold` | existing units | Compatibility hooks for old definitions. Prefer structured rules for new Flow behavior |
 
 `spin` and `float` are intentionally not claimed by this contract: their flight
 models/units require separate design. Back Set, Dump and other active techniques

@@ -56,19 +56,30 @@ var spike_rng := RandomNumberGenerator.new()
 # below is written in each drill's own coordinates.
 var box_anchor := Vector3.ZERO
 var spike_anchor := Vector3.ZERO
+var interaction_enabled := true
+var box_enabled := true
+var spike_enabled := true
 var box_root: Node3D
 var spike_root: Node3D
 
-func setup(owner_lab: Node3D) -> void:
+func setup(owner_lab: Node3D,anchors: Dictionary = {}) -> void:
 	lab = owner_lab
-	box_anchor = lab.box_origin
-	spike_anchor = lab.spike_origin
+	box_anchor = anchors.get("box",lab.box_origin)
+	spike_anchor = anchors.get("spike",lab.spike_origin)
 	box_root = Node3D.new()
 	box_root.position = box_anchor
 	add_child(box_root)
 	spike_root = Node3D.new()
 	spike_root.position = spike_anchor
 	add_child(spike_root)
+	if box_enabled: _build_box_course()
+	if spike_enabled: _build_spike_course()
+	if box_enabled and spike_enabled and box_anchor == Vector3.ZERO and spike_anchor == Vector3.ZERO:
+		for x in range(-29,-6,2):
+			lab.world_builder.box(box_root if x < -22 else spike_root,Vector3(0.6,0.025,0.14),Vector3(x,0.025,14),lab.GOLD)
+		lab.world_builder.world_label("← SPIKE TRAINER / BOX JUMP",Vector3(-7,0.1,13),25,lab.GOLD)
+
+func _build_box_course() -> void:
 	lab.world_builder.box(box_root, Vector3(20, 0.03, 28), Vector3(-34, -0.015, 5), Color("34423d"))
 	attack_group = Node3D.new()
 	box_root.add_child(attack_group)
@@ -76,6 +87,8 @@ func setup(owner_lab: Node3D) -> void:
 	lab.world_builder.world_label("BOX JUMP / ONE-WAY TOWER", Vector3(-36, 0.15, 17) + box_anchor, 34, lab.GOLD)
 	lab.world_builder.world_label("I START / LAND ON 1–4 IN ORDER / EVERY LAYER IS AN ATTACK JUMP", BOX_START + box_anchor, 24, lab.GOLD)
 	lab.world_builder.world_label("CHARGE ATTACK / RUN THE DECK / HOLD SPACE LONGER FOR EACH LAYER, RELEASE TO JUMP", Vector3(TOWER_X, 0.15, 9.2) + box_anchor, 20, Color("ffb46e"))
+
+func _build_spike_course() -> void:
 	lab.world_builder.box(spike_root, Vector3(SPIKE_WIDTH, 0.03, 32), Vector3(-16, -0.015, 1.5), Color("493b3c"))
 	lab.world_builder.world_label("SPIKE TRAINER / 3 JUMP HITS", Vector3(-16, 0.15, 16) + spike_anchor, 34, Color("ffb46e"))
 	lab.world_builder.world_label("I START / JUMP + ATTACK INTO GOLD TARGET", SPIKE_START + Vector3(0, 0.1, 3) + spike_anchor, 24, Color("ffb46e"))
@@ -94,9 +107,6 @@ func setup(owner_lab: Node3D) -> void:
 	spike_bonus = lab.world_builder.ring(BONUS_RADIUS, Color("fff2a8"))
 	spike_bonus.position = spike_goal.position + Vector3.UP * 0.01
 	spike_bonus.visible = false
-	for x in range(-29, -6, 2):
-		lab.world_builder.box(box_root if x < -22 else spike_root, Vector3(0.6, 0.025, 0.14), Vector3(x, 0.025, 14), lab.GOLD)
-	lab.world_builder.world_label("← SPIKE TRAINER / BOX JUMP", Vector3(-7, 0.1, 13) + spike_anchor, 25, lab.GOLD)
 
 # A slab you can pass up through and land on. The footprint is solid only while the feet are on or above the top,
 # decided each physics frame in update_one_way().
@@ -189,11 +199,11 @@ func _build_attack_decks() -> void:
 
 func in_box_zone() -> bool:
 	var p: Vector3 = lab.player.position - box_anchor
-	return p.x >= -43 and p.x <= -25 and p.z >= -4 and p.z <= 20
+	return box_enabled and p.x >= -43 and p.x <= -25 and p.z >= -4 and p.z <= 20
 
 func in_spike_zone() -> bool:
 	var p: Vector3 = lab.player.position - spike_anchor
-	return p.x >= -19 and p.x <= -13 and p.z >= 0 and p.z <= 17
+	return spike_enabled and p.x >= -19 and p.x <= -13 and p.z >= 0 and p.z <= 17
 
 # Where things are in the world, for callers that start from a drill's own coordinates.
 func box_start_world() -> Vector3:
@@ -206,7 +216,7 @@ func course_top_world(index: int) -> Vector3:
 	return (course_tops()[index] as Vector3) + box_anchor
 
 func in_zone() -> bool:
-	return in_box_zone() or in_spike_zone()
+	return interaction_enabled and (in_box_zone() or in_spike_zone())
 
 # Only the hitting drill owns a ball and suppresses court bot interception.
 func running() -> bool:
@@ -317,7 +327,7 @@ func tick(dt: float) -> void:
 				box_progress = 0
 				detail = "Fell to ground / Box Jump run lost / I to retry"
 				lab._message(detail)
-	if built_for != String(lab.athlete.build.get("name", "")):
+	if box_enabled and built_for != String(lab.athlete.build.get("name", "")):
 		_build_attack_decks()
 	for i in range(box_markers.size()):
 		box_markers[i].visible = box_state != State.ACTIVE or i == box_progress

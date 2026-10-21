@@ -16,7 +16,7 @@ func run() -> void:
 	root.add_child(map)
 	map.set_process(false)
 	map.set_physics_process(false)
-	map.player.position = Vector3(-36,0.03,7)
+	map.player.position = map.primary_nets[0].position+Vector3(0,0.03,7)
 	map.select_net(0)
 	map.camera_rig.update_aim()
 	map.camera_rig.update(2)

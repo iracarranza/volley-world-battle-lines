@@ -57,7 +57,7 @@ func run() -> void:
 		lab._tick_ball(0.04)
 		check(lab.ball_active and lab.net_response.last_contact == "tape","Each primary net uses physical tape response at its actual height")
 	lab.select_net(0)
-	check(lab.athlete_touches_net(Vector3(36,0,0.1),Vector3(36,0,-0.1)),"Midline fault checks include primary nets outside the active rally court")
+	check(lab.athlete_touches_net(lab.primary_nets[2].position+Vector3(0,0,0.1),lab.primary_nets[2].position+Vector3(0,0,-0.1)),"Midline fault checks include primary nets outside the active rally court")
 	lab.queue_free()
 	await process_frame
 	print("MAP COURT PLAY: %d / %d passed" % [checks-failures,checks])

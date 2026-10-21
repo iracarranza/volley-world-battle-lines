@@ -111,6 +111,7 @@ func run() -> void:
 	lab.moc.enabled = false
 	lab.athlete.spend(100)
 	lab.athlete.recover(0.1,true)
+	lab.athlete.stamina = 1 # Winded now restores half capacity; test the next depletion boundary.
 	lab.ball_active = true
 	lab.locked_action = 0
 	lab.selected = 0

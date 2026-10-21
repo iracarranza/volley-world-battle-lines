@@ -40,7 +40,7 @@ Charge Tolerance widens the severity ramp (provisional +10%), while preserving t
 
 Machine-readable trait `effects` are saved in `data/trait_tree.json`. The editor exposes numeric effect fields with units; adding a custom named trait with a supported effect works through the same runtime path. Descriptions remain authored prose. Save invalidates the cached book so subsequent gameplay reads the new values. Claude's authored node IDs, branches, picks and exclusive groups are preserved.
 
-Recovery, Stamina Recovery and Exertion Efficiency are now tree traits: +12% recovery rate, +15% regeneration and -12% Stamina cost provisionally. They combine with, rather than replace, Transition Speed, Work Rate and Capacity. Second Wind restores 23% of actual max Stamina on entering Winded, with a 30 s cooldown and no fatigue-status bypass.
+Recovery, Stamina Recovery and Exertion Efficiency are now tree traits: +12% recovery rate, +15% regeneration and -12% Stamina cost provisionally. They combine with, rather than replace, Transition Speed, Work Rate and Capacity. Entering Winded restores 50% of maximum Stamina. Second Wind adds 23 flat Stamina to this, with a 30 s cooldown and no fatigue-status bypass.
 
 ## Flow and reactive traits
 

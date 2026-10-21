@@ -190,8 +190,10 @@ func jump_stamina_cost() -> float:
 func quick_step_stamina_cost() -> float:
 	return float(stamina_quote("quick_step").total)
 
-func movement_stamina_rate(sprinting: bool = false) -> float:
-	return float(stamina_quote("sprint" if sprinting else "movement").total)
+func movement_stamina_rate(sprinting: bool = false,in_rally: bool = true) -> float:
+	var kind := "sprint" if sprinting else "movement"
+	if not in_rally: kind = "explore_"+kind
+	return float(stamina_quote(kind).total)
 
 func ball_control() -> float:
 	return Stats.anchor(stat("ball_control"))
@@ -267,8 +269,9 @@ func _enter_winded() -> void:
 	fatigue_epoch += 1
 	winded = true
 	winded_remaining = WINDED_SECONDS
-	if rules().is_empty() and trait_effect("second_wind") > 0 and second_wind_cooldown <= 0:
-		stamina = minf(max_stamina(),stamina+max_stamina()*trait_effect("second_wind")/100.0)
+	stamina = max_stamina()*0.5
+	if trait_effect("second_wind") > 0 and second_wind_cooldown <= 0:
+		stamina = minf(max_stamina(),stamina+trait_effect("second_wind"))
 		second_wind_cooldown = 30.0
 
 func reset_fatigue() -> void:

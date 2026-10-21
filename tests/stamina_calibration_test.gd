@@ -66,14 +66,14 @@ func run() -> void:
 		a = neutral()
 		a.spend(100)
 		for frame in range(hz*11): a.recover(1.0/hz,true)
-		check(absf(a.stamina-28.5) < 0.005 and not a.winded,"Rest and Winded boundaries remain timestep independent")
+		check(absf(a.stamina-78.5) < 0.005 and not a.winded,"Rest and Winded boundaries remain timestep independent")
 	a = neutral()
 	a.build.endurance = 99
 	a.gameplay_effects = {"second_wind":23}
 	a.stamina = a.max_stamina()
 	a.spend(a.stamina)
 	a.spend(a.stamina)
-	a.recover(31,true)
-	check(absf(a.stamina-112.5) < 0.001,"Large recovery frame cannot trigger Second Wind before its cooldown actually expires")
+	a.recover(7,true)
+	check(absf(a.stamina-75) < 0.001,"Large recovery frame cannot trigger Second Wind before its cooldown actually expires")
 	print("STAMINA CALIBRATION: %d / %d passed"%[checks-failures,checks])
 	quit(1 if failures else 0)

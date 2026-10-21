@@ -60,7 +60,7 @@ func run() -> void:
 		heights[net.id] = net.height
 	check(heights.top > heights.bottom and heights.pit_east == heights.pit_west, "the lane Nets differ in height and the Pit Nets are the standard")
 	# The lab's blockout lanes are gone; the map's lanes are there.
-	check(Layout.zone_at(Vector3(-36, 0, 15)).begins_with("TOP LANE") and lab.map_world != null and lab.map_world.get_child_count() > 100, "the map is built under the lab")
+	check(Layout.zone_at(Vector3(-36*Layout.SPACING, 0, 15*Layout.SPACING)).begins_with("TOP LANE") and lab.map_world != null and lab.map_world.get_child_count() > 100, "the map is built under the lab")
 	# The three Drills sit on the map and work there.
 	var drills = lab.drills
 	await stand(lab, Vector3(drills.TOWER_X, 0.03, drills.TOWER_Z) + drills.box_anchor)

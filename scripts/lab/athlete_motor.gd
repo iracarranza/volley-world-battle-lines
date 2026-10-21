@@ -149,8 +149,8 @@ func tick(dt: float, motion_scale: float) -> void:
 		approach_distance += Vector2(lab.player.position.x - before_move.x, lab.player.position.z - before_move.z).length()
 		if Approach.step_index(jump_charge) == 2:
 			approach_plant_speed = maxf(approach_plant_speed, Vector2(lab.player.velocity.x, lab.player.velocity.z).length())
-	lab.player.position.x = clampf(lab.player.position.x, -78, 78)
-	lab.player.position.z = clampf(lab.player.position.z, -78, 78)
+	lab.player.position.x = clampf(lab.player.position.x, -lab.world_half_extent()+2, lab.world_half_extent()-2)
+	lab.player.position.z = clampf(lab.player.position.z, -lab.world_half_extent()+2, lab.world_half_extent()-2)
 	if lab.player.is_on_floor() and jumped:
 		if airborne_action == 3: lab.end_passive_block()
 		lab.action_endlag = maxf(lab.action_endlag,0.12)
@@ -165,7 +165,7 @@ func tick(dt: float, motion_scale: float) -> void:
 	var ground_distance := Vector2(lab.player.position.x-before_move.x,lab.player.position.z-before_move.z).length()
 	var grounded := lab.player.is_on_floor() and not jumped and not approach_bound
 	if grounded and ground_distance > 0.00001:
-		lab.athlete.spend_resolved(dt*lab.athlete.movement_stamina_rate(sprint))
+		lab.athlete.spend_resolved(dt*lab.athlete.movement_stamina_rate(sprint,lab.movement_in_rally()))
 	lab.athlete.recover(dt,grounded and ground_distance <= 0.00001 and jump_charge < 0)
 	if jump_charge >= 0:
 		lab.athlete.spend_resolved(dt*float(lab.athlete.stamina_quote("jump_charge").total))

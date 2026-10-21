@@ -224,12 +224,7 @@ func _ready() -> void:
 	training_bots = _create_training_bots()
 	add_child(training_bots)
 	training_bots.setup(self)
-	station = preload("res://scripts/serve_receive_station.gd").new()
-	add_child(station)
-	station.setup(self)
-	drills = preload("res://scripts/map_drills.gd").new()
-	add_child(drills)
-	drills.setup(self)
+	_build_activities()
 	if uses_legacy_bot_pads():
 		bot_pads = preload("res://scripts/bot_pads.gd").new()
 		add_child(bot_pads)
@@ -264,6 +259,26 @@ func _ready() -> void:
 	if get_tree().get_meta(presets.STARTUP_META,false):
 		get_tree().remove_meta(presets.STARTUP_META)
 		presets.apply_net_2.call_deferred(training_bots)
+
+func bench_home() -> Vector3:
+	return Vector3(0,0.03,48)
+
+func pepper_spots() -> Array:
+	return preload("res://scripts/pepper_partners.gd").SPOTS.duplicate()
+
+func movement_in_rally() -> bool:
+	return pepper.active() or (ball_active and not station.running() and not drills.running())
+
+func world_half_extent() -> float:
+	return 80.0
+
+func _build_activities() -> void:
+	station = preload("res://scripts/serve_receive_station.gd").new()
+	add_child(station)
+	station.setup(self)
+	drills = preload("res://scripts/map_drills.gd").new()
+	add_child(drills)
+	drills.setup(self)
 
 func _process(dt: float) -> void:
 	animation.pose_frame_dt = dt * moc.actor_scale("player")

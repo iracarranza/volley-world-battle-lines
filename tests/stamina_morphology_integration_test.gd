@@ -59,7 +59,7 @@ func run() -> void:
 		lab.motion.tick(1.0/60,1)
 		await physics_frame
 	key(KEY_W,false)
-	check(absf(lab.athlete.stamina-59) < 0.15,"Actual ordinary locomotion spends three and regenerates two per second")
+	check(absf(lab.athlete.stamina-60.5) < 0.15,"Outside rallies ordinary locomotion spends one-and-a-half and regenerates two per second")
 	key(KEY_SHIFT,true)
 	key(KEY_W,true)
 	await process_frame
@@ -69,7 +69,7 @@ func run() -> void:
 		await physics_frame
 	key(KEY_SHIFT,false)
 	key(KEY_W,false)
-	check(absf(lab.athlete.stamina-47) < 0.15,"Actual Sprint spends fifteen total rather than stacking walking")
+	check(absf(lab.athlete.stamina-52) < 0.15,"Outside rallies Sprint spends ten total rather than stacking walking")
 	lab.queue_free()
 	await process_frame
 	print("STAMINA/MORPHOLOGY INTEGRATION: %d / %d passed"%[checks-failures,checks])

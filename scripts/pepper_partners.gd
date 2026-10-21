@@ -22,6 +22,9 @@ const LABELS := ["AWAY PEPPER / BOX 3", "AWAY PEPPER / EAST", "AWAY PEPPER / HOM
 const MOVEMENT_MODE := "Move"
 const MOVE_SPEED := 6.0
 const RADIUS := 3.9894228
+var spots: Array = SPOTS.duplicate()
+var home_rings: Array[MeshInstance3D] = []
+var home_labels: Array[Label3D] = []
 var aim_random := RandomNumberGenerator.new()
 var last_aim: Dictionary = {}
 var lab: Node3D
@@ -49,6 +52,7 @@ var movement_cycle := 0.0
 
 func setup(owner_lab: Node3D) -> void:
 	lab = owner_lab
+	spots = lab.pepper_spots()
 	aim_random.randomize()
 	charge_random.randomize()
 	for index in range(3):
@@ -57,16 +61,23 @@ func setup(owner_lab: Node3D) -> void:
 		add_child(actor)
 		actors.append(actor)
 		actor.set_meta("team", "away")
-		actor.position = SPOTS[index]
+		actor.position = spots[index]
 		var rig := Visual.build(lab, actor, "Avi" if index == 0 else "Feli", {"palette_index": index, "marking": "none"}, athletes[index].build)
 		rigs.append(rig)
 		var volume := Node3D.new()
 		actor.add_child(volume)
 		volumes.append(volume)
 		var ring: MeshInstance3D = lab.world_builder.ring(RADIUS, Color("b49fee"))
-		ring.position = SPOTS[index] + Vector3.UP * 0.04
-		lab.world_builder.world_label(LABELS[index] + " / SERVE TO BEGIN", SPOTS[index] + Vector3(0, 2.5, 0), 26, Color("b49fee"))
+		home_rings.append(ring)
+		ring.position = spots[index] + Vector3.UP * 0.04
+		home_labels.append(lab.world_builder.world_label(LABELS[index] + " / SERVE TO BEGIN", spots[index] + Vector3(0, 2.5, 0), 26, Color("b49fee")))
 		actor.rotation.y = PI
+
+func move_home(index: int,point: Vector3) -> void:
+	spots[index] = point
+	home_rings[index].position = point+Vector3.UP*0.04
+	home_labels[index].position = point+Vector3.UP*2.5
+	if not active() or partner != index: actors[index].position = point
 
 func athlete_for(index: int) -> LabAthlete:
 	return athletes[index]
@@ -98,7 +109,7 @@ func stop() -> void:
 	recovering = false
 	attack_facing_locked = false
 	for index in range(3):
-		actors[index].position = SPOTS[index]
+		actors[index].position = spots[index]
 		for child in volumes[index].get_children():
 			child.queue_free()
 		Pose.base(rigs[index].body, 0, 0, 0, false)
@@ -111,7 +122,7 @@ func try_start(previous: Vector3) -> bool:
 		return false
 	var delta: Vector3 = lab.ball.position - previous
 	for index in range(3):
-		var center: Vector3 = SPOTS[index] + Vector3.UP
+		var center: Vector3 = spots[index] + Vector3.UP
 		var t := clampf((center - previous).dot(delta) / maxf(delta.length_squared(), 0.000001), 0, 1)
 		if (previous + delta * t).distance_to(center) <= RADIUS:
 			partner = index
@@ -151,7 +162,7 @@ func plan() -> void:
 	planned = false
 	if not active() or not npc_turn:
 		return
-	var ground: Vector3 = SPOTS[partner]
+	var ground: Vector3 = spots[partner]
 	var height: float = ground.y + [1.0, 2.25, 3.2][stage]
 	if stage == 1:
 		var apex: float = lab.ball.position.y + maxf(lab.ball_velocity.y, 0) * maxf(lab.ball_velocity.y, 0) / (2 * lab.GRAVITY)
@@ -241,7 +252,7 @@ func on_player_contact(action: int, quality: float) -> void:
 
 func tick(dt: float) -> bool:
 	for index in range(athletes.size()):
-		if not (active() and index == partner): athletes[index].recover(dt*lab.moc.bot_scale("pepper_%d"%index),actors[index].position.y <= SPOTS[index].y+0.01)
+		if not (active() and index == partner): athletes[index].recover(dt*lab.moc.bot_scale("pepper_%d"%index),actors[index].position.y <= spots[index].y+0.01)
 	for index in range(3):
 		preparation.tick(index,dt*lab.moc.bot_scale("pepper_%d"%index))
 	dt *= lab.moc.bot_scale("pepper_%d" % partner)
@@ -251,7 +262,7 @@ func tick(dt: float) -> bool:
 	if is_instance_valid(lab.contact_flow):
 		actor.position += lab.contact_flow.displacement("pepper_%d" % partner,dt)
 	var rig := rigs[partner]
-	var ground: Vector3 = SPOTS[partner]
+	var ground: Vector3 = spots[partner]
 	if recovering:
 		landing_velocity -= lab.GRAVITY * dt
 		actor.position.y = maxf(ground.y, actor.position.y + landing_velocity * dt)
@@ -396,4 +407,4 @@ func _animate(dt: float, speed: float) -> void:
 	if stage == 0 and not Geometry.contains(shape(), point):
 		point = shape().center
 	var posture := Geometry.ReceivePlatform.posture(shape(), point, speed) if stage == 0 else "planted"
-	animation.update(rigs[partner], dt, {"action": stage, "charge": float(preparation.state_for(partner).charge), "planned": planned, "airborne": airborne, "remaining": remaining, "rise": rise_time, "contact_point": point, "posture": posture, "speed": speed, "cycle": movement_cycle, "floor_y": SPOTS[partner].y,"transition_rate":athlete_for(partner).transition_rate()})
+	animation.update(rigs[partner], dt, {"action": stage, "charge": float(preparation.state_for(partner).charge), "planned": planned, "airborne": airborne, "remaining": remaining, "rise": rise_time, "contact_point": point, "posture": posture, "speed": speed, "cycle": movement_cycle, "floor_y": spots[partner].y,"transition_rate":athlete_for(partner).transition_rate()})

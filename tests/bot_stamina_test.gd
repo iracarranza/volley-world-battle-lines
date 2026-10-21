@@ -19,8 +19,8 @@ func run() -> void:
 	check(other.stamina == other.max_stamina() and not other.winded,"Bots have independent stamina reserves")
 	check(lab.contact_flow.amount("training_bot_%d" % first) == 0,"Becoming Winded clears that bot's Flow")
 	athlete.recover(1,true)
-	check(is_equal_approx(athlete.stamina,1),"Winded bot regeneration uses the shared slowed rate")
-	bots.spend_stamina(first,5)
+	check(is_equal_approx(athlete.stamina,athlete.max_stamina()*0.5+1),"Winded bot regeneration uses the shared slowed rate")
+	bots.spend_stamina(first,athlete.max_stamina())
 	check(athlete.exhausted and is_equal_approx(athlete.exhaustion_remaining,7),"Second depletion while Winded exhausts the bot for seven seconds")
 	check(is_equal_approx(bots.move_speed_for(first),fresh_speed*0.55) and bots._jump_ceiling(first) < fresh_jump*0.7,"Exhaustion lowers bot movement speed and jump height")
 	lab.ball_active = true

@@ -10,7 +10,7 @@ const EFFECTS := {
 	"platform_quality": ["Platform Quality", " pts", "geometry", [0], "Improves receiving zone overlap; never changes matching or outer reach."],
 	"charge_tolerance": ["Charge Tolerance", "%", "handling", [0,3], "Softens mismatch severity without manufacturing a charge match."],
 	"flow_attack_velocity": ["Flow Attack Velocity", " pp", "potency", [2], "Adds attack charge while consuming Flow."],
-	"second_wind": ["Second Wind", "%", "consequences", [], "Restores stamina when its fatigue condition activates."],
+	"second_wind": ["Second Wind", "STA", "consequences", [], "Adds flat Stamina to the 50% Winded restoration (30s cooldown)."],
 	"revenge_jump_power": ["Revenge Jump Power", " pts", "consequences", [], "Grants the existing pending jump benefit after a poor attack receive."],
 	"revenge_spike_velocity": ["Revenge Spike Velocity", " pp", "potency", [2], "Grants the existing pending attack charge benefit."],
 	"back_attack_velocity": ["Back Attack Velocity", " pp", "potency", [2], "Adds attack charge according to back-court depth."],

@@ -19,7 +19,7 @@ static func height_adjustment(height: float) -> float:
 	return 0.0
 static func quote(kind: String,build: Dictionary,work_rate: float,efficiency: float,mismatch: float = 0.0,sourspot: float = 0.0) -> Dictionary:
 	var height := float(build.get("height",1.86))
-	var continuous := kind in ["movement","sprint","jump_charge"]
+	var continuous := kind in ["movement","sprint","explore_movement","explore_sprint","jump_charge"]
 	var exempt := kind in ["timing_miss","drill_step","bound","split_step"]
 	var base := 0.0
 	var height_cost := 0.0
@@ -27,7 +27,7 @@ static func quote(kind: String,build: Dictionary,work_rate: float,efficiency: fl
 	var wingspan := 0.0
 	var reduction := 0.0
 	if continuous:
-		base = 15.0 if kind == "sprint" else 3.0
+		base = {"movement":3.0,"sprint":15.0,"explore_movement":1.5,"explore_sprint":10.0,"jump_charge":3.0}[kind]
 		var band := height_band(height)
 		height_cost = band*(0.25 if band < 0 else 0.50) if kind != "jump_charge" else 0.0
 	else:

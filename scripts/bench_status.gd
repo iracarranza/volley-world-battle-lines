@@ -5,6 +5,8 @@ const RETURN_SECONDS := 1.0
 const HOME := Vector3(0, 0.03, 48)
 const EXIT := Vector3(0, 0.03, 46.5)
 const SEAT_HEIGHT := 0.55
+var home := HOME
+var exit := EXIT
 var lab: Node3D
 var active := false
 var remaining := 0.0
@@ -21,12 +23,14 @@ var next: Button
 
 func setup(owner_lab: Node3D) -> void:
 	lab = owner_lab
-	lab.world_builder.box(self, Vector3(3.4,0.16,0.9), HOME + Vector3(0,SEAT_HEIGHT - 0.08,0), Color("a78653"))
-	lab.world_builder.box(self, Vector3(3.4,0.7,0.12), HOME + Vector3(0,0.95,0.44), Color("a78653"))
+	home = lab.bench_home()
+	exit = home+(EXIT-HOME)
+	lab.world_builder.box(self, Vector3(3.4,0.16,0.9), home + Vector3(0,SEAT_HEIGHT - 0.08,0), Color("a78653"))
+	lab.world_builder.box(self, Vector3(3.4,0.7,0.12), home + Vector3(0,0.95,0.44), Color("a78653"))
 	for x in [-1.3,1.3]:
 		for z in [-0.30,0.30]:
-			lab.world_builder.box(self, Vector3(0.13,0.47,0.13), HOME + Vector3(x,0.235,z), Color("526575"))
-	lab.world_builder.world_label("HOME BENCH", HOME + Vector3(0,2.2,0.8), 32, Color("f4cf75"))
+			lab.world_builder.box(self, Vector3(0.13,0.47,0.13), home + Vector3(x,0.235,z), Color("526575"))
+	lab.world_builder.world_label("HOME BENCH", home + Vector3(0,2.2,0.8), 32, Color("f4cf75"))
 	panel = PanelContainer.new()
 	lab.hud.ui.add_child(panel)
 	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
@@ -111,11 +115,11 @@ func tick(dt: float) -> void:
 	flight_age += step
 	lab.athlete.recover(step,true)
 	var progress := clampf(flight_age / RETURN_SECONDS,0,1)
-	lab.player.position = origin.lerp(HOME, smoothstep(0,1,progress)) + Vector3.UP * sin(progress*PI) * 6.0
+	lab.player.position = origin.lerp(home, smoothstep(0,1,progress)) + Vector3.UP * sin(progress*PI) * 6.0
 	lab.player.velocity = Vector3.ZERO
 	if remaining <= 0.000001:
 		clear()
-		lab.player.position = EXIT
+		lab.player.position = exit
 		lab.camera_rig.facing_yaw = 0
 		lab.camera_rig.view_yaw = 0
 		lab.camera_rig.camera_anchor_ready = false
@@ -193,7 +197,7 @@ func apply_pose() -> void:
 		body.get_node("Torso").rotation.x = 0.15
 		body.get_node("Head").rotation.x = 0.15
 	else:
-		var heading: Vector3 = HOME-origin
+		var heading: Vector3 = home-origin
 		body.rotation.y = atan2(-heading.x,-heading.z)
 		body.rotation.x = -0.2
 

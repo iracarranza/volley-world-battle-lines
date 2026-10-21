@@ -113,7 +113,7 @@ func _build_floor() -> void:
 
 func _build_central_line() -> void:
 	_decal(Vector2(Layout.HALF * 1.7, 0.2), Vector3.ZERO, GOLD, 0.0, 0.7)
-	_label("CENTRAL LINE", Vector3(-62.0, 0.4, 0.0), 30, GOLD)
+	_label("CENTRAL LINE", Vector3(-62.0*Layout.SPACING, 0.4, 0.0), 30, GOLD)
 
 func _build_bases() -> void:
 	for team_name in ["blue", "red"]:
@@ -143,8 +143,8 @@ func _build_lanes() -> void:
 				var length := a.distance_to(b) + Layout.LANE_WIDTH * 0.35
 				_decal(Vector2(Layout.LANE_WIDTH, length), Vector3(middle.x, 0.0, middle.y), LANE_COLOR.lightened(0.05 * i), _segment_yaw(a, b))
 		var mid_net := Layout.net_by_id(lane)
-		_label("%s LANE" % lane.to_upper(), Vector3(float(mid_net.position.x) * 0.55 - (3.0 if lane == "top" else (-3.0 if lane == "bottom" else 0.0)), 0.5, 36.0), 30, TEAL)
-		_label("%s LANE" % lane.to_upper(), Vector3(float(mid_net.position.x) * 0.55 - (3.0 if lane == "top" else (-3.0 if lane == "bottom" else 0.0)), 0.5, -36.0), 30, TEAL)
+		_label("%s LANE" % lane.to_upper(), Vector3(float(mid_net.position.x) * 0.55 - (3.0 if lane == "top" else (-3.0 if lane == "bottom" else 0.0)), 0.5, 36.0*Layout.SPACING), 30, TEAL)
+		_label("%s LANE" % lane.to_upper(), Vector3(float(mid_net.position.x) * 0.55 - (3.0 if lane == "top" else (-3.0 if lane == "bottom" else 0.0)), 0.5, -36.0*Layout.SPACING), 30, TEAL)
 
 func _build_nets() -> void:
 	for net in Layout.nets():
@@ -193,69 +193,61 @@ func _build_lane_walls() -> void:
 				var direction := (b - a).normalized()
 				var normal := Vector2(-direction.y, direction.x)
 				var run := a.distance_to(b)
-				var along := 6.0
+				var along := 6.0*Layout.SPACING
 				while along + 8.0 <= run:
-					var middle := a + direction * (along + 4.0)
-					if absf(middle.y) < 50.0 and absf(middle.y) > 13.0:
+					var middle := a + direction * (along + 4.0*Layout.SPACING)
+					if absf(middle.y) < 50.0*Layout.SPACING and absf(middle.y) > 13.0*Layout.SPACING:
 						var height := 1.0 if piece % 2 == 0 else 2.2
 						for side in [-1.0, 1.0]:
 							var spot: Vector2 = middle + normal * side * (Layout.LANE_WIDTH * 0.5 + 0.9)
 							_box(Vector3(0.6, height, 8.0), _at(Vector3(spot.x, height * 0.5, spot.y), _segment_yaw(a, b)), WALL_COLOR, true)
 						piece += 1
-					along += 14.0
+					along += 14.0*Layout.SPACING
 
 # One jungle sector: the Serve Receive Drill pad, dividers, a stair of ledges, a ramp and platform, and a ledge too high to reach.
 func _build_sector(center: Vector2) -> void:
 	var mx := -signf(center.x)
 	var mz := signf(center.y)
+	if options.get("hosted",false):
+		_build_sector_obstacles(center)
+		return
 	var pad := Layout.sector_point(center, 0.0, 0.0)
 	_decal(Vector2(6.0, 6.0), pad, Color("5f6b3f"), 0.0, 0.9)
 	_label("SERVE RECEIVE" + (" (marker)" if options.get("hosted", false) else ""), pad + Vector3(0.0, 1.2, 0.0), 28, GOLD)
+	_build_sector_obstacles(center)
+
+func _build_sector_obstacles(center: Vector2) -> void:
+	var mx := -signf(center.x)
+	var mz := signf(center.y)
 	for local_x in [-6.0, 6.0]:
 		var yaw := deg_to_rad(15.0) * mx * mz * (1.0 if local_x < 0.0 else -1.0)
 		_box(Vector3(8.0, 2.0, 0.6), _at(Layout.sector_point(center, local_x, -6.0) + Vector3(0.0, 1.0, 0.0), yaw), WALL_COLOR, true)
 	for i in range(STEP_HEIGHTS.size()):
 		var height: float = STEP_HEIGHTS[i]
-		var spot := Layout.sector_point(center, -9.0 + 3.2 * float(i), 4.0)
+		var spot := Layout.sector_step(center,i)
 		_box(Vector3(3.0, height, 4.0), _at(spot + Vector3(0.0, height * 0.5, 0.0)), Color("6d7f88").lightened(0.06 * i), true)
 	_label("LEDGES %.1f / %.1f / %.1f m" % [STEP_HEIGHTS[0], STEP_HEIGHTS[1], STEP_HEIGHTS[2]], Layout.sector_point(center, -5.8, 4.0) + Vector3(0.0, 3.2, 0.0), 22, TEAL)
-	var low := Layout.sector_point(center, 9.0, -2.0)
-	var high := Layout.sector_point(center, 9.0, 3.0) + Vector3(0.0, 1.0, 0.0)
+	var low := Layout.sector_point(center, 9.0, 0.0)+Vector3(0,0,-2*mz)
+	var high := Layout.sector_point(center, 9.0, 0.0)+Vector3(0,0,3*mz) + Vector3(0.0, 1.0, 0.0)
 	var slope := high - low
 	var ramp_center := (low + high) * 0.5 - Vector3(0.0, 0.2, 0.0)
 	_box(Vector3(3.0, 0.4, slope.length()), Transform3D(Basis.looking_at(slope.normalized(), Vector3.UP), ramp_center), Color("7a8d96"), true)
-	var platform := Layout.sector_point(center, 9.0, 5.0)
+	var platform := Layout.sector_point(center, 9.0, 0.0)+Vector3(0,0,5*mz)
 	_box(Vector3(3.0, 1.0, 4.0), _at(platform + Vector3(0.0, 0.5, 0.0)), Color("6d7f88"), true)
 	_label("RAMP + 1.0 m", platform + Vector3(0.0, 2.2, 0.0), 22, TEAL)
 	var block := Layout.sector_point(center, -10.0, -9.0)
 	_box(Vector3(3.0, 2.2, 3.0), _at(block + Vector3(0.0, 1.1, 0.0)), Color("8a6a5a"), true)
 	_label("HIGH LEDGE 2.2 m (needs mobility, G)", block + Vector3(0.0, 3.6, 0.0), 22, ORANGE)
 
-# Drill and Energy Drink positions: markers only.
+# Markers and gameplay share Layout's positions. Hosted drills supply their own visuals.
 func _build_markers() -> void:
-	var skipped: Array = options.get("skip_markers", [])
-	var tag := " (marker)" if options.get("hosted", false) else ""
-	for sign_z in [-1.0, 1.0]:
-		var half := "blue" if sign_z > 0.0 else "red"
-		if not skipped.has("box_jump_" + half):
-			_decal(Vector2(8.0, 8.0), Vector3(-46.0, 0.0, sign_z * 22.0), Color("7a6a3a"), 0.0, 0.9)
-			_label("BOX JUMP" + tag, Vector3(-46.0, 1.4, sign_z * 22.0), 28, GOLD)
-		if not skipped.has("transition_set_" + half):
-			_decal(Vector2(8.0, 8.0), Vector3(46.0, 0.0, sign_z * 22.0), Color("3a6a7a"), 0.0, 0.9)
-			_label("TRANSITION SET" + tag, Vector3(46.0, 1.4, sign_z * 22.0), 28, GOLD)
-	var sectors := Layout.sectors()
-	for i in range(sectors.size()):
-		if skipped.has("spike_%d" % i) or (options.get("skip_sectors", []) as Array).has(i):
-			continue
-		var spike := Layout.sector_point(sectors[i], 3.0, -9.0)
-		_decal(Vector2(4.0, 4.0), spike, Color("7a4a3a"), 0.0, 0.9)
-		_label("SPIKE TRAINER" + tag, spike + Vector3(0.0, 1.2, 0.0), 24, ORANGE)
-	var drink_spots: Array[Vector3] = []
-	for sign_x in [-1.0, 1.0]:
-		for sign_z in [-1.0, 1.0]:
-			drink_spots.append(Vector3(sign_x * Layout.PIT_X, 0.0, sign_z * 13.8))
-			drink_spots.append(Vector3(sign_x * 8.0, 0.0, sign_z * 52.0))
-	for spot in drink_spots:
+	for marker in Layout.drill_markers():
+		if (options.get("skip_markers",[]) as Array).has(marker.id) or marker.type == "receive": continue
+		var tint := ORANGE if marker.type == "spike" else GOLD
+		_decal(Vector2(4,4) if marker.type == "spike" else Vector2(8,8),marker.position,tint.darkened(0.5))
+		_label(String(marker.id).replace("_"," ").to_upper(),marker.position+Vector3.UP*1.4,28,tint)
+	if options.get("hosted",false): return # MapActivities owns interactive drinks.
+	for spot in Layout.drink_positions():
 		var drink := MeshInstance3D.new()
 		var cylinder := CylinderMesh.new()
 		cylinder.top_radius = 0.5
@@ -263,7 +255,6 @@ func _build_markers() -> void:
 		cylinder.height = 1.1
 		drink.mesh = cylinder
 		drink.material_override = _material(Color("5fe08a"))
-		drink.position = spot + Vector3(0.0, 0.55, 0.0)
+		drink.position = spot+Vector3.UP*0.55
 		add_child(drink)
-		_label("ENERGY DRINK", spot + Vector3(0.0, 1.8, 0.0), 22, Color("5fe08a"))
-
+		_label("ENERGY DRINK",spot+Vector3.UP*1.8,22,Color("5fe08a"))

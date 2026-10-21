@@ -222,7 +222,7 @@
 			],
 			"requires": [],
 			"standalone": false,
-			"text": "Passive: When you become Winded, gain 23% of your maximum Stamina back. (CD: 30s)",
+			"text": "Passive: When you become Winded, gain an additional 23 Stamina after the base 50% restoration. (CD: 30s)",
 			"weight": 1,
 			"merges": [],
 			"gameplay": []

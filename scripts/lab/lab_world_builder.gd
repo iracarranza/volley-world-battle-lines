@@ -48,7 +48,7 @@ func ring(radius: float, color: Color) -> MeshInstance3D:
 	lab.add_child(n)
 	return n
 
-func world_label(text: String, pos: Vector3, size: int, color: Color) -> void:
+func world_label(text: String, pos: Vector3, size: int, color: Color) -> Label3D:
 	var label := Label3D.new()
 	label.text = text
 	label.position = pos
@@ -57,6 +57,7 @@ func world_label(text: String, pos: Vector3, size: int, color: Color) -> void:
 	label.modulate = color
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	lab.add_child(label)
+	return label
 
 # Open exploration blockout: three lanes and traversable jungle space. A scene that hosts the lab on a different map replaces this
 # (see scripts/map_lab.gd) and keeps everything else, including the court and Net at the origin.
@@ -75,7 +76,7 @@ func build() -> void:
 	light.light_energy = 1.25
 	light.shadow_enabled = true
 	lab.add_child(light)
-	box(lab, Vector3(160, 0.2, 160), Vector3(0, -0.22, 0), Color("142333"))
+	box(lab, Vector3(lab.world_half_extent()*2, 0.2, lab.world_half_extent()*2), Vector3(0, -0.22, 0), Color("142333"))
 	lab._build_lanes_and_bases()
 	lab.court_outline = MeshInstance3D.new()
 	lab.court_outline.material_override = material(GOLD, true)
@@ -87,7 +88,7 @@ func build() -> void:
 	var floor_body := StaticBody3D.new()
 	var shape := CollisionShape3D.new()
 	var floor_shape := BoxShape3D.new()
-	floor_shape.size = Vector3(160, 0.2, 160)
+	floor_shape.size = Vector3(lab.world_half_extent()*2, 0.2, lab.world_half_extent()*2)
 	shape.shape = floor_shape
 	shape.position.y = -0.1
 	floor_body.add_child(shape)
