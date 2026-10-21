@@ -1292,6 +1292,8 @@ func _reset() -> void:
 	camera_rig.ball_movement_yaw = 0.0
 	animation.receive_posture = "planted"
 	animation.receive_pose_remaining = 0
+	animation.carry.reset()
+	animation.spike_impact_latched = false
 	animation.receive_pose_contact = Vector3.ZERO
 	if is_instance_valid(moc):
 		moc.clear()

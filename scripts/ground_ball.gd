@@ -4,6 +4,7 @@ const RADIUS := 0.105
 const MAX_BALLS := 3
 var balls: Array[Dictionary] = []
 var last_pickup_point := Vector3.ZERO
+var last_pickup_point := Vector3.ZERO
 var last_origin := -1 # the cart the most recently taken ball came from
 
 func clear() -> void:
@@ -95,6 +96,7 @@ func take_near(point: Vector3, radius: float) -> bool:
 		return false
 	var taken: Dictionary = balls[best]
 	last_origin = int(taken.get("origin", -1))
+	last_pickup_point = taken.mesh.global_position
 	last_pickup_point = taken.mesh.global_position
 	taken.mesh.queue_free()
 	taken.shadow.queue_free()
