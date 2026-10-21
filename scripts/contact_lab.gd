@@ -649,6 +649,7 @@ func _physics_process(dt: float) -> void:
 		auto_preparation.tick(world_dt,athlete,ball_shot,ball_velocity)
 	contact_flow.tick(world_dt)
 	ground_balls.tick(self,world_dt)
+	serve.tick_toss_charge(world_dt)
 	if ball_active:
 		ball.show()
 		shadow.show()
@@ -784,7 +785,7 @@ func _feed() -> void:
 func _can_contact() -> bool:
 	if is_benched():
 		return false
-	if serve.tossing():
+	if not serve.contacts_allowed():
 		return false
 	if pepper.active() and (pepper.npc_turn or locked_action != pepper.required_player_action()):
 		return false
@@ -961,9 +962,11 @@ func block_serve_fault(action: int,shot: Dictionary,actor: String,fault_side: in
 func _contact() -> void:
 	if _check_bench():
 		return
-	if serve.tossing():
+	if not serve.contacts_allowed():
 		return
 	if pepper.active() and (pepper.npc_turn or locked_action != pepper.required_player_action()):
+	if serve.state == serve.State.TOSS:
+		serve.clear() # played with an action: no longer a serve attempt (it stays a free ball)
 		_message("PEPPER / next contact: " + ACTIONS[pepper.player_action])
 		return
 	if locked_action == 0 and _local_contact_position().z > 0:
@@ -1097,7 +1100,7 @@ func _tick_ball(dt: float) -> void:
 	ball_velocity.y -= GRAVITY * dt
 	ball.rotate_x(dt * 4)
 	serve.tick(dt, previous)
-	if not serve.tossing() and not station.running() and not drills.running():
+	if not serve.tossing() and not inventory.free_ball and not station.running() and not drills.running():
 		pepper.try_start(previous)
 		if pepper.tick(world_dt):
 			return
@@ -1132,7 +1135,7 @@ func _tick_ball(dt: float) -> void:
 		if training_bots.active_action < 0:
 			training_bots.replan()
 
-	if not station.running() and not drills.running() and not serve.tossing() and not pepper.active() and (serve.state != serve.State.FLIGHT or serve.main_court) and training_bots.tick(world_dt):
+	if not station.running() and not drills.running() and not serve.tossing() and not inventory.free_ball and not pepper.active() and (serve.state != serve.State.FLIGHT or serve.main_court) and training_bots.tick(world_dt):
 		return
 	if (serve.state != serve.State.IDLE or pepper.active()) and not station.running() and not drills.running():
 		var query := PhysicsRayQueryParameters3D.create(previous, ball.position)
@@ -1192,10 +1195,14 @@ func _finish_landing(point: Vector3,message: String) -> void:
 	_finish(message,rally_rules.landing(point,court_center,court_half_width,court_half_depth,Geometry.VISUAL_BALL_RADIUS))
 
 func _finish(message: String,point_result: Dictionary = {}) -> void:
-	if not station.running() and not drills.running() and not pepper.active():
+	inventory.landed_free = inventory.free_ball
+	if inventory.free_ball:
+		message = "Free ball down / pick it up (I) before it despawns"
+	elif not station.running() and not drills.running() and not pepper.active():
 		rally_rules.record(point_result)
 		if not rally_rules.label().is_empty(): message += " / "+rally_rules.label()
 	block_state.land()
+	inventory.free_ball = false
 	contact_flow.end_rally()
 	clear_net_responses()
 	net_bounce_pending = false

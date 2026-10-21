@@ -32,6 +32,7 @@ func run() -> void:
 	# Exercise the actual lab ball step, not only the target's pure response.
 	var lab = load("res://map_graybox.tscn").instantiate()
 	root.add_child(lab)
+	lab.inventory.enabled = false # this suite exercises the drills' original single-ball flow; the economy has its own suite
 	lab.set_process(false)
 	lab.set_physics_process(false)
 	lab.moc.enabled = false

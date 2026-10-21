@@ -3,6 +3,7 @@ extends RefCounted
 const RADIUS := 0.105
 const MAX_BALLS := 3
 var balls: Array[Dictionary] = []
+var last_pickup_point := Vector3.ZERO
 var last_origin := -1 # the cart the most recently taken ball came from
 
 func clear() -> void:
@@ -30,8 +31,9 @@ func land(lab: Node3D,point: Vector3,incoming: Vector3,shot: Dictionary) -> void
 	lab.add_child(shade)
 	shade.global_position = point+Vector3.UP*0.025
 	var velocity := Vector3(incoming.x*0.78,absf(incoming.y)*0.42,incoming.z*0.78)
-	# With the ball economy on, an unstruck tossed ball (no shot recorded) can be picked up by anyone until it despawns.
-	var pickable: bool = lab.inventory.enabled and shot.is_empty()
+	# With the ball economy on, a free ball (tossed, never served) can be picked up by anyone until it despawns.
+	var pickable: bool = lab.inventory.enabled and lab.inventory.landed_free
+	lab.inventory.landed_free = false
 	balls.append({"mesh":mesh,"shadow":shade,"velocity":velocity,"floor":point.y,"age":0.0,"pickable":pickable,"origin":lab.inventory.pending_origin if pickable else -1,"opposing":lab.inventory.pending_opposing if pickable else false})
 	lab.moc.clear()
 	lab.moc.begin({"id":"ground:%d"%Time.get_ticks_usec(),"actor":"ground","action":5,"physical_hit":true,"point":mesh.global_position,"incoming_velocity":incoming,"outgoing_velocity":velocity,"incoming_shot":shot})
@@ -93,6 +95,7 @@ func take_near(point: Vector3, radius: float) -> bool:
 		return false
 	var taken: Dictionary = balls[best]
 	last_origin = int(taken.get("origin", -1))
+	last_pickup_point = taken.mesh.global_position
 	taken.mesh.queue_free()
 	taken.shadow.queue_free()
 	balls.remove_at(best)

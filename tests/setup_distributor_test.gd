@@ -75,5 +75,87 @@ func run() -> void:
 	check(lab.inventory.held and drill.distributor.pile == 4, "I takes one reward ball")
 	drill._interact_setup()
 	check(drill.distributor.pile == 4, "Hands full: no second reward ball")
+	# The other Setups
+	var transition = null
+	for course in lab.activities.courses:
+		if course.has_method("feed"):
+			transition = course
+			break
+	check(transition != null and transition.economy() and transition.distributor.ready(), "The Transition Set is a Setup")
+	lab.inventory.consume()
+	lab.player.global_position = transition.anchor + Vector3(0.5, 0, 0.5)
+	transition._interact_setup()
+	check(transition.distributor.ready(), "It needs a ball to start")
+	lab.inventory.give()
+	transition._interact_setup()
+	check(transition.distributor.running() and not lab.inventory.held and transition.waiting and transition.distributor.balls == 9, "Giving up a ball starts it and queues the first pass")
+	for i in range(5):
+		transition.spike_state = transition.State.RETURNING
+		transition._score()
+	check(transition.distributor.last_result == "complete" and transition.distributor.pile == 6 and transition.distributor.pile_owner == "player", "Five baskets complete it (pile %d)" % transition.distributor.pile)
+	var station = lab.activities.stations[1]
+	check(station.economy() and station.distributor.ready(), "The Serve Machine is a Setup")
+	lab.inventory.consume()
+	station._interact_setup()
+	check(station.distributor.ready(), "It needs a ball to start")
+	lab.inventory.give()
+	lab.player.global_position = station.start_world()
+	station.interact()
+	check(station.distributor.running() and not lab.inventory.held and station.state == station.State.WAITING, "Giving up a ball starts the Serve Machine")
+	station.timer = 0.0
+	station.tick(0.1)
+	check(station.distributor.balls == 9 and station.state == station.State.TOSS, "The machine sends one ball per serve")
+	station.state = station.State.RETURNING
+	station.last_points = 0
+	lab.ball.position = station.target_world(0)
+	station.on_ball_down()
+	check(station.distributor.errors == 1 and station.state == station.State.WAITING, "A return that does not score is an error and the next serve follows")
+	for i in range(5):
+		station.state = station.State.RETURNING
+		station.cleared = true
+		lab.ball.position = station.start_world() + Vector3(0.5, 0, -3.0)
+		station.on_ball_down()
+	check(station.distributor.last_result == "complete" or station.distributor.reps >= 1, "Scoring returns count as reps (%d)" % station.distributor.reps)
+	# Parking and the rack on the Spike Trainer
+	var spike = lab.activities.courses[0]
+	spike.distributor.phase = spike.distributor.Phase.READY
+	spike.distributor.pile = 0
+	spike.distributor.balls = 10
+	lab.ball_active = false
+	spike.spike_state = spike.State.IDLE
+	lab.inventory.give()
+	lab.player.global_position = spike.spike_start_world()
+	lab.drills = spike
+	spike.tick_setup(0.1)
+	check(spike.rack.visible_balls() == 10 and spike.rack.locked_bars() == 10, "The rack shows ten balls behind locked bars")
+	spike._interact_setup()
+	spike.tick_setup(2.0)
+	check(spike.rack.visible_balls() == 9 and spike.rack.locked_bars() == 9, "Sending a ball releases one (9 left, 9 locked)")
+	lab.player.global_position = spike.spike_start_world() + Vector3(60, 0, 0)
+	spike.tick_setup(0.1)
+	check(spike.parked and not lab.ball_active and not spike.running() and spike.parked_mesh.visible, "Walking off parks the hung ball and frees the live ball")
+	lab.ball_active = true # another rally uses the live ball meanwhile
+	lab.player.global_position = spike.spike_start_world()
+	spike.tick_setup(0.1)
+	check(spike.parked, "It does not resume while the live ball is busy")
+	lab.ball_active = false
+	spike.tick_setup(0.1)
+	check(not spike.parked and spike.running() and lab.ball_active, "Back at the spot with the live ball free, the ball resumes")
+	for i in range(5):
+		spike.spike_state = spike.State.RETURNING
+		lab.ball.position = Vector3(spike.spike_anchor.x + spike.SPIKE_GOAL.x, 0.1, spike.spike_anchor.z + spike.SPIKE_GOAL.z)
+		spike._economy_ball_down()
+	spike.tick_setup(3.0)
+	var pile: int = spike.distributor.pile
+	check(pile == 6 and spike.rack.visible_balls() == pile and spike.rack.locked_bars() == 0, "On completion all bars rise and the reward balls wait (%d)" % pile)
+	var bar_up := true
+	for slot in range(spike.rack.SLOTS):
+		if spike.rack.balls[slot].visible and spike.rack.bars[slot].position.y < spike.rack.balls[slot].position.y + 0.3:
+			bar_up = false
+	check(bar_up, "The bars have risen clear of the balls")
+	lab.inventory.consume()
+	spike._interact_setup()
+	spike.tick_setup(0.1)
+	check(spike.rack.visible_balls() == pile - 1, "Claiming a reward ball takes it off the rack")
 	print("setup_distributor: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)

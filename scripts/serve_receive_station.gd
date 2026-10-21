@@ -49,6 +49,10 @@ var cross_height := 0.0
 var previous_ball := Vector3.INF
 # Where the whole station sits in the world. Zero in the Contact Lab; a hosting scene moves it (LabHost: lab.station_origin).
 var origin := Vector3.ZERO
+const Distributor := preload("res://scripts/setup_distributor.gd")
+var distributor := Distributor.new() # the Serve Machine as a Setup (map ball economy)
+var setup_label: Label3D
+var rack: Node3D
 
 func setup(owner_lab: Node3D,anchor: Vector3 = Vector3.INF) -> void:
 	lab = owner_lab
@@ -88,6 +92,16 @@ func setup(owner_lab: Node3D,anchor: Vector3 = Vector3.INF) -> void:
 	feeder_label.pixel_size = 0.008
 	feeder_label.modulate = Color("8bbdf4")
 	feeder_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	setup_label = Label3D.new()
+	add_child(setup_label)
+	setup_label.position = START + Vector3(0, 3.4, 1.5)
+	setup_label.font_size = 26
+	setup_label.pixel_size = 0.008
+	setup_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	rack = preload("res://scripts/setup_rack.gd").new()
+	rack.position = START + Vector3(-2.4, 0, 1.2)
+	add_child(rack)
+	rack.build(lab, Color("8bbdf4"))
 
 # A red holographic wall along the half line, as high as a receive has to be to count: translucent, unlit, with scan lines and a bright top edge.
 # It has no collision; the ball passes through it and only the height it passes at matters.
@@ -150,7 +164,16 @@ func target_world(index: int) -> Vector3:
 func running() -> bool:
 	return state in [State.WAITING, State.TOSS, State.SERVING, State.RETURNING]
 
+func economy() -> bool:
+	return lab.inventory.enabled
+
 func interact() -> void:
+	if economy():
+		if in_zone() or distributor.pile > 0:
+			_interact_setup()
+		else:
+			lab._message("Walk east along the blue path to the Serve Machine, then press I.")
+		return
 	if running():
 		stop()
 	elif in_zone():
@@ -176,6 +199,56 @@ func start() -> void:
 	lab.confirm_window = 0
 	detail = "Get ready / receive into the scoring half / reach 8 points. Move + Space to dive."
 	lab._message(detail)
+
+# --- Setup (ball economy): the Serve Machine sends one serve per distributor ball; a scoring receive is a rep ---------------------------
+func _interact_setup() -> void:
+	if distributor.pile > 0 and distributor.pile_owner == "player":
+		if lab.inventory.held:
+			lab._message("Hands full / %d reward balls waiting" % distributor.pile)
+		elif distributor.claim("player"):
+			lab.inventory.give()
+			lab._message("SERVE MACHINE / reward ball taken / %d left" % distributor.pile)
+		return
+	if distributor.ready():
+		if not lab.inventory.consume():
+			lab._message("SERVE MACHINE / give up a ball to start (take one from a cart)")
+			return
+		distributor.activate("player")
+		start()
+		return
+	lab._message(distributor.status())
+
+# One sent serve has been used: a scoring receive is a rep, anything else an error.
+func _serve_used(success: bool, reason: String) -> void:
+	lab.ball_active = false
+	state = State.IDLE
+	var result: String = distributor.record(success, "player")
+	match result:
+		"complete":
+			earned_xp += 25
+			lab.athlete.hp = minf(100, lab.athlete.hp + 20)
+			lab.athlete.stamina = minf(lab.athlete.max_stamina(), lab.athlete.stamina + 15)
+			detail = "SERVE MACHINE COMPLETE / %d reward balls to claim (I) / +25 lab XP / reactivates in %ds" % [distributor.pile, ceili(distributor.cooldown)]
+			lab._message(detail)
+		"failed":
+			detail = "SERVE MACHINE FAILED / out of balls / reactivates in %ds" % ceili(distributor.cooldown)
+			lab._message(detail)
+		_:
+			if not reason.is_empty():
+				lab._message("%s / ball used up" % reason)
+			state = State.WAITING
+			timer = 1.0
+
+func tick_setup(dt: float) -> void:
+	distributor.tick(dt)
+	if is_instance_valid(rack):
+		rack.visible = economy()
+		rack.sync(distributor, dt, "player")
+	if is_instance_valid(setup_label):
+		setup_label.visible = economy()
+		var text: String = distributor.status()
+		if setup_label.text != text:
+			setup_label.text = text
 
 func stop() -> void:
 	state = State.IDLE
@@ -217,7 +290,10 @@ func tick(dt: float) -> void:
 		_track_height()
 		if timer <= 0:
 			last_points = 0
-			advance()
+			if economy():
+				_serve_used(false, "The return never landed")
+			else:
+				advance()
 
 # Watches the returned ball cross the half line, and whether it went over the barrier. The height is where the ball path meets the plane.
 func _track_height() -> void:
@@ -261,6 +337,12 @@ func next_feed() -> int:
 	return int(feed_bag.pop_back())
 
 func serve() -> void:
+	if economy() and not distributor.send():
+		state = State.IDLE
+		lab.ball_active = false
+		detail = "SERVE MACHINE / out of balls"
+		lab._message(detail)
+		return
 	state = State.TOSS
 	feed_index = next_feed()
 	toss_elapsed = 0
@@ -306,6 +388,9 @@ func on_contact(action: int, charge_matched: bool = true) -> void:
 	if state != State.SERVING:
 		return
 	if action != 0:
+		if economy():
+			_serve_used(false, "Receive required")
+			return
 		fail("Receive required. I to retry.")
 		return
 	# A shank remains a physical receive. Only its landing determines points.
@@ -331,6 +416,9 @@ func landing_points(point_in_world: Vector3) -> int:
 
 func on_ball_down(landing: Vector3 = Vector3.INF) -> void:
 	if state == State.SERVING:
+		if economy():
+			_serve_used(false, "Missed the serve")
+			return
 		fail("Missed serve. I to retry.")
 	elif state == State.RETURNING:
 		last_landing = lab.ball.position if landing == Vector3.INF else landing
@@ -338,6 +426,9 @@ func on_ball_down(landing: Vector3 = Vector3.INF) -> void:
 		points += last_points
 		if last_points > 0:
 			streak += 1
+		if economy():
+			_serve_used(last_points > 0, "" if last_points > 0 else "The return missed the scoring half")
+			return
 		advance()
 
 func advance() -> void:

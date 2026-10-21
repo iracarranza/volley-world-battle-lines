@@ -34,7 +34,7 @@ func run() -> void:
 	lab.inventory.give()
 	lab.serve.input_press()
 	check(lab.serve.state == lab.serve.State.TOSS_CHARGE and lab.inventory.held and not lab.ball_active, "With a ball, E starts charging the toss and keeps the ball in hand")
-	lab.serve.tick(0.2, lab.ball.position)
+	lab.serve.tick_toss_charge(0.2)
 	lab.serve.release()
 	var low_speed: float = lab.ball_velocity.y
 	check(lab.serve.state == lab.serve.State.TOSS and lab.ball_active and not lab.inventory.held, "Release tosses and the ball leaves the hand")
@@ -44,7 +44,7 @@ func run() -> void:
 	lab.inventory.give()
 	lab.serve.input_press()
 	for i in range(20):
-		lab.serve.tick(0.1, lab.ball.position)
+		lab.serve.tick_toss_charge(0.1)
 	lab.serve.release()
 	check(is_equal_approx(lab.ball_velocity.y, lab.serve.TOSS_SPEED_MAX), "A full charge tosses at the maximum speed (%.2f)" % lab.ball_velocity.y)
 	check(lab.ball_velocity.y > low_speed, "A longer charge tosses higher")
@@ -54,7 +54,32 @@ func run() -> void:
 		lab._tick_ball(1.0 / 120.0)
 		frames += 1
 	check(not lab.ball_active and lab.ground_balls.pickable_count() == 1, "The unstruck toss lands as one pickable ground ball (%d)" % lab.ground_balls.pickable_count())
-	# Pickup
+	check(not lab.inventory.free_ball, "The landing ends the free ball")
+	# A free ball: any action may play it while it is in the air (not mid-swing), it is not a rally, and it scores nothing
+	lab.inventory.give()
+	lab.serve.input_press()
+	lab.serve.release()
+	check(lab.inventory.free_ball and lab.serve.state == lab.serve.State.TOSS and lab.serve.contacts_allowed(), "A tossed ball is free and open to every action")
+	lab.serve.state = lab.serve.State.SWING
+	check(not lab.serve.contacts_allowed(), "...but not during the serve swing")
+	lab.serve.state = lab.serve.State.TOSS
+	var points_before: int = lab.rally_rules.home_points if "home_points" in lab.rally_rules else 0
+	frames = 0
+	while lab.ball_active and frames < 2000:
+		lab._tick_ball(1.0 / 120.0)
+		frames += 1
+	check(not lab.ball_active and lab.ground_balls.pickable_count() >= 1, "A free ball that lands scores nothing and can be picked up")
+	check(("home_points" not in lab.rally_rules) or lab.rally_rules.home_points == points_before, "No point was recorded for the free ball")
+	# A Serve ends the free state
+	lab.inventory.free_ball = true
+	lab.serve._finish_strike(Vector3.ZERO, false)
+	check(not lab.inventory.free_ball, "A Serve makes it a rally ball")
+	lab.serve.clear()
+	lab.ball_active = false
+	# Pickup (start from a single loose ball)
+	lab.ground_balls.clear()
+	lab.inventory.landed_free = true
+	lab.ground_balls.land(lab, lab.player.global_position + Vector3(0, 0, 3), Vector3.DOWN * 2.0, {})
 	var ball_at: Vector3 = lab.ground_balls.balls[0].mesh.global_position
 	lab.player.global_position = ball_at + Vector3(6, 0, 0)
 	check(not lab.inventory.try_pickup(lab) and not lab.inventory.held, "Too far to pick up")
@@ -63,6 +88,7 @@ func run() -> void:
 	check(not lab.inventory.try_pickup(lab), "Hands full: no second ball")
 	# Despawn
 	lab.inventory.consume()
+	lab.inventory.landed_free = true
 	lab.ground_balls.land(lab, ball_at, Vector3.DOWN * 2.0, {})
 	check(lab.ground_balls.pickable_count() == 1, "Another loose ball")
 	for i in range(100):
@@ -111,6 +137,7 @@ func run() -> void:
 	check(carts.carts[index].team != tosser_team or true, "setup")
 	map_lab.inventory.pending_origin = index
 	map_lab.inventory.pending_opposing = true
+	map_lab.inventory.landed_free = true
 	map_lab.ground_balls.land(map_lab, map_lab.player.global_position, Vector3.DOWN * 2.0, {})
 	for i in range(100):
 		map_lab.ground_balls.tick(map_lab, 0.06)

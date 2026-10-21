@@ -112,6 +112,7 @@ func press() -> void:
 
 func _begin_toss(up_speed: float) -> void:
 	if lab.inventory.enabled:
+		lab.inventory.free_ball = true
 		lab.inventory.pending_origin = lab.inventory.release_origin()
 		lab.inventory.pending_opposing = lab.inventory.pending_origin >= 0 and is_instance_valid(lab.ball_carts) and lab.ball_carts.carts[lab.inventory.pending_origin].team != lab.player_team()
 	lab.prepare_serve_context()
@@ -164,17 +165,24 @@ func apply_pose() -> void:
 	arm.get_node("Elbow").rotation = Vector3.ZERO
 	lab.arms[1 - dominant].rotation.x = 1.15 if state == State.TOSS else 0.5
 
-func tick(dt: float, previous_ball: Vector3) -> void:
-	if state == State.TOSS_CHARGE:
-		if lab.athlete.exhausted or lab.is_benched() or lab.paused:
-			state = State.IDLE
-			input_held = false
-			toss_charge = 0.0
-			lab._message("Toss cancelled")
-		else:
-			toss_charge = minf(toss_charge + dt, TOSS_CHARGE_SECONDS)
-			lab._message("TOSS / %d%% / release to toss" % roundi(toss_charge / TOSS_CHARGE_SECONDS * 100.0))
+# The toss charge builds every frame the key is held (the ball is not in the air yet, so the ball tick does not run).
+func tick_toss_charge(dt: float) -> void:
+	if state != State.TOSS_CHARGE:
 		return
+	if lab.athlete.exhausted or lab.is_benched() or lab.paused:
+		state = State.IDLE
+		input_held = false
+		toss_charge = 0.0
+		lab._message("Toss cancelled")
+		return
+	toss_charge = minf(toss_charge + dt, TOSS_CHARGE_SECONDS)
+	lab._message("TOSS / %d%% / release to toss" % roundi(toss_charge / TOSS_CHARGE_SECONDS * 100.0))
+
+# Contact actions may play a tossed ball (not mid-swing or channel) when the ball economy is on; only a Serve starts a rally.
+func contacts_allowed() -> bool:
+	return not tossing() or (lab.inventory.enabled and state == State.TOSS)
+
+func tick(dt: float, previous_ball: Vector3) -> void:
 	if tossing() and (lab.athlete.exhausted or lab.is_benched()):
 		clear()
 		lab.ball_active = false
@@ -281,6 +289,7 @@ func basic_strike() -> void:
 	lab._message("STANDING SERVE / safe arc into the opposing court")
 
 func _finish_strike(incoming: Vector3, sweet: bool) -> void:
+	lab.inventory.free_ball = false # a Serve: now the ball starts a Pepper or Rally
 	state = State.FLIGHT
 	follow_time = 0.22
 	lab.outgoing = true

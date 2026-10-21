@@ -29,6 +29,7 @@ func run() -> void:
 	plain.free()
 	var lab = load("res://map_graybox.tscn").instantiate()
 	root.add_child(lab)
+	lab.inventory.enabled = false # this suite exercises the drills' original single-ball flow; the economy has its own suite
 	await steps(lab, 20)
 	# It is the lab: the athlete, the creator, the bots, the Drills, the serve and Pepper machinery are all there.
 	check(lab.get_script().get_base_script().resource_path == "res://scripts/contact_lab.gd", "the graybox script extends the Contact Lab")

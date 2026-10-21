@@ -19,7 +19,7 @@ static func predict(lab: Node3D) -> Dictionary:
 		live.merge({"contact_ready":true,"action":lab.moc.steering.action,"steering":true,"color":lab.moc.steering_feedback.get("color",Color("59d8ff")),"hp_cost":lab.moc.steering.spent})
 		live.make_read_only()
 		return live
-	if lab.is_benched() or not lab.ball_active or not (lab.armed or lab.charging) or lab.serve.tossing():
+	if lab.is_benched() or not lab.ball_active or not (lab.armed or lab.charging) or not lab.serve.contacts_allowed():
 		return {}
 	var action: int = lab.locked_action if lab.armed else (lab.motion.airborne_action if lab.motion.jumped and lab.motion.airborne_action >= 0 else lab.selected)
 	var origin: Vector3 = lab.ball.position

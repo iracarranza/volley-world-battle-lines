@@ -141,6 +141,30 @@ static func drink_positions() -> Array[Vector3]:
 		for z in [-1.0,1.0]:
 			result.append(Vector3(x*PIT_X,0,z*13.8*SPACING))
 			result.append(Vector3(x*8,0,z*52)*SPACING)
+	result.append_array(outer_drink_positions())
+	result.append_array(top_vertex_drink_positions())
+	return result
+
+# Drinks for the top laners at the vertex where the diagonal meets the straight run to the Net, inside the Box Jump area. Mirrored across the
+# central line like the lane itself, so each team's top laner has one.
+const VERTEX_DRINK_OFFSET := 4.5 # metres outward (away from the lane, into the Box Jump pad)
+static func top_vertex_drink_positions() -> Array[Vector3]:
+	var vertex: Vector2 = lane_points("top")[1]
+	var result: Array[Vector3] = []
+	for sign_z in [1.0, -1.0]:
+		result.append(Vector3(vertex.x - VERTEX_DRINK_OFFSET, 0.0, sign_z * vertex.y))
+	return result
+
+# A slightly unsafe pair of drinks beyond the bottom lane Net, between the two Transition Set spots. It is mirrored across the central line
+# (not rotated to the top lane), so both teams' bottom-lane pairs can reach one, and it follows the bottom Net if that Net moves.
+const OUTER_DRINK_GAP := 10.0 # metres past the Net's end
+const OUTER_DRINK_Z := 8.0    # metres either side of the central line
+static func outer_drink_positions() -> Array[Vector3]:
+	var net := net_by_id("bottom")
+	var x: float = float(net.position.x) + float(net.width) * 0.5 + OUTER_DRINK_GAP
+	var result: Array[Vector3] = []
+	for z in [-OUTER_DRINK_Z, OUTER_DRINK_Z]:
+		result.append(Vector3(x,0,z))
 	return result
 
 static func overlaps_drill(bounds: Rect2,clearance: float = 0.0) -> bool:

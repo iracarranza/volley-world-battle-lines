@@ -25,6 +25,16 @@ func setup(host: Node3D,_anchors: Dictionary = {}) -> void:
 	add_child(basket)
 	basket.build(lab.GOLD)
 	goal_label = lab.world_builder.world_label("",anchor,24,lab.GOLD)
+	setup_label = Label3D.new()
+	setup_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	setup_label.font_size = 26
+	setup_label.pixel_size = 0.008
+	setup_label.position = anchor+Vector3(0,3.4,4.0)
+	add_child(setup_label)
+	rack = preload("res://scripts/setup_rack.gd").new()
+	rack.position = anchor+Vector3(-3.2,0,4.4)
+	add_child(rack)
+	rack.build(lab,lab.TEAL)
 	move_target()
 	partner = Node3D.new()
 	partner.position = anchor+Vector3(-5,0,-5)
@@ -58,7 +68,28 @@ func in_spike_zone() -> bool: return false
 func update_one_way() -> void: pass
 func holding_ball() -> bool: return false
 
+# --- Setup (ball economy): give up a ball, the partner passes one ball per rep, three sets are not needed: five reps through the basket ----
+func economy() -> bool:
+	return lab.inventory.enabled
+
+func setup_name() -> String:
+	return "TRANSITION SET"
+
+func _begin_setup_run() -> void:
+	lab.station.stop()
+	progress = 0
+
+func _launch_setup_ball() -> void:
+	spike_state = State.ACTIVE
+	waiting = true
+	timer = 1.0
+	detail = "TRANSITION SET / rep %d of %d / %d errors / %d balls left / partner preparing" % [distributor.reps + 1, distributor.min_reps, distributor.errors, distributor.balls]
+	lab._message(detail)
+
 func interact() -> void:
+	if economy():
+		_interact_setup()
+		return
 	if running():
 		reset()
 		lab.ball_active = false
@@ -103,11 +134,15 @@ func tick(dt: float) -> void:
 	timer -= dt
 	if timer <= 0:
 		if waiting: feed()
+		elif economy(): _spike_used(false, "player", "Transition Set ball timed out")
 		else: fail("Transition Set timed out / I to retry")
 
 func on_contact(action: int) -> void:
 	if spike_state != State.ACTIVE or waiting: return
 	if action != 1:
+		if economy():
+			_spike_used(false, "player", "Set the partner's receive")
+			return
 		fail("Set the partner's receive / I to retry")
 		return
 	spike_state = State.RETURNING
@@ -125,9 +160,17 @@ func sweep_ball(previous: Vector3,dt: float) -> bool:
 	return false
 
 func on_ball_down() -> void:
+	if economy():
+		if spike_state in [State.ACTIVE, State.RETURNING] and not waiting:
+			_spike_used(false, "player", "Missed the basket")
+		return
 	fail("Missed basket / Set must enter down through its front / I to retry")
 
 func _score() -> void:
+	if economy():
+		progress += 1
+		_spike_used(true, "player", "")
+		return
 	lab.ball_active = false
 	progress += 1
 	if progress >= PASSES_REQUIRED:

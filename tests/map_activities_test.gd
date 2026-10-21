@@ -60,17 +60,40 @@ func run() -> void:
 				check(drill.spike_state == drill.State.RETURNING and lab.ball_shot.kind == "set","Normal player contact resolver advances Transition Set")
 				score_basket(drill,lab)
 				check(drill.progress == 1 and drill.waiting,"A descending set through the target scores and queues the next partner receive")
-				for attempt in range(2):
+				for attempt in range(4):
 					drill.feed()
 					drill.on_contact(1)
 					score_basket(drill,lab)
-				check(drill.spike_state == drill.State.COMPLETE,"Three sets complete the provisional transition drill")
+				check(drill.distributor.last_result == "complete" and drill.progress == 5,"Five baskets complete the Transition Set Setup")
 	lab._reset()
 	var receiving_marker: Dictionary = Layout.drill_marker("receive_0")
 	lab.player.position = receiving_marker.position+Vector3(2,0.03,0)
 	manager.select_nearby()
 	check(lab.station.in_zone() and not lab.drills.in_zone(),"Receive marker selects its station independently of the other courses")
 	lab._reset()
+	var outer: Array[Vector3] = Layout.outer_drink_positions()
+	check(outer.size() == 2 and is_equal_approx(outer[0].z,-outer[1].z) and is_equal_approx(outer[0].x,outer[1].x),"The outer drinks are a z-mirrored pair, not rotated")
+	var bottom: Dictionary = Layout.net_by_id("bottom")
+	check(outer[0].x > float(bottom.position.x)+float(bottom.width)*0.5 and absf(outer[0].z) < Layout.drill_marker("transition_set_blue").position.z,"They sit outward of the bottom Net and between the Transition Set spots")
+	var outer_found := 0
+	for existing in manager.drinks:
+		for spot in outer:
+			if existing.root.position.distance_to(spot) < 0.01: outer_found += 1
+	check(outer_found == 2,"Both outer drinks are real, usable Energy Drinks")
+	var vertex_drinks: Array[Vector3] = Layout.top_vertex_drink_positions()
+	check(vertex_drinks.size() == 2 and is_equal_approx(vertex_drinks[0].z,-vertex_drinks[1].z),"The top-lane vertex drinks are a z-mirrored pair")
+	var inside_box_area := 0
+	for marker in Layout.drill_markers():
+		if marker.type != "box": continue
+		var footprint: Rect2 = preload("res://scripts/drill_layout.gd").footprint(marker)
+		for spot in vertex_drinks:
+			if footprint.has_point(Vector2(spot.x,spot.z)): inside_box_area += 1
+	check(inside_box_area == 2,"Each vertex drink is inside a Box Jump area")
+	var vertex_found := 0
+	for existing in manager.drinks:
+		for spot in vertex_drinks:
+			if existing.root.position.distance_to(spot) < 0.01: vertex_found += 1
+	check(vertex_found == 2,"Both vertex drinks are real, usable Energy Drinks")
 	var drink: Dictionary = manager.drinks[0]
 	lab.player.position = drink.root.position
 	lab.athlete.hp = 37

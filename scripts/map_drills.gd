@@ -64,6 +64,9 @@ var spike_root: Node3D
 const Distributor := preload("res://scripts/setup_distributor.gd")
 var distributor := Distributor.new() # the Spike Trainer as a Setup (map ball economy)
 var setup_label: Label3D
+var rack: Node3D
+var parked_mesh: MeshInstance3D
+var parked := false # the hung ball is parked at its spot while nobody is engaging it, so other play can use the one live ball
 
 func setup(owner_lab: Node3D,anchors: Dictionary = {}) -> void:
 	lab = owner_lab
@@ -84,6 +87,10 @@ func setup(owner_lab: Node3D,anchors: Dictionary = {}) -> void:
 		setup_label.pixel_size = 0.008
 		setup_label.position = RUNWAY_START + Vector3(0, 3.2, 0.6) + spike_anchor
 		add_child(setup_label)
+		rack = preload("res://scripts/setup_rack.gd").new()
+		rack.position = RUNWAY_START + Vector3(2.6, 0, 0.8) + spike_anchor
+		add_child(rack)
+		rack.build(lab)
 	if box_enabled and spike_enabled and box_anchor == Vector3.ZERO and spike_anchor == Vector3.ZERO:
 		for x in range(-29,-6,2):
 			lab.world_builder.box(box_root if x < -22 else spike_root,Vector3(0.6,0.025,0.14),Vector3(x,0.025,14),lab.GOLD)
@@ -410,44 +417,91 @@ func economy() -> bool:
 
 func tick_setup(dt: float) -> void:
 	distributor.tick(dt)
+	_sync_parking()
+	if is_instance_valid(rack):
+		rack.visible = economy()
+		rack.sync(distributor, dt, "player")
 	if is_instance_valid(setup_label):
 		setup_label.visible = economy()
 		var text: String = distributor.status()
 		if setup_label.text != text:
 			setup_label.text = text
 
+# A hung ball is parked while nobody is at the spot, so the one live ball is free for a rally elsewhere; it resumes when someone returns
+# and the live ball is free. A hit ball in flight is never parked.
+func _sync_parking() -> void:
+	if not economy() or not spike_enabled:
+		return
+	if distributor.running() and spike_state == State.ACTIVE and not in_spike_zone():
+		_park()
+	elif parked and distributor.running() and in_spike_zone() and not lab.ball_active and lab.drills == self:
+		_resume()
+	elif parked and not distributor.running():
+		parked = false
+	if is_instance_valid(parked_mesh):
+		parked_mesh.visible = parked
+
+func _park() -> void:
+	if parked_mesh == null:
+		parked_mesh = MeshInstance3D.new()
+		parked_mesh.mesh = lab.ball.mesh
+		parked_mesh.material_override = lab.ball.material_override
+		add_child(parked_mesh)
+	parked_mesh.global_position = lab.ball.global_position
+	parked = true
+	spike_state = State.IDLE
+	lab.ball_active = false
+	detail = "SPIKE TRAINER / ball parked at the spot / return to hit it"
+
+func _resume() -> void:
+	parked = false
+	if is_instance_valid(parked_mesh):
+		parked_mesh.visible = false
+	load_spike()
+	lab.ball.position = parked_mesh.global_position if is_instance_valid(parked_mesh) else lab.ball.position
+
 func _interact_setup() -> void:
 	if distributor.pile > 0 and distributor.pile_owner == "player" and not lab.inventory.held:
 		if distributor.claim("player"):
 			lab.inventory.give()
-			lab._message("SPIKE TRAINER / reward ball taken / %d left" % distributor.pile)
+			lab._message("%s / reward ball taken / %d left" % [setup_name(), distributor.pile])
 		return
 	if distributor.pile > 0 and distributor.pile_owner == "player":
 		lab._message("Hands full / %d reward balls waiting" % distributor.pile)
 		return
 	if distributor.ready():
 		if not lab.inventory.consume():
-			lab._message("SPIKE TRAINER / give up a ball to start (take one from a cart)")
+			lab._message("%s / give up a ball to start (take one from a cart)" % setup_name())
 			return
 		clear_preparation()
 		distributor.activate("player")
-		spike_progress = 0
-		spike_points = 0
-		_send_next_spike()
+		_begin_setup_run()
+		_send_next_ball()
 		return
 	lab._message(distributor.status())
 
-# The distributor sends the next ball to hang at the spike point.
-func _send_next_spike() -> void:
-	if not distributor.send():
-		spike_state = State.IDLE
-		lab.ball_active = false
-		detail = "SPIKE TRAINER / out of balls / reactivates in %ds" % ceili(distributor.cooldown)
-		lab._message(detail)
-		return
+# Hooks the Setups override: what the drill is called, how a run starts, and what one sent ball does.
+func setup_name() -> String:
+	return "SPIKE TRAINER"
+
+func _begin_setup_run() -> void:
+	spike_progress = 0
+	spike_points = 0
+
+func _launch_setup_ball() -> void:
 	load_spike()
 	detail = "SPIKE %d of %d / %d errors / %d balls left / jump, confirm Attack, land in the gold circle" % [distributor.reps + 1, distributor.min_reps, distributor.errors, distributor.balls]
 	lab._message(detail)
+
+# The distributor sends the next ball out. Out of balls ends the Setup.
+func _send_next_ball() -> void:
+	if not distributor.send():
+		spike_state = State.IDLE
+		lab.ball_active = false
+		detail = "%s / out of balls / reactivates in %ds" % [setup_name(), ceili(distributor.cooldown)]
+		lab._message(detail)
+		return
+	_launch_setup_ball()
 
 # A sent ball has been used, counted as a rep or not. Whoever lands the final rep takes the reward (only the player is modelled so far).
 func _spike_used(success: bool, actor: String, reason: String) -> void:
@@ -459,15 +513,15 @@ func _spike_used(success: bool, actor: String, reason: String) -> void:
 	match result:
 		"complete":
 			reward(30, 20, 10)
-			detail = "SPIKE TRAINER COMPLETE / %d reward balls to claim (I) / +30 lab XP / reactivates in %ds" % [distributor.pile, ceili(distributor.cooldown)]
+			detail = "%s COMPLETE / %d reward balls to claim (I) / +30 lab XP / reactivates in %ds" % [setup_name(), distributor.pile, ceili(distributor.cooldown)]
 			lab._message(detail)
 		"failed":
-			detail = "SPIKE TRAINER FAILED / out of balls / reactivates in %ds" % ceili(distributor.cooldown)
+			detail = "%s FAILED / out of balls / reactivates in %ds" % [setup_name(), ceili(distributor.cooldown)]
 			lab._message(detail)
 		_:
 			if not reason.is_empty():
 				lab._message("%s / ball used up" % reason)
-			_send_next_spike()
+			_send_next_ball()
 
 func _economy_ball_down() -> void:
 	if spike_state != State.RETURNING:
