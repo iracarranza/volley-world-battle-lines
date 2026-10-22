@@ -608,7 +608,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_F3: perf_meter.toggle()
 			KEY_TAB: _cycle_build()
 			KEY_F5:
-			KEY_R: toggle_modifier()
 				debug_feed_target = Vector3(clampf(player.position.x,court_center.x-court_half_width+0.3,court_center.x+court_half_width-0.3), 0.95, clampf(player.position.z, 0.6, 8.5))
 				debug_feed_locked = true
 				_message("Feed landing locked here / F5 to retarget; F7 restores tracking feed")
