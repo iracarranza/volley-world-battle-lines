@@ -865,18 +865,18 @@ func _bump_ceiling(contact_height: float) -> float:
 # upward aim reaches 2.5 times the rise, preserving charge-dependent range.
 func _contact_loft_factor(inverted: bool = false) -> float:
 	var pitch := camera_rig.view_pitch - 0.27 # Camera optical axis is level here.
-	return lerpf(1.0, 2.5, clampf(pitch / 0.88, 0, 1)) if pitch >= 0 else lerpf(1.0, 0.35, clampf(-pitch / 0.92, 0, 1))
-
 	if inverted:
 		pitch = -pitch # A back set inverts the aimed offset from neutral: a high front set is a low back set.
-func _loft_velocity(origin: Vector3, action: int, power: float, direction: Vector3) -> Vector3:
-	var peak: float
+	return lerpf(1.0, 2.5, clampf(pitch / 0.88, 0, 1)) if pitch >= 0 else lerpf(1.0, 0.35, clampf(-pitch / 0.92, 0, 1))
+
 # The receiver's distance from the net, or -1 in a Pepper (no net).
 func receive_net_distance() -> float:
 	if pepper.active():
 		return -1.0
 	return absf(player.position.z - court_center.z)
 
+func _loft_velocity(origin: Vector3, action: int, power: float, direction: Vector3) -> Vector3:
+	var peak: float
 	var distance: float
 	if action == 0:
 		power = ReceiveCharge.CONTROL_CHARGE
@@ -902,10 +902,10 @@ func _shot_velocity(origin: Vector3, action: int, power: float, target: Variant 
 	if direction.length() < 0.2:
 		direction = Vector3.FORWARD
 	direction = direction.normalized()
-	if action in [0, 1]:
-		return _loft_velocity(origin, action, power, direction)*athlete.low_stamina_factor()
 	if action == 1 and back_set:
 		direction = -direction # the athlete still faces and aims forward; the set leaves behind
+	if action in [0, 1]:
+		return _loft_velocity(origin, action, power, direction)*athlete.low_stamina_factor()
 	if action == 2:
 		power = contact_flow.attack_charge(power,"player",origin,evidence) if is_instance_valid(contact_flow) else athlete.effective_attack_charge(power)
 	var hp_factor := lerpf(0.7, 1.0, athlete.hp / 100.0)
@@ -920,8 +920,6 @@ func _shot_velocity(origin: Vector3, action: int, power: float, target: Variant 
 	var flight: Dictionary = Flight.solve_flight(speed, angle, origin.y)
 	return (direction * float(flight.horizontal_speed_mps) + Vector3.UP * float(flight.vertical_speed_mps))*(athlete.low_stamina_factor() if action != 2 else 1.0)
 
-func _capture_contact_intent() -> void:
-	var origin := player.position + Vector3.UP * (athlete.reach() - (1.2 if locked_action == 0 else 0.2))
 # A back set travels away from the aim, so steering it is relative to its own direction of travel.
 func _intent_direction(action: int, direction: Vector3) -> Vector3:
 	return -direction if action == 1 and back_set else direction
@@ -939,6 +937,8 @@ func toggle_modifier() -> void:
 	else:
 		_message("R toggles Back Set while setting and Float Serve while serving")
 
+func _capture_contact_intent() -> void:
+	var origin := player.position + Vector3.UP * (athlete.reach() - (1.2 if locked_action == 0 else 0.2))
 	var forward := aim - origin
 	forward.y = 0
 	var input_charge := prepared_output_charge()
@@ -1107,6 +1107,8 @@ func _contact() -> void:
 	athlete.spend_resolved(cost.x)
 	contact_memory = [0.0, 0.0, 0.0, 0.0]
 	last_contact = elapsed
+	if locked_action == 1:
+		back_set = false
 	outgoing = true
 	if locked_action == 3 and block_state.active:
 		block_state.latched = true
@@ -1116,8 +1118,6 @@ func _contact() -> void:
 	_update_hurtbox_visual(0.0)
 	confirm_window = 0
 	trail_points.clear()
-	if locked_action == 1:
-		back_set = false
 	if pepper.active():
 		pepper.on_player_contact(locked_action, quality)
 	else:
@@ -1273,8 +1273,8 @@ func _finish(message: String,point_result: Dictionary = {}) -> void:
 	elif not station.running() and not drills.running() and not pepper.active():
 		rally_rules.record(point_result)
 		if not rally_rules.label().is_empty(): message += " / "+rally_rules.label()
-	block_state.land()
 	inventory.free_ball = false
+	block_state.land()
 	contact_flow.end_rally()
 	clear_net_responses()
 	net_bounce_pending = false
@@ -1342,6 +1342,7 @@ func _update_preview(draw_trajectory: bool = true) -> void:
 	landing_marker.visible = ball_active
 
 func _reset() -> void:
+	back_set = false
 	rally_rules.begin()
 	block_state.land()
 	ground_balls.clear()
@@ -1351,7 +1352,6 @@ func _reset() -> void:
 	net_bounce_pending = false
 	if is_instance_valid(impact_visual):
 		impact_visual.clear()
-	back_set = false
 	if is_instance_valid(contact_flow):
 		contact_flow.clear()
 	if is_instance_valid(bench):
@@ -1447,6 +1447,9 @@ func _cycle_build() -> void:
 
 func _build_ui() -> void:
 	hud.build()
+	perf_meter = preload("res://scripts/perf_meter.gd").new()
+	add_child(perf_meter)
+
 
 func begin_passive_block() -> void:
 	block_state.start()
@@ -1454,9 +1457,6 @@ func begin_passive_block() -> void:
 	armed = true
 	hurtbox_action = 3
 	confirmed_geometry = {}
-	perf_meter = preload("res://scripts/perf_meter.gd").new()
-	add_child(perf_meter)
-
 	var presentation := hurtbox_view.present(_raw_hurtbox_definition(3),3)
 	hurtbox_mesh = presentation.mesh
 	hurtbox_label = presentation.label
