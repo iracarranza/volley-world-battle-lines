@@ -86,7 +86,7 @@ func setup(owner_lab: Node3D) -> void:
 		actors.append(actor)
 		var rig := Visual.build(lab, actor, "Feli", {"palette_index": 0, "marking": "none"}, physique.build)
 		rigs.append(rig)
-		var scale: float = physique.build.height / rig.rig_height
+		var scale: float = Visual.model_height(physique.build.height) / rig.rig_height
 		var shape := Geometry.definition(action, physique.build.height, physique.reach(), false, 1.0, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
 		if action == 0:
 			shape["platform_quality"] = physique.trait_effect("platform_quality")

@@ -38,6 +38,10 @@ var tap_times: Dictionary = {}
 var quick_step_time := 0.0
 var quick_step_velocity := Vector3.ZERO
 
+# How much of its normal speed an athlete keeps while loading a set or block jump: less the more it is loaded.
+static func load_speed_factor(charge: float) -> float:
+	return lerpf(0.9, 0.4, clampf(charge, 0.0, 1.0))
+
 func tick(dt: float, motion_scale: float) -> void:
 	lab.action_endlag = maxf(0,lab.action_endlag-dt*lab.athlete.transition_rate())
 	var jump_gravity := lab.athlete.jump_gravity(GRAVITY,lab.player.velocity.y > 0) if jumped else (GRAVITY*pow(lab.athlete.explosiveness_rate(),2) if approach_bound else GRAVITY)
@@ -54,7 +58,9 @@ func tick(dt: float, motion_scale: float) -> void:
 	if lab.drills.has_method("drill_motion") and lab.drills.drill_motion(dt, move):
 		return
 	var locomotion := move
-	var sprint := Input.is_physical_key_pressed(KEY_SHIFT) and locomotion.length() > 0 and lab.athlete.stamina > 0 and jump_charge < 0
+	# Sprinting is possible while loading a set or block jump (it buys back the speed the load costs), not while charging an approach or a plain jump.
+	var loading_jump := jump_charge >= 0 and not jumped and not generic_jump and approach_action in [1, 3]
+	var sprint := Input.is_physical_key_pressed(KEY_SHIFT) and locomotion.length() > 0 and lab.athlete.stamina > 0 and (jump_charge < 0 or loading_jump)
 	var facing_right := Vector3.RIGHT.rotated(Vector3.UP,lab._contact_yaw())
 	var strafe := absf(locomotion.dot(facing_right))
 	var desired := locomotion * lab.athlete.speed() * lerpf(1.0,lab.athlete.strafe_factor(),strafe) * (1.32 if sprint else 1.0)
@@ -65,8 +71,10 @@ func tick(dt: float, motion_scale: float) -> void:
 		jump_charge = minf(1.0, jump_charge + dt * (1.0 if generic_jump else lab.athlete.explosiveness_rate()) / 0.8)
 		approach_direction = move
 		approach_phase_name = "TRAVEL JUMP / CHARGING" if generic_jump else ("JUMP SET / LOADING" if approach_action == 1 else "BLOCK JUMP / LOADING")
-		lab.player.velocity.x = move_toward(lab.player.velocity.x, desired.x * (0.45 if generic_jump else 0.85), dt * acceleration)
-		lab.player.velocity.z = move_toward(lab.player.velocity.z, desired.z * (0.45 if generic_jump else 0.85), dt * acceleration)
+		# A set or block jump slows the athlete progressively as it loads (the more it is loaded, the slower); sprinting scales `desired` up.
+		var load_speed := 0.45 if generic_jump else load_speed_factor(jump_charge)
+		lab.player.velocity.x = move_toward(lab.player.velocity.x, desired.x * load_speed, dt * acceleration)
+		lab.player.velocity.z = move_toward(lab.player.velocity.z, desired.z * load_speed, dt * acceleration)
 	elif jump_charge >= 0 and not jumped and approach_action == 0:
 		jump_charge = minf(1.0, jump_charge + dt * lab.athlete.explosiveness_rate() / Approach.DURATION)
 		approach_phase_name = "RECEIVE / SPLIT STEP" if approach_bound else "RECEIVE / MOVE · RELEASE TO DIVE"
@@ -130,7 +138,9 @@ func tick(dt: float, motion_scale: float) -> void:
 		lab.player.move_and_collide(knock_travel)
 	if not jumped and not approach_bound:
 		var walked := Vector2(lab.player.position.x - before_move.x, lab.player.position.z - before_move.z).length()
-		gait_cycle += walked / maxf(lab.athlete.stride() * 2.0, 0.1)
+		# Loading a set or block jump the steps shorten, so the feet keep their cycle at the slower pace.
+		var step_scale := lerpf(1.0, 0.55, jump_charge) if loading_jump else 1.0
+		gait_cycle += walked / maxf(lab.athlete.stride() * 2.0 * step_scale, 0.1)
 	if jump_charge >= 0:
 		approach_distance += Vector2(lab.player.position.x - before_move.x, lab.player.position.z - before_move.z).length()
 		if Approach.step_index(jump_charge) == 2:

@@ -36,6 +36,9 @@ var spike_air_time := 0.0
 var spike_flight_time := 0.5
 # How far a running setter's hands relax from the gather toward their sides.
 const SET_RUN_RELAX := 0.7
+# The block's coil: the hands up in front of the chest (a bit over 70 degrees forward) with the elbows bent, where the thrust over the net starts.
+const BLOCK_COIL_PITCH := -1.25
+const BLOCK_COIL_ELBOW := 105.0
 var jump_air_time := 0.0        # seconds since takeoff, for any jump
 var spike_swing_time := -1.0   # seconds since the click started the strike; -1 while only loaded
 var spike_hit_time := -1.0     # swing-clock time of the hit, or of the window closing
@@ -112,7 +115,7 @@ func update() -> void:
 	lab.body.rotation.y -= dive_applied_yaw
 	dive_applied_yaw = 0.0
 	lab.body.rotation.z = 0.0
-	lab.body.scale = Vector3.ONE * float(lab.athlete.build.height) / lab.visual_rig_height
+	lab.body.scale = Vector3.ONE * preload("res://scripts/voli_visual.gd").model_height(float(lab.athlete.build.height)) / lab.visual_rig_height
 	var direction := lab.aim - lab.player.position
 	if direction.length_squared() > 0.1:
 		lab.body.rotation.y = lab.camera_rig.facing_yaw if lab.camera_rig.camera_mode == ViewMode.BALL and lab.ball_active else atan2(-direction.x, -direction.z)
@@ -136,7 +139,10 @@ func update() -> void:
 	locomotion_state = step_locomotion(loco_on)
 	var loco_weight := float(locomotion_state.weight)
 	var gait_heading := lerp_angle(travel_heading, float(locomotion_state.heading), loco_weight) if loco_weight > 0.0 else travel_heading
-	var gait := Pose.base(lab.body, lab.motion.gait_cycle, speed if not lab.motion.jumped and (lab.motion.jump_charge < 0 or receive_mobile) else 0.0, gait_heading, receive_ready or follow_receive, receive_weight)
+	# Charging a set or block jump keeps the footwork going: the steps get smaller as the jump loads.
+	var loading_jump: bool = lab.motion.jump_charge >= 0 and lab.motion.approach_action in [1, 3] and not lab.motion.generic_jump and not lab.motion.jumped
+	var gait_speed := speed * lerpf(1.0, 0.6, lab.motion.jump_charge) if loading_jump else speed
+	var gait := Pose.base(lab.body, lab.motion.gait_cycle, gait_speed if not lab.motion.jumped and (lab.motion.jump_charge < 0 or receive_mobile or loading_jump) else 0.0, gait_heading, receive_ready or follow_receive, receive_weight)
 	locomotion_hips = {"left": float(gait.left_hip_degrees), "right": float(gait.right_hip_degrees)}
 	var gait_arms := _read_arms()
 	if loco_on and loco_weight > 0.0:
@@ -184,7 +190,18 @@ func _blend_arms(target: Array, weight: float) -> void:
 # A block jump: the hands go up from the guard to full reach over the net, spread a little, as the legs tuck on the way up, stretch at the top and
 # bend again to land. (The set jump's legs and hands come from its pose files.)
 func _apply_block_jump_pose() -> void:
-	if not (lab.motion.jumped and lab.motion.airborne_action == 3) or roll_lock > 0.0:
+	if roll_lock > 0.0:
+		return
+	# Loading a block jump, the hands coil up in front of the chest, elbows bent, rather than hanging or swinging at the sides.
+	if lab.motion.approach_action == 3 and not lab.motion.generic_jump and lab.motion.jump_charge >= 0 and not lab.motion.jumped:
+		var coil := smoothstep(0.0, 0.5, lab.motion.jump_charge)
+		for index in range(2):
+			var outward := 1.0 if index == 0 else -1.0
+			lab.arms[index].rotation = (lab.arms[index].rotation as Vector3).lerp(Vector3(BLOCK_COIL_PITCH, 0.0, outward * 0.1), coil)
+			var elbow := lab.arms[index].get_node("Elbow") as Node3D
+			elbow.rotation_degrees.x = lerpf(elbow.rotation_degrees.x, BLOCK_COIL_ELBOW, coil)
+		return
+	if not (lab.motion.jumped and lab.motion.airborne_action == 3):
 		return
 	var flight: float = lab.athlete.jump_flight_time(lab.motion.last_jump_height, lab.GRAVITY)
 	var f := clampf(jump_air_time / maxf(flight, 0.001), 0.0, 1.0)
@@ -192,9 +209,9 @@ func _apply_block_jump_pose() -> void:
 	var landing := smoothstep(0.6, 1.0, f)
 	for index in range(2):
 		var outward := 1.0 if index == 0 else -1.0
-		lab.arms[index].rotation.x = lerpf(-2.1, -2.95, reach)
-		lab.arms[index].rotation.z = outward * lerpf(0.06, 0.2, reach)
-		lab.arms[index].get_node("Elbow").rotation_degrees.x = lerpf(35.0, 0.0, reach)
+		lab.arms[index].rotation.x = lerpf(BLOCK_COIL_PITCH, -2.95, reach)
+		lab.arms[index].rotation.z = outward * lerpf(0.1, 0.2, reach)
+		lab.arms[index].get_node("Elbow").rotation_degrees.x = lerpf(BLOCK_COIL_ELBOW, 0.0, reach)
 		lab.legs[index].rotation.x = lerpf(-0.42, -0.06, reach) - 0.3 * landing
 		lab.legs[index].get_node("Knee").rotation_degrees.x = lerpf(-52.0, -10.0, reach) - 28.0 * landing
 
@@ -228,8 +245,13 @@ func _apply_takeoff_and_roll_pose() -> void:
 	if (lab.motion.generic_jump or lab.motion.approach_action in [1,3]) and lab.motion.jump_charge >= 0:
 		lab.body.position.y = -0.22 * lab.motion.jump_charge
 		for leg in lab.legs:
-			leg.rotation.x = 0.35 * lab.motion.jump_charge
-			leg.get_node("Knee").rotation.x = -0.8 * lab.motion.jump_charge
+			if lab.motion.generic_jump:
+				leg.rotation.x = 0.35 * lab.motion.jump_charge
+				leg.get_node("Knee").rotation.x = -0.8 * lab.motion.jump_charge
+			else:
+				# The load is a crouch on top of the stride, not a replacement for it.
+				leg.rotation.x += 0.28 * lab.motion.jump_charge
+				leg.get_node("Knee").rotation.x += -0.65 * lab.motion.jump_charge
 	elif lab.motion.jump_charge >= 0 and lab.motion.approach_action == 2:
 		# A dive charges as its crouching step (DiveStage prep), not as a jump approach.
 		var step := Approach.step_index(lab.motion.jump_charge)

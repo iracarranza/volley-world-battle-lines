@@ -147,7 +147,7 @@ func try_start(previous: Vector3) -> bool:
 func shape() -> Dictionary:
 	var rig := rigs[partner]
 	var physique = athlete_for(partner)
-	var scale: float = physique.build.height / rig.rig_height
+	var scale: float = preload("res://scripts/voli_visual.gd").model_height(physique.build.height) / rig.rig_height
 	var definition := Geometry.definition(stage, physique.build.height, physique.reach(), false, 1, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
 	if stage == 0:
 		definition["platform_quality"] = physique.trait_effect("platform_quality")

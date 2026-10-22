@@ -181,7 +181,7 @@ func refresh_ui() -> void:
 func apply_pose() -> void:
 	var body: Node3D = lab.body
 	Pose.base(body,0,0,0,false)
-	body.scale = Vector3.ONE * float(lab.athlete.build.height) / lab.visual_rig_height
+	body.scale = Vector3.ONE * preload("res://scripts/voli_visual.gd").model_height(float(lab.athlete.build.height)) / lab.visual_rig_height
 	body.position = Vector3.ZERO
 	body.rotation = Vector3.ZERO
 	lab.animation.dive_applied_yaw = 0

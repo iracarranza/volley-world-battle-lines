@@ -4,6 +4,14 @@ const Bodies := preload("res://vendor/vwm/body_type_models.gd")
 const Pose := preload("res://scripts/athlete_pose.gd")
 const ActorScene := preload("res://vendor/vwm/construction/scenes/components/player_actor_3d.tscn")
 
+# Models render 15 cm shorter than they did. A model's rendered height (ear tips included) is about 19 percent over its listed height, so the listed
+# height is trimmed by 15 cm / 1.19 before it scales the rig; everything derived from the rig's own geometry (shoulder height, arm length) scales
+# with the same trimmed height.
+const MODEL_HEIGHT_TRIM := 0.1263
+
+static func model_height(listed_height: float) -> float:
+	return maxf(listed_height - MODEL_HEIGHT_TRIM, 0.5)
+
 # Build through VWM's real scene/configure pipeline, including physical profile,
 # garments, articulated hands, expressions, ink and painted surface markings.
 # Transfer the finished body into the live input rig; replay controllers and
@@ -29,7 +37,7 @@ static func build(lab: Node3D, parent: Node3D, body_type: String, appearance: Di
 	parent.add_child(root)
 	root.position = Vector3.ZERO
 	root.rotation = Vector3.ZERO
-	root.scale = Vector3.ONE * float(physique.height) / rig_height
+	root.scale = Vector3.ONE * model_height(float(physique.height)) / rig_height
 	root.set_meta("vwm_construction", true)
 	root.set_meta("shoe_base_pitch", PI * 0.5 if str(spec.shoe.get("shape", "capsule")) == "capsule" else 0.0)
 	Pose.base(root, 0, 0, 0, false)

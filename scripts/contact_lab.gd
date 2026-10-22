@@ -392,7 +392,7 @@ func _hurtbox_definition(action: int) -> Dictionary:
 
 func _raw_hurtbox_definition(action: int) -> Dictionary:
 	var height: float = athlete.build.height
-	var scale_to_world := height / visual_rig_height
+	var scale_to_world: float = preload("res://scripts/voli_visual.gd").model_height(height) / visual_rig_height
 	var shoulder := arms[1].position.y * scale_to_world if arms.size() > 1 else height * 0.815
 	var shoulder_x := absf(arms[1].position.x) * scale_to_world if arms.size() > 1 else height * 0.17
 	var shape := Geometry.definition(action, height, athlete.reach(), motion.jumped and motion.airborne_action == 0, -1.0 if dominant_hand == "Left" else 1.0, shoulder, shoulder_x, athlete.ball_control(), Geometry.arm_length(arms[0 if dominant_hand == "Left" else 1], scale_to_world),athlete.build)
@@ -480,7 +480,7 @@ func hurtbox_pitch() -> float:
 
 func hurtbox_pivot() -> Vector3:
 	var height: float = athlete.build.height
-	return Vector3(0.0, arms[1].position.y * (height / visual_rig_height) if arms.size() > 1 else height * 0.815, 0.0)
+	return Vector3(0.0, arms[1].position.y * (preload("res://scripts/voli_visual.gd").model_height(height) / visual_rig_height) if arms.size() > 1 else height * 0.815, 0.0)
 
 # Where a hurtbox's centre is, relative to the athlete before the yaw: the shape's own centre, tilted about the shoulder.
 func hurtbox_center_local(center: Vector3) -> Vector3:

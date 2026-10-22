@@ -214,7 +214,7 @@ func _begin_toss(up_speed: float) -> void:
 	lab.trail_points.clear()
 	lab.contact_memory.fill(0.0)
 	var sign := -1.0 if lab.dominant_hand == "Left" else 1.0
-	var shoulder: Vector3 = lab.arms[0 if sign < 0 else 1].position * (float(lab.athlete.build.height) / lab.visual_rig_height)
+	var shoulder: Vector3 = lab.arms[0 if sign < 0 else 1].position * (preload("res://scripts/voli_visual.gd").model_height(float(lab.athlete.build.height)) / lab.visual_rig_height)
 	# The toss travels forward as well as up, and is released far enough behind the serving hurtbox's centre that the falling ball comes down
 	# through it.
 	var center: Vector3 = lab.hurtbox_center_local(serve_center(lab._raw_hurtbox_definition(2)))

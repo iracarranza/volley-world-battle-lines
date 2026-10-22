@@ -30,6 +30,19 @@ func takeoff_speed(lab, action: int) -> float:
 	lab.motion.takeoff()
 	return Vector2(lab.player.velocity.x, lab.player.velocity.z).length()
 
+func rendered_height(body: Node3D) -> float:
+	var box := {"low": 99.0, "high": -99.0}
+	measure(body, box)
+	return float(box.high) - float(box.low)
+
+func measure(node: Node, box: Dictionary) -> void:
+	if node is MeshInstance3D and node.visible and node.mesh != null:
+		var aabb: AABB = node.global_transform * node.get_aabb()
+		box.low = minf(float(box.low), aabb.position.y)
+		box.high = maxf(float(box.high), aabb.end.y)
+	for child in node.get_children():
+		measure(child, box)
+
 func run() -> void:
 	var lab = load("res://main.tscn").instantiate()
 	root.add_child(lab)
@@ -87,6 +100,59 @@ func run() -> void:
 	lab.animation._apply_block_jump_pose()
 	check(float(lab.legs[0].get_node("Knee").rotation_degrees.x) < rise_knee - 15.0, "The knees bend again to land")
 	lab.motion.jumped = false
+	# Models render 15 cm shorter than they did, at any height
+	for height in [1.55, 1.86, 2.05]:
+		lab._reset()
+		lab.athlete.build.height = height
+		lab.animation.update()
+		var trimmed := rendered_height(lab.body)
+		lab.body.scale = Vector3.ONE * height / lab.visual_rig_height
+		var untrimmed := rendered_height(lab.body)
+		check(absf((untrimmed - trimmed) - 0.15) < 0.01, "A %.2f m athlete renders 15 cm shorter (%.1f cm)" % [height, (untrimmed - trimmed) * 100.0])
+	lab._reset()
+	lab.athlete.build.height = 1.86
+	# Loading a block jump coils the hands in front of the body; the thrust starts from there
+	lab.selected = 3
+	lab.locked_action = 3
+	lab.armed = true
+	lab.motion.approach_action = 3
+	lab.motion.jump_charge = 0.6
+	lab.motion.generic_jump = false
+	lab.player.velocity = Vector3(0, 0, -3.0)
+	lab.animation.pose_smoothing = false
+	lab.animation.update()
+	for index in range(2):
+		check(absf(float(lab.arms[index].rotation.x) - lab.animation.BLOCK_COIL_PITCH) < 0.05 and absf(float(lab.arms[index].get_node("Elbow").rotation_degrees.x) - lab.animation.BLOCK_COIL_ELBOW) < 2.0, "A loaded block jump holds the hands coiled in front, elbows bent")
+	lab.motion.jump_charge = -1.0
+	lab.motion.approach_action = -1
+	lab.motion.jumped = true
+	lab.motion.airborne_action = 3
+	lab.motion.last_jump_height = 0.5
+	lab.animation.jump_air_time = 0.0
+	lab.animation._apply_block_jump_pose()
+	check(absf(float(lab.arms[0].rotation.x) - lab.animation.BLOCK_COIL_PITCH) < 0.05, "The block thrust starts from the coil")
+	lab.motion.jumped = false
+	# The feet keep their cycle while a set or block jump loads, with smaller steps and a slower pace
+	lab.motion.approach_action = 1
+	lab.selected = 1
+	lab.locked_action = 1
+	var swings := []
+	for charge in [0.1, 0.9]:
+		var low := 99.0
+		var high := -99.0
+		for step in range(8):
+			lab.motion.jump_charge = charge
+			lab.motion.gait_cycle = float(step) / 8.0
+			lab.player.velocity = Vector3(0, 0, -3.0)
+			lab.animation.update()
+			low = minf(low, lab.legs[0].rotation.x)
+			high = maxf(high, lab.legs[0].rotation.x)
+		swings.append(high - low)
+	check(float(swings[0]) > 0.15 and float(swings[1]) > 0.05, "The feet still step while loading a set jump (%.2f and %.2f rad of leg swing)" % [swings[0], swings[1]])
+	check(float(swings[1]) < float(swings[0]), "...with smaller steps the more it is loaded")
+	var Motor = load("res://scripts/lab/athlete_motor.gd")
+	check(Motor.load_speed_factor(0.9) < Motor.load_speed_factor(0.1) and Motor.load_speed_factor(0.0) < 1.0, "The athlete slows progressively as the jump loads")
+	check(Motor.load_speed_factor(0.8) * 1.32 >= Motor.load_speed_factor(0.5), "Sprinting while loading buys back the speed three tenths of the load costs")
 	lab.queue_free()
 	await process_frame
 	print("MOVEMENT ANIMATION: %d / %d passed" % [checks - failures, checks])
