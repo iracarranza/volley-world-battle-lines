@@ -71,6 +71,7 @@ var spike_enabled := true
 var box_root: Node3D
 var spike_root: Node3D
 const Distributor := preload("res://scripts/setup_distributor.gd")
+const SetupGrants := preload("res://scripts/setup_grants.gd")
 var distributor := Distributor.new() # the Spike Trainer as a Setup (map ball economy)
 var setup_label: Label3D
 var rack: Node3D
@@ -525,7 +526,9 @@ func _spike_used(success: bool, actor: String, reason: String) -> void:
 	match result:
 		"complete":
 			reward(30, 20, 10)
-			detail = "%s COMPLETE / %d reward balls to claim (I) / +30 lab XP / reactivates in %ds" % [setup_name(), distributor.pile, ceili(distributor.cooldown)]
+			var grant: Dictionary = SetupGrants.grant(lab.athlete, setup_name())
+			var gained: String = " / +%d %s access" % [int(grant.amount), String(grant.key).replace("_", " ")] if not grant.is_empty() else ""
+			detail = "%s COMPLETE / %d reward balls to claim (I) / +30 lab XP%s / reactivates in %ds" % [setup_name(), distributor.pile, gained, ceili(distributor.cooldown)]
 			lab._message(detail)
 		"failed":
 			detail = "%s FAILED / out of balls / reactivates in %ds" % [setup_name(), ceili(distributor.cooldown)]

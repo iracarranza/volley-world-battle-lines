@@ -67,6 +67,14 @@ static func assess(request: Request) -> Dictionary:
 	if request.auto_charge: result["auto_charge"] = Snapshot.freeze(request.auto_evidence)
 	return result
 
+# Hidden-sequence variation is gone: a spread leans toward the side of the hurtbox the ball met (then the way it was travelling), at the mean
+# magnitude the old per-contact sine/seed produced.
+const MEAN_SPREAD := 0.64
+static func contact_bias(request: Request) -> float:
+	if absf(request.local_point.x) > 0.02: return signf(request.local_point.x)
+	if absf(request.incoming.x) > 0.02: return signf(request.incoming.x)
+	return 1.0
+
 static func resolve(request: Request, assessment: Dictionary) -> Result:
 	var result := Result.new()
 	result.assessment = assessment.duplicate(true)
@@ -84,7 +92,7 @@ static func resolve(request: Request, assessment: Dictionary) -> Result:
 		velocity *= float(assessment.strength) / request.attack_strength_reference if assessment.hit else 0.48
 	if (request.action == Action.SET and request.apply_set_spread) or (request.action == Action.BLOCK and request.apply_block_spread):
 		var deviation := (1.0 - quality) * (1.0 - request.athlete.ball_control() / 120.0)
-		velocity = velocity.rotated(Vector3.UP, deviation * sin(request.spread_phase) * 0.5)
+		velocity = velocity.rotated(Vector3.UP, deviation * contact_bias(request) * MEAN_SPREAD * 0.5)
 	if request.action == Action.ATTACK:
 		if request.aim_random != null:
 			result.aiming = Aim.apply(request.origin, velocity, request.aiming_accuracy, request.gravity, request.aim_random)
@@ -131,10 +139,9 @@ static func resolve(request: Request, assessment: Dictionary) -> Result:
 		result.outgoing_shot = response.shot
 	var variance := request.athlete.trait_effect("charge_aim_variance")
 	if variance > 0 and not request.ideal_charge_match:
-		var random := RandomNumberGenerator.new()
-		random.seed = request.response_seed
 		var degrees := variance*request.charge*(1.0+request.directional_input.length())*(1.0-request.athlete.ball_control()/120.0)
-		velocity = velocity.rotated(Vector3.UP,deg_to_rad(random.randf_range(-degrees,degrees)))
+		var lean := signf(request.directional_input.x) if absf(request.directional_input.x) > 0.02 else contact_bias(request)
+		velocity = velocity.rotated(Vector3.UP,deg_to_rad(degrees*MEAN_SPREAD*lean))
 	result.assessment["steering"] = {"facing":request.facing,"lateral_offset":result.influence.get("geometry_lateral_offset",0)}
 	result.velocity = velocity
 	result.mechanics = mechanics(request, result)

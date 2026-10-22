@@ -235,9 +235,10 @@ func _serve_used(success: bool, reason: String) -> void:
 	match result:
 		"complete":
 			earned_xp += 25
+			var grant: Dictionary = preload("res://scripts/setup_grants.gd").grant(lab.athlete, "SERVE MACHINE")
 			lab.athlete.hp = minf(100, lab.athlete.hp + 20)
 			lab.athlete.stamina = minf(lab.athlete.max_stamina(), lab.athlete.stamina + 15)
-			detail = "SERVE MACHINE COMPLETE / %d reward balls to claim (I) / +25 lab XP / reactivates in %ds" % [distributor.pile, ceili(distributor.cooldown)]
+			detail = "SERVE MACHINE COMPLETE / %d reward balls to claim (I) / +25 lab XP / +%d platform quality access / reactivates in %ds" % [distributor.pile, int(grant.get("amount", 0)), ceili(distributor.cooldown)]
 			lab._message(detail)
 		"failed":
 			detail = "SERVE MACHINE FAILED / out of balls / reactivates in %ds" % ceili(distributor.cooldown)

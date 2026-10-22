@@ -16,7 +16,7 @@ static func build(lab: Node3D, parent: Node3D, body_type: String, appearance: Di
 		"appearance": appearance.duplicate(true),
 		"height_cm": float(physique.height) * 100.0,
 		"wingspan_cm": float(physique.span) * 100.0,
-		"stride_length_m": clampf(0.43 * float(physique.height), 0.55, 1.15),
+		"stride_length_m": clampf(0.43 * float(physique.height), 0.55, 1.15) * clampf(float(physique.get("stride_ratio", 1.0)), 0.8, 1.2),
 		"position_role": "Libero" if str(physique.get("role", lab.position_role)) == "L" else str(physique.get("role", lab.position_role)),
 	})
 	var root: Node3D = actor.body_pivot

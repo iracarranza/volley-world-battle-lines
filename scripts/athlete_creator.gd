@@ -1,4 +1,5 @@
 extends CanvasLayer
+const Store := preload("res://scripts/athlete_store.gd")
 
 const Bodies := preload("res://vendor/vwm/body_type_models.gd")
 const Visual := preload("res://scripts/voli_visual.gd")
@@ -17,7 +18,10 @@ var budget_label: Label
 var apply_button: Button
 var preview_world: Node3D
 var preview_actor: Node3D
-var span_control: SpinBox
+var wingspan_slider: HSlider
+var stride_slider: HSlider
+var wingspan_label: Label
+var stride_label: Label
 var stat_labels: Array[Label] = []
 var stat_sliders: Array[HSlider] = []
 var last_paused := false
@@ -33,7 +37,7 @@ func open() -> void:
 	last_paused = lab.paused
 	lab.paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	draft = {"body_type": lab.body_type, "appearance": lab.appearance.duplicate(true), "name": lab.athlete_name, "role": lab.position_role, "dominant_hand": lab.dominant_hand, "height": float(lab.athlete.build.height), "span": float(lab.athlete.build.span)}
+	draft = {"body_type": lab.body_type, "appearance": lab.appearance.duplicate(true), "name": lab.athlete_name, "role": lab.position_role, "dominant_hand": lab.dominant_hand, "height": float(lab.athlete.build.height), "span": float(lab.athlete.build.span), "wingspan_ratio": Store.wingspan_ratio(lab.athlete.build), "stride_ratio": Store.stride_ratio(lab.athlete.build), "proportion_version": 1}
 	for metadata in ["statistics","offsets","stat_names","stat_version","picks"]:
 		if lab.athlete.build.has(metadata):
 			draft[metadata] = lab.athlete.build[metadata].duplicate(true) if lab.athlete.build[metadata] is Dictionary or lab.athlete.build[metadata] is Array else lab.athlete.build[metadata]
@@ -149,22 +153,19 @@ func _build() -> void:
 	height.value = float(draft.height) * 100
 	height.value_changed.connect(func(value: float):
 		draft.height = value / 100.0
-		span_control.min_value = value - 8
-		span_control.max_value = value + 15
+		Store.refresh_span(draft)
+		_show_proportions()
 		refresh_preview()
 	)
 	row(left, "HEIGHT", height)
-	span_control = SpinBox.new()
-	span_control.min_value = float(draft.height) * 100 - 8
-	span_control.max_value = float(draft.height) * 100 + 15
-	span_control.step = 1
-	span_control.suffix = "cm"
-	span_control.value = float(draft.span) * 100
-	span_control.value_changed.connect(func(value: float):
-		draft.span = value / 100.0
-		refresh_preview()
-	)
-	row(left, "WINGSPAN", span_control)
+	wingspan_slider = _proportion_slider("WingspanSlider", "wingspan")
+	wingspan_label = lab.hud.label("", 14, lab.GOLD)
+	row(left, "WINGSPAN", _proportion_row(wingspan_slider, wingspan_label))
+	stride_slider = _proportion_slider("StrideSlider", "stride")
+	stride_label = lab.hud.label("", 14, lab.GOLD)
+	row(left, "STRIDE LENGTH", _proportion_row(stride_slider, stride_label))
+	left.add_child(lab.hud.label("No AP. Both can be maxed, at the price of Stamina, a harder platform at speed and strenuous jumps.", 12))
+	_show_proportions()
 	budget_label = lab.hud.label("", 16, lab.GOLD)
 	left.add_child(budget_label)
 	left.add_child(lab.hud.label("12 starting AP  /  +1 attribute costs 1 AP", 12))
@@ -275,6 +276,34 @@ func refresh_budget() -> void:
 	budget_label.text = "%d / %d STARTING AP REMAINING" % [AP_BUDGET - ap_spent(), AP_BUDGET]
 	for index in range(stat_labels.size()):
 		stat_labels[index].text = str(int(draft[ATTRIBUTES[index]]))
+
+func _proportion_slider(slider_name: String, which: String) -> HSlider:
+	var slider := HSlider.new()
+	slider.name = slider_name
+	slider.min_value = Store.PROPORTION_MIN
+	slider.max_value = Store.PROPORTION_MAX
+	slider.step = 0.01
+	slider.custom_minimum_size = Vector2(180, 24)
+	slider.value_changed.connect(func(_value: float):
+		Store.set_proportions(draft, wingspan_slider.value, stride_slider.value)
+		_show_proportions()
+		refresh_preview())
+	return slider
+
+func _proportion_row(slider: HSlider, value_label: Label) -> Control:
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	box.add_child(slider)
+	box.add_child(value_label)
+	return box
+
+func _show_proportions() -> void:
+	if wingspan_slider == null or stride_slider == null:
+		return
+	wingspan_slider.set_value_no_signal(Store.wingspan_ratio(draft))
+	stride_slider.set_value_no_signal(Store.stride_ratio(draft))
+	wingspan_label.text = "%.2f  (%d cm)" % [Store.wingspan_ratio(draft), roundi(float(draft.span) * 100.0)]
+	stride_label.text = "%.2f  (%.2f m)" % [Store.stride_ratio(draft), Store.stride_metres(draft)]
 
 func apply() -> void:
 	if ap_spent() > AP_BUDGET:

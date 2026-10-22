@@ -730,7 +730,6 @@ func tick_contact(dt: float) -> bool:
 	request.flow = lab.contact_flow.amount(request.actor_id)
 	request.keep_attack_intent = true
 	request.apply_set_spread = true
-	request.spread_phase = total_contacts * 1.7 + 0.8
 	request.aiming_accuracy = settings[slot].aiming_accuracy
 	request.aim_random = aim_random
 	request.receive_heading = setter_direction(slot, lab.ball.position) if action == 0 else Vector3.ZERO

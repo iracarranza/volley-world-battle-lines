@@ -68,9 +68,9 @@ func run() -> void:
 	check(early.velocity.distance_to(late.velocity) > 0.2, "Early and late preparation have different mechanical failures")
 	var a := sample(0.8, 0.65, 24, 0.1, 0.02)
 	var result := resolve(a)
-	check(resolve(a).velocity == result.velocity, "Same contact seed is reproducible")
+	check(resolve(a).velocity == result.velocity, "The same contact is reproducible")
 	a.response_seed = 31
-	check(resolve(a).velocity.distance_to(result.velocity) > 0.05, "Different seeds give bounded contact variation")
+	check(resolve(a).velocity.is_equal_approx(result.velocity), "The contact-event seed no longer changes the response: identical contacts respond identically")
 	var matched := resolve(sample(0.5, 0, 24, 0.82, 0.22))
 	check(matched.outgoing_shot.charge != matched.outgoing_shot.action_charge and matched.outgoing_shot.delivery_quality > 0.5, "Clean receive conditions ball pressure rather than copying the input")
 	check(matched.mechanics.size() == Registry.STAGES.size() and matched.mechanics.is_read_only(), "All contacts publish the ordered named mechanic trace")

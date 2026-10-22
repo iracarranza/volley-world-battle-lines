@@ -23,7 +23,10 @@ var shape_picker: OptionButton
 var shape_row: HBoxContainer
 var palette_picker: OptionButton
 var marking_picker: OptionButton
-var span_control: SpinBox
+var wingspan_slider: HSlider
+var stride_slider: HSlider
+var wingspan_label: Label
+var stride_label: Label
 var height_picker: OptionButton
 var tree_view: Control
 var tree_detail: Label
@@ -272,20 +275,53 @@ func _build_editor(parent: Node) -> void:
 		height_picker.add_item(Store.height_label(inches))
 	height_picker.item_selected.connect(func(index: int): _apply_height(Store.MIN_INCHES + index))
 	row(build, "HEIGHT", height_picker)
-	span_control = SpinBox.new()
-	span_control.step = 1
-	span_control.suffix = "cm"
-	span_control.value_changed.connect(func(value: float):
-		draft.span = value / 100.0
-		_refresh_preview()
-	)
-	row(build, "WINGSPAN", span_control)
+	wingspan_slider = _proportion_slider("WingspanSlider", "wingspan")
+	wingspan_label = label("", 14, TEAL)
+	row(build, "WINGSPAN", _proportion_row(wingspan_slider, wingspan_label))
+	stride_slider = _proportion_slider("StrideSlider", "stride")
+	stride_label = label("", 14, TEAL)
+	row(build, "STRIDE LENGTH", _proportion_row(stride_slider, stride_label))
+	var proportion_note := label("Wingspan and stride length are opposed: past a combined limit, raising one lowers the other. They cost no AP. Longer wingspan reaches further and longer stride moves faster; each makes its own actions cost more Stamina.", 12, DIM)
+	proportion_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	proportion_note.custom_minimum_size.x = 200
+	proportion_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	build.add_child(proportion_note)
 	build.add_child(label("6'0 to 6'2 is free. Nearby heights cost AP; Tiny and Giant heights unlock with those Innates.\nHeight and wingspan change reach and physical profile, not your Attribute ratings.", 12, DIM))
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 10)
 	box.add_child(actions)
 	actions.add_child(button("SAVE ATHLETE", _save, 160))
 	actions.add_child(button("SAVE & SELECT", _save_and_select, 160))
+
+func _proportion_slider(slider_name: String, which: String) -> HSlider:
+	var slider := HSlider.new()
+	slider.name = slider_name
+	slider.min_value = Store.PROPORTION_MIN
+	slider.max_value = Store.PROPORTION_MAX
+	slider.step = 0.01
+	slider.custom_minimum_size = Vector2(240, 24)
+	slider.value_changed.connect(func(_value: float): _change_proportions(which))
+	return slider
+
+func _proportion_row(slider: HSlider, value_label: Label) -> Control:
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	box.add_child(slider)
+	value_label.custom_minimum_size.x = 150
+	box.add_child(value_label)
+	return box
+
+# The player moved one slider: the pair is re-balanced (the other gives way past the budget) and the absolute span follows.
+func _change_proportions(which: String) -> void:
+	Store.set_proportions(draft, wingspan_slider.value, stride_slider.value)
+	_show_proportions()
+	_refresh_preview()
+
+func _show_proportions() -> void:
+	wingspan_slider.set_value_no_signal(Store.wingspan_ratio(draft))
+	stride_slider.set_value_no_signal(Store.stride_ratio(draft))
+	wingspan_label.text = "%.2f  (%d cm)" % [Store.wingspan_ratio(draft), roundi(float(draft.span) * 100.0)]
+	stride_label.text = "%.2f  (%.2f m)" % [Store.stride_ratio(draft), Store.stride_metres(draft)]
 
 func _build_preview(parent: Node) -> void:
 	var box := panel(parent, Vector2(300, 0))
@@ -341,9 +377,7 @@ func _sync_controls() -> void:
 	(find_child("RolePicker", true, false) as OptionButton).select(maxi(0, Store.ROLES.find(draft.role)))
 	(find_child("HandPicker", true, false) as OptionButton).select(1 if draft.dominant_hand == "Left" else 0)
 	height_picker.select(Store.height_inches(float(draft.height)) - Store.MIN_INCHES)
-	span_control.min_value = float(draft.height) * 100.0 - 8
-	span_control.max_value = float(draft.height) * 100.0 + 15
-	span_control.set_value_no_signal(float(draft.span) * 100.0)
+	_show_proportions()
 
 func _refresh_roster() -> void:
 	for child in roster_box.get_children():
@@ -585,10 +619,8 @@ func _apply_height(inches: int) -> void:
 		return
 	draft.height = inches * 0.0254
 	height_picker.select(inches - Store.MIN_INCHES)
-	span_control.min_value = float(draft.height) * 100.0 - 8
-	span_control.max_value = float(draft.height) * 100.0 + 15
-	span_control.set_value_no_signal(clampf(float(draft.span) * 100.0, span_control.min_value, span_control.max_value))
-	draft.span = span_control.value / 100.0
+	Store.refresh_span(draft)
+	_show_proportions()
 	status.text = ""
 	_refresh_summary()
 	_refresh_attributes()

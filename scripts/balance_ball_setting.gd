@@ -1,11 +1,8 @@
 extends "res://scripts/transition_set_drill.gd"
 ## Balance Ball Setting (Setup, Solo): the Transition Set's pass-and-set, but done standing on a wobbling balance ball, so Stability decides
-## how hard it is to stay on the pad. Its reward is not decided yet; Stability is provisional.
-const Progress := preload("res://scripts/workout_progress.gd")
-const REWARD_SUBATTRIBUTE := "stability"
+## how hard it is to stay on the pad. Its reward is Placement access (SetupGrants).
 const PAD_RADIUS := 1.1
 var wobble_time := 0.0
-var last_growth: Dictionary = {}
 
 func setup(host: Node3D, anchors: Dictionary = {}) -> void:
 	super.setup(host, anchors)
@@ -33,12 +30,6 @@ func tick(dt: float) -> void:
 		lab.player.position.z += a * dt * cos(wobble_time * 1.7 + 0.6)
 	elif not running():
 		wobble_time = 0.0
-
-func _spike_used(success: bool, actor: String, reason: String) -> void:
-	var cooling_before: bool = distributor.cooldown > 0.0
-	super._spike_used(success, actor, reason)
-	if not cooling_before and distributor.cooldown > 0.0 and distributor.pile > 0:
-		last_growth = Progress.record(lab.athlete, REWARD_SUBATTRIBUTE)
 
 func hud_text() -> String:
 	return "BALANCE BALL SETTING / %d OF %d\n%s" % [progress, PASSES_REQUIRED, detail]

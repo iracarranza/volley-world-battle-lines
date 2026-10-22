@@ -54,7 +54,7 @@ static func resolve(request: RefCounted,assessment: Dictionary) -> Dictionary:
 	var outgoing := controlled.lerp(escape,mix)
 	response["retention"] = retention
 	response["outcome"] = "soft_backward" if outgoing.z > 0 and severity < 0.5 else ("overpowered_touch" if severity >= 0.5 else ("soft_outward" if absf(side) > 0.5 else "controlled_return"))
-	var scatter: float = sin(float(request.response_seed)*1.73+incoming.y*0.21)*edge*(0.04+0.14*severity)/(1.0+request.athlete.ball_control()/100.0)
+	var scatter: float = (signf(side) if absf(side) > 0.02 else (signf(incoming.x) if absf(incoming.x) > 0.02 else 1.0))*0.64*edge*(0.04+0.14*severity)/(1.0+request.athlete.ball_control()/100.0)
 	outgoing = outgoing.rotated(Vector3.UP,scatter)
 	response["speed_retention"] = outgoing.length()/maxf(pace,0.001)
 	response["absorbed_speed_fraction"] = 1.0-float(response.speed_retention)

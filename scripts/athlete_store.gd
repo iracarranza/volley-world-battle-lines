@@ -89,11 +89,52 @@ static func height_allowed(inches: int, innates: Array) -> bool:
 	var zone := height_zone(inches)
 	return (zone != "tiny" or "Tiny" in innates) and (zone != "giant" or "Giant" in innates)
 
+# --- Proportions: Wingspan and Stride Length as normalized ratios (docs/morphology-runtime-contract.md): 1.0 neutral, 0.8 to 1.2, relative to Height.
+# Wingspan ratio is literal: span = height x wingspan_ratio. The two are independent and cost no AP; maxing both is limited by what it costs to
+# use them (arm and leg Stamina, a harder-to-control platform at speed, and strenuous jumps), not by a shared budget. Absolute height and span are kept in the save.
+const PROPORTION_MIN := 0.8
+const PROPORTION_MAX := 1.2
+const PROPORTION_VERSION := 1
+
+static func neutral_span(height_m: float) -> float:
+	return height_m
+
+static func span_for_ratio(height_m: float, ratio: float) -> float:
+	return height_m * clampf(ratio, PROPORTION_MIN, PROPORTION_MAX)
+
+static func ratio_for_span(height_m: float, span_m: float) -> float:
+	return clampf(span_m / maxf(height_m, 0.01), PROPORTION_MIN, PROPORTION_MAX)
+
+static func wingspan_ratio(config: Dictionary) -> float:
+	if config.has("wingspan_ratio"):
+		return clampf(float(config.wingspan_ratio), PROPORTION_MIN, PROPORTION_MAX)
+	return ratio_for_span(float(config.get("height", 1.86)), float(config.get("span", 1.90)))
+
+static func stride_ratio(config: Dictionary) -> float:
+	return clampf(float(config.get("stride_ratio", 1.0)), PROPORTION_MIN, PROPORTION_MAX)
+
+# Absolute stride length in metres: the ordinary 0.43 x height (clamped as before) scaled by the ratio.
+static func stride_metres(config: Dictionary) -> float:
+	return clampf(0.43 * float(config.get("height", 1.86)), 0.55, 1.15) * stride_ratio(config)
+
+# Set the pair; each is bounded on its own.
+static func set_proportions(config: Dictionary, wingspan: float, stride: float) -> void:
+	wingspan = clampf(wingspan, PROPORTION_MIN, PROPORTION_MAX)
+	stride = clampf(stride, PROPORTION_MIN, PROPORTION_MAX)
+	config["wingspan_ratio"] = snappedf(wingspan, 0.01)
+	config["stride_ratio"] = snappedf(stride, 0.01)
+	config["span"] = span_for_ratio(float(config.get("height", 1.86)), float(config.wingspan_ratio))
+	config["proportion_version"] = PROPORTION_VERSION
+
+# After the height changes the ratios stay and the absolute span follows.
+static func refresh_span(config: Dictionary) -> void:
+	config["span"] = span_for_ratio(float(config.get("height", 1.86)), wingspan_ratio(config))
+
 static var roster: Array = []
 static var selected := -1
 
 static func blank() -> Dictionary:
-	var athlete := {"innates": [], "name": "Rookie", "body_type": "Feli", "appearance": {"palette_index": 0, "marking": "none"}, "role": "OH", "dominant_hand": "Right", "height": DEFAULT_INCHES * 0.0254, "span": 1.90, "level": 1}
+	var athlete := {"innates": [], "name": "Rookie", "body_type": "Feli", "appearance": {"palette_index": 0, "marking": "none"}, "role": "OH", "dominant_hand": "Right", "height": DEFAULT_INCHES * 0.0254, "span": DEFAULT_INCHES * 0.0254, "level": 1, "wingspan_ratio": 1.0, "stride_ratio": 1.0, "proportion_version": PROPORTION_VERSION}
 	var offsets := {}
 	for key in ATTRIBUTES:
 		athlete[key] = float(BASE_RATING)
@@ -159,6 +200,12 @@ static func migrate(config: Dictionary) -> Dictionary:
 	out["stat_names"] = STATS.duplicate(true)
 	out["stat_version"] = STAT_VERSION
 	sync_statistics(out)
+	# Athletes saved before the proportions existed: keep the absolute span, derive its ratio, neutral stride.
+	if int(out.get("proportion_version", 0)) < PROPORTION_VERSION:
+		# Exact, not snapped: the ratio then reproduces the saved span (span = height x ratio) for the runtime.
+		out["wingspan_ratio"] = ratio_for_span(float(out.get("height", 1.86)), float(out.get("span", 1.90)))
+		out["stride_ratio"] = 1.0
+		out["proportion_version"] = PROPORTION_VERSION
 	return out
 
 static func sync_statistics(config: Dictionary) -> void:

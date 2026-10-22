@@ -7,7 +7,7 @@ Agreed October 20: Claude owns creation sliders, save migration and visual propo
 - `stride_ratio`: 0.8–1.2, 1.0 neutral.
 - `wingspan_ratio`: 0.8–1.2, 1.0 neutral.
 
-Creation enforces the opposed relationship and AP neutrality; runtime reads independently for controlled comparisons. Legacy missing stride ratio means 1.0. Missing wingspan ratio derives from span/height, retaining existing absolute proportions. New records should supply explicit ratios. If only wingspan_ratio exists, its absolute span is height times ratio.
+Creation enforces the 0.8–1.2 bounds and AP neutrality. The two ratios are independent, with no shared budget: maxing both is limited by its costs (arm and leg Stamina, a harder-to-control platform at speed, and strenuous jumps that use the athlete's own proportions), not by a cap; runtime reads independently for controlled comparisons. Legacy missing stride ratio means 1.0. Missing wingspan ratio derives from span/height, retaining existing absolute proportions. New records should supply explicit ratios. If only wingspan_ratio exists, its absolute span is height times ratio.
 
 Codex's `morphology_runtime.gd` reads these fields. Neutral leg reference remains the existing 0.43 x height; the runtime uses its difference under stride_ratio to move the receiving stance reference. Extra per-arm reach is half the difference between wingspan and height. Both feed receive geometry and discrete cost adjustments. Claude can use these same resolved measurements for visuals, without altering stamina methods.
 

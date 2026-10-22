@@ -359,7 +359,7 @@ func apply_created_athlete(config: Dictionary) -> void:
 	athlete_level = int(config.get("level", 1))
 	position_role = str(config.role)
 	dominant_hand = str(config.get("dominant_hand", "Right"))
-	var build := {"name": athlete_name.to_upper() + " / " + position_role, "height": float(config.height), "span": float(config.span)}
+	var build := {"name": athlete_name.to_upper() + " / " + position_role, "height": float(config.height), "span": float(config.span), "wingspan_ratio": preload("res://scripts/athlete_store.gd").wingspan_ratio(config), "stride_ratio": preload("res://scripts/athlete_store.gd").stride_ratio(config)}
 	for attribute in ["power", "speed", "accuracy", "endurance"]:
 		build[attribute] = float(config[attribute])
 	build["offsets"] = config.get("offsets", {}).duplicate(true)
@@ -498,7 +498,6 @@ func contact_request(action: int) -> ContactRequest:
 	request.gravity = GRAVITY
 	request.apply_set_spread = true
 	request.apply_block_spread = true
-	request.spread_phase = elapsed * 7.0
 	return request
 
 func _contact_assessment(action: int) -> Dictionary:

@@ -39,8 +39,8 @@ func tick(dt: float,athlete: LabAthlete,shot: Dictionary,incoming: Vector3) -> v
 func sample(athlete: LabAthlete,shot: Dictionary,incoming: Vector3) -> Dictionary:
 	var rating := athlete.stat("reaction_speed")
 	var cap := Stats.reaction_cap(rating)
-	# Deterministic execution error: previews never roll or mutate randomness.
-	var error := sin(float(seed)*1.73+incoming.x*0.11+incoming.y*0.07)*Stats.reaction_error(rating)
+	# Deterministic execution error: a systematic misjudgement that grows with incoming pace (faster balls are underestimated), never a roll.
+	var error := -clampf((incoming.length()-18.0)/12.0,-1,1)*Stats.reaction_error(rating)
 	var matched := clampf(prepared+error,0,cap)
 	var output := STANDARD_SET if action == 1 else (cap if action in [2,3] else matched)
 	return {"mode":"auto","action":action,"charge":output,"handling_charge":matched,"prepared":prepared,"age":age,"ceiling":cap,"reaction_speed":rating,"target_pressure":float(shot.get("charge",Isolation.pressure(shot,incoming))) if action == 0 else Isolation.pressure(shot,incoming),"error":error if action in [0,1] else 0.0}

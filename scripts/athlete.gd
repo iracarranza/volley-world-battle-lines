@@ -83,7 +83,7 @@ func stat(name: String,extra: Dictionary = {}) -> float:
 
 func has_effect(name: String) -> bool:
 	trait_effect(name) # Synchronize the tree cache before testing authored zeroes.
-	if _effects.has(name) or gameplay_effects.has(name): return true
+	if _effects.has(name) or gameplay_effects.has(name) or build.get("drill_auxiliaries",{}).has(name): return true
 	for modifier in modifiers.entries.values():
 		if modifier.get("effects",{}).has(name): return true
 	return false
@@ -100,7 +100,7 @@ func trait_effect(name: String) -> float:
 		_effect_ids = trait_ids.duplicate()
 		_effect_via = trait_via.duplicate(true)
 		_effects = book.active_effects(trait_ids, trait_via)
-	return float(_effects.get(name,0))+float(gameplay_effects.get(name,0))+modifiers.total("effects",name)
+	return float(_effects.get(name,0))+float(gameplay_effects.get(name,0))+float(build.get("drill_auxiliaries",{}).get(name,0))+modifiers.total("effects",name)
 
 func recovery_rate() -> float:
 	return 1.0+trait_effect("recovery")/100.0

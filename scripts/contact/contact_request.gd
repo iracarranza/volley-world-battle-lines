@@ -25,7 +25,6 @@ var flow := 0.0
 var gravity := 9.8
 # Preview deliberately assumes a clean charge match and omits execution scatter.
 var ideal_charge_match := false
-var spread_phase := 0.0
 var apply_set_spread := false
 var apply_block_spread := false
 # Bot target selection remains outside the resolver. These are execution inputs.

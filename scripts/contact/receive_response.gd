@@ -8,8 +8,9 @@ const MAX_TRAIT_FACTOR := 0.65
 const BODY_RADIUS_HEIGHT_RATIO := 0.22
 const DEPARTURE_LOOKAHEAD := 0.25
 
-static func noise(seed: int, lane: int) -> float:
-	return sin(float(seed % 1000003) * 12.9898 + float(lane) * 78.233)
+# Deterministic stand-in for the old per-contact seeded noise: the mean magnitude of that noise, always continuing the lean the contact
+# already has. Identical physical contacts now respond identically, whatever happened earlier in the rally.
+const MEAN_SCATTER := 0.64
 
 static func resolve(request: RefCounted, assessment: Dictionary, controlled: Vector3) -> Dictionary:
 	var yaw := atan2(-request.facing.x, -request.facing.z)
@@ -34,7 +35,7 @@ static func resolve(request: RefCounted, assessment: Dictionary, controlled: Vec
 	var failure := severity * (1.0 - control_bonus)
 	var handedness := signf(side) if absf(side) > 0.02 else (signf(incoming.x) if absf(incoming.x) > 0.02 else 1.0)
 	var placement := (0.20 + 0.80 * absf(side)) * late * (0.25 + 0.75 * impact) * (1.0 - redirection)
-	var scatter := noise(request.response_seed, 1) * (0.05 + 0.30 * height + placement * 0.60) * failure * (1.0 - redirection)
+	var scatter := MEAN_SCATTER * (0.05 + 0.30 * height + placement * 0.60) * failure * (1.0 - redirection)
 	# Upper contacts permit tangential escape; the low platform catches/damps more.
 	var normal := Vector3(side * (0.20 + height * 0.90), lerpf(0.10, 1.0, height), -lerpf(1.0, 0.15, height)).normalized()
 	normal = normal.rotated(Vector3.UP, -handedness * (placement * 0.65 + scatter)).normalized()

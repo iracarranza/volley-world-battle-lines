@@ -82,6 +82,20 @@ func run() -> void:
 		ball_drill.tick(1.0 / 60.0)
 	check(lab.player.position.distance_to(start) > 0.001, "The balance ball wobbles the player")
 	check(ball_drill.wobble_amplitude() > 0.0, "Wobble scales with Stability")
+	var placement_before: float = lab.athlete.trait_effect("placement")
+	for rep in range(ball_drill.distributor.min_reps):
+		ball_drill._spike_used(true, "player", "")
+	check(lab.athlete.trait_effect("placement") == placement_before + 1.0, "A completed Balance Ball Setting grants Placement access")
+	check(float(lab.athlete.build.drill_auxiliaries.get("court_vision", 0.0)) == 0.0, "It grants nothing else")
+	var transition = row.by_name["transition_set"]
+	lab._reset()
+	lab.inventory.give()
+	await settle(lab, transition.anchor + Vector3(0, 0.03, 0))
+	row.select_nearby()
+	transition.interact()
+	for rep in range(transition.distributor.min_reps):
+		transition._spike_used(true, "player", "")
+	check(lab.athlete.trait_effect("court_vision") == 1.0, "A completed Transition Set grants Court Vision access")
 
 	# Sub-attribute growth gets harder with the band.
 	var Progress = load("res://scripts/workout_progress.gd")
