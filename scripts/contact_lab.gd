@@ -63,6 +63,7 @@ var debug_volumes_visible := true
 var rotate_hurtboxes := true
 # R toggles the modified action: Back Set (with the Back Set Trait) when setting, Float Serve (with the Float Serve Trait) when serving.
 var back_set := false
+var perf_meter: CanvasLayer # F3
 const BACK_SET_TRAIT := "accuracy_back_set"
 const FLOAT_SERVE_TRAIT := "acc_float_serve"
 const NEUTRAL_VIEW_PITCH := -0.12 # the resting view: boxes tilt by how far the aim has moved from it
@@ -575,11 +576,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			match event.button_index:
 				MOUSE_BUTTON_LEFT: bench.cycle(-1)
 				MOUSE_BUTTON_RIGHT: bench.cycle(1)
-		if not (event is InputEventKey and event.keycode in [KEY_O, KEY_M, KEY_P, KEY_T, KEY_H, KEY_F8, KEY_F9, KEY_K]):
+		if not (event is InputEventKey and event.keycode in [KEY_O, KEY_M, KEY_P, KEY_T, KEY_H, KEY_F3, KEY_F8, KEY_F9, KEY_K]):
 			return
 	if is_instance_valid(creator) and creator.visible:
 		return
-	if (animation.roll_lock > 0.0 or animation.dive_input_locked() or animation.floor_input_locked()) and not (event is InputEventKey and event.keycode in [KEY_O, KEY_M, KEY_P, KEY_T, KEY_H, KEY_F8, KEY_F9, KEY_K]):
+	if (animation.roll_lock > 0.0 or animation.dive_input_locked() or animation.floor_input_locked()) and not (event is InputEventKey and event.keycode in [KEY_O, KEY_M, KEY_P, KEY_T, KEY_H, KEY_F3, KEY_F8, KEY_F9, KEY_K]):
+		return
+	if not paused and drills.has_method("drill_input") and drills.drill_input(event):
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		motion.note_direction_tap(event)
@@ -601,6 +604,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_M: _return_to_title()
 			KEY_B: _feed()
 			KEY_E: serve.input_press()
+			KEY_R: toggle_modifier()
+			KEY_F3: perf_meter.toggle()
 			KEY_TAB: _cycle_build()
 			KEY_F5:
 			KEY_R: toggle_modifier()
@@ -1450,6 +1455,9 @@ func begin_passive_block() -> void:
 	armed = true
 	hurtbox_action = 3
 	confirmed_geometry = {}
+	perf_meter = preload("res://scripts/perf_meter.gd").new()
+	add_child(perf_meter)
+
 	var presentation := hurtbox_view.present(_raw_hurtbox_definition(3),3)
 	hurtbox_mesh = presentation.mesh
 	hurtbox_label = presentation.label
