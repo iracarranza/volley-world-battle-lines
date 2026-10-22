@@ -25,6 +25,8 @@ func run() -> void:
 					break
 				lab._tick_ball(1.0 / rate)
 			check(bots.last_action == 3 and bots.total_contacts == 1, "Bot physically blocks driven attack at %d Hz / %.0f m/s" % [rate, speed])
+			var presentation: Dictionary = bots.animation.state_for(bots.rigs[7].body)
+			check(int(presentation.action) == 3 and not presentation.get("contact_evidence", {}).get("block_response", {}).is_empty(), "Physical bot block supplies resolved recoil evidence")
 			check(lab.ball_velocity.is_finite() and lab.ball_velocity.length() > 1, "Regional bot block deflects without stalling, including fingertip escapes")
 	for rate in [30, 60, 120]:
 		lab._reset()
@@ -53,6 +55,7 @@ func run() -> void:
 			lab.elapsed += 1.0 / rate
 			lab._tick_ball(1.0 / rate)
 		check(lab._contact_event_serial == serial + 1 and lab.ball_active, "Player swept block catches fast ball and keeps rally active")
+		check(lab.animation.contact_action == 3 and lab.animation.contact_age >= 0 and not lab.animation.contact_evidence.block_response.is_empty(), "Physical player block supplies resolved recoil evidence")
 		check(lab.contacts == 3 and lab.side_contacts[0] == 3, "Player block does not consume ordinary team touches")
 		check(lab.ball_velocity.z < -2 and lab.confirm_window == 0, "Player block returns ball and consumes confirmation")
 		for frame in range(rate):

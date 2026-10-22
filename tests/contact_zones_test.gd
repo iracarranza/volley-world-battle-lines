@@ -57,6 +57,15 @@ func run() -> void:
 		lab.camera_rig.facing_yaw = 0
 		var point: Vector3 = sector.center + lab.Geometry.sector_point(sector, sample.r, sample.angle, 0)
 		lab.ball.position = lab.player.position + point
+		lab._confirm_action()
+		# The strike sweeps through the envelope from behind to ahead; a ball is hittable when the sweep reaches it.
+		var struck_at := 0.5
+		for step in range(41):
+			var age := 0.4 + step * 0.005
+			if lab.Geometry.spike_active(sector, point, age):
+				struck_at = age
+				break
+		lab.confirm_window = lab.confirm_duration - struck_at
 		check(lab._can_contact(), "Ball inside every named spike zone must be hittable")
 		lab._contact()
 		var spatial: Dictionary = lab.Geometry.evaluate(sector, point)

@@ -1,6 +1,6 @@
 extends RefCounted
 # Neutral band ends at 65. Within each band capability is unchanged.
-const PARENTS := {"explosiveness":"power","jump_power":"power","swing_power":"power","acceleration":"speed","reaction_speed":"speed","transition_speed":"speed","ball_control":"accuracy","timing":"accuracy","stability":"accuracy","cushioning":"endurance","work_rate":"endurance","capacity":"endurance"}
+const PARENTS := {"core_strength":"endurance","explosiveness":"power","jump_power":"power","swing_power":"power","acceleration":"speed","reaction_speed":"speed","transition_speed":"speed","ball_control":"accuracy","timing":"accuracy","stability":"accuracy","resistance":"endurance","work_rate":"endurance"}
 static func tier(rating: float) -> int:
 	if rating >= 99: return 5
 	if rating >= 90: return 4
@@ -10,10 +10,15 @@ static func tier(rating: float) -> int:
 	if rating >= 61: return 0
 	if rating >= 56: return -1
 	return -2
+const LEGACY_NAMES := {"capacity":"core_strength", "cushioning":"resistance"}
 static func rating(build: Dictionary, name: String) -> float:
+	name = LEGACY_NAMES.get(name, name)
 	var named: Dictionary = build.get("statistics",{})
 	if named.has(name):
 		return clampf(float(named[name]),50,99)
+	for old_name in LEGACY_NAMES:
+		if LEGACY_NAMES[old_name] == name and named.has(old_name):
+			return clampf(float(named[old_name]), 50, 99)
 	var parent: String = PARENTS[name]
 	var value := float(build.get(parent,65))
 	# Runtime inputs use canonical named values. Bare comparison builds inherit

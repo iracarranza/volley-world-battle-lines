@@ -100,7 +100,7 @@ func run() -> void:
 		lab.ball.position = lab.player.position+point_local
 		lab.ball_velocity = Vector3(0,-5,15)
 		lab._confirm_action()
-		lab.confirm_window = lab.confirm_duration-0.22
+		lab.confirm_window = lab.confirm_duration - (preload("res://scripts/contact_execution.gd").SPIKE_PEAK if lab.locked_action == 2 else 0.22)
 		lab.animation.update()
 		lab._contact()
 		check(clock.active == (action == 2) and clock.last_event.sweet and clock.last_event.moc_mode == "Tuned Slowdown", "Actual sweet contact selects hold tuning for action %d" % action)

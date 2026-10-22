@@ -11,10 +11,10 @@ func run() -> void:
 	check(is_equal_approx(Stage.phase_for(0.0, 0.5), -0.62) and is_equal_approx(Stage.phase_for(0.4, 0.5), loaded) and is_equal_approx(Stage.phase_for(0.5, 0.5), loaded), "without a click the spiker loads from takeoff and holds the cocked pose")
 	check(is_equal_approx(Stage.phase_for(0.25, 0.5, 0.0), loaded) and is_equal_approx(Stage.phase_for(0.25, 0.5, Stage.STRIKE_SECONDS), 0.0), "the click starts the strike, which reaches contact in %.2f s" % Stage.STRIKE_SECONDS)
 	check(Stage.phase_for(0.3, 0.5, Stage.STRIKE_SECONDS * 0.5) < -0.05 and Stage.phase_for(0.3, 0.5, Stage.STRIKE_SECONDS * 0.5) > loaded, "the arm is accelerating into the ball part way through the strike")
-	check(is_equal_approx(Stage.phase_for(0.3, 0.5, 0.6), 0.0), "it waits at contact for the ball")
+	check(Stage.phase_for(0.3, 0.5, 0.6) > 0.0, "the active swing continues past extension")
 	check(is_equal_approx(Stage.phase_for(0.3, 0.5, 0.6 + Stage.FOLLOW_SECONDS, 0.6), 0.45) and Stage.phase_for(0.3, 0.5, 0.7, 0.6) > 0.0 and Stage.phase_for(0.3, 0.5, 0.7, 0.6) < 0.45, "follow-through runs from the hit")
 	check(is_equal_approx(Stage.phase_for(0.3, 0.5, Stage.STRIKE_SECONDS, Stage.STRIKE_SECONDS), 0.0), "a hit as the strike finishes puts the arm at contact at that moment")
-	check(is_equal_approx(Stage.STRIKE_SECONDS, preload("res://scripts/contact_execution.gd").SWEET_CENTER), "the arm reaches its extension at the centre of the sweet window")
+	check(is_equal_approx(Stage.STRIKE_SECONDS, preload("res://scripts/contact_execution.gd").SPIKE_PEAK), "the arm reaches its extension at the centre of the sweet window")
 	# The staged timing VWM defines survives: legs before trunk before shoulder before elbow.
 	var cock := Stage.pose_for(-0.30, 1.0)
 	var contact := Stage.pose_for(0.0, 1.0)

@@ -29,8 +29,8 @@ func run() -> void:
 	check(not Charge.match_charge(Charge.shot("set", 0.6, "test"), 0).required, "Scope is serves and attacks")
 	var spatial := {"hit": true, "quality": 1.0, "zone": "SWEET SPOT"}
 	for action in range(4):
-		var start := 0.12 if action == 0 else 0.155
-		var end := 0.44 if action == 0 else 0.335
+		var start := 0.12 if action == 0 else (Execution.SPIKE_PEAK - Execution.SPIKE_SWEET_SECONDS * 0.5 if action == 2 else 0.155)
+		var end := 0.44 if action == 0 else (Execution.SPIKE_PEAK + Execution.SPIKE_SWEET_SECONDS * 0.5 if action == 2 else 0.335)
 		check(is_equal_approx(Execution.sweet_start(action), start) and is_equal_approx(Execution.sweet_end(action), end), "Doubled window expands equally before and after its former bounds")
 		check(not Execution.assess(spatial, start - 0.001, false, action).sweet, "Windup precedes new sweet start")
 		check(Execution.assess(spatial, start, false, action).sweet, "New start is inclusive")

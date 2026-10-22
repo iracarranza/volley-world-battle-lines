@@ -57,6 +57,15 @@ func _build(shape: Dictionary, action: int, grading_shape: Dictionary = {}) -> D
 		wire.mesh = Geometry.zone_mesh(shape, true,grading_shape)
 		wire.material_override = m
 		group.add_child(wire)
+		if action == 2:
+			var sweep := MeshInstance3D.new()
+			sweep.name = "ActiveSweep"
+			var slice := shape.duplicate(true)
+			slice.depth = 0.035
+			sweep.mesh = Geometry.zone_mesh(slice, true)
+			sweep.material_override = world_builder.debug_material(Color("ffce73"), 0.9)
+			group.add_child(sweep)
+			sweep.hide()
 		var sweet_point := Geometry.sector_point(shape, 0.74, 67.5, 0.0)
 		if not grading_shape.is_empty():
 			sweet_point = (Vector3(shape.center)+sweet_point-Vector3(grading_shape.center))/Vector3(grading_shape.get("geometry_scale",Vector3.ONE))
@@ -143,3 +152,12 @@ func phase_material(phase: String) -> StandardMaterial3D:
 			Color("8faabb") if phase == "windup" else Color("f69c69"), 0.22
 		)
 	return phase_materials[phase]
+
+func update_spike_sweep(shape: Dictionary, age: float) -> void:
+	if not is_instance_valid(active): return
+	var sweep := active.get_node_or_null("ActiveSweep") as MeshInstance3D
+	if sweep == null: return
+	var clock := preload("res://scripts/contact_execution.gd")
+	sweep.visible = age >= clock.SPIKE_WINDUP and age <= clock.SPIKE_END
+	var base: Dictionary = shape.get("base_geometry", shape)
+	sweep.position.z = lerpf(float(base.depth) * 0.5, -float(base.depth) * 0.5, clock.spike_progress(age))

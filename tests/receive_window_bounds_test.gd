@@ -50,7 +50,7 @@ func run() -> void:
 	check(result.sweet and not result.rescue and not lab.sweet_visual_expired, "Receive at 340 ms remains sweet with matching debug display")
 	lab.confirm_window = lab.confirm_duration - 0.45
 	check(lab._contact_assessment(0).rescue, "Receive becomes rescue after 440 ms")
-	check(Execution.assess({"hit": true, "zone": "SWEET SPOT", "quality": 1.0}, 0.34, false, 2).forgiving_spike, "Attack becomes forgiving after its widened 180 ms sweet window")
+	check(Execution.assess({"hit": true, "zone": "SWEET SPOT", "quality": 1.0}, Execution.SPIKE_RESCUE_SECONDS - 0.005, false, 2).forgiving_spike, "Attack becomes forgiving after its 60 ms sweet window, while still inside the power window")
 	print("RECEIVE WINDOW / DRILL BOUNDS: %d / %d passed" % [checks - failures, checks])
 	lab.queue_free()
 	await process_frame

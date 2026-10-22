@@ -12,7 +12,7 @@ adapter must preserve the source character pipeline.
 | --- | --- |
 | Composition, input routing, contact commit, rally scheduling | `scripts/contact_lab.gd` (`LabSession`) |
 | Movement, approach clocks, launch, dive movement | `scripts/lab/athlete_motor.gd` |
-| Player pose layering and recovery | `scripts/lab/athlete_animation.gd` |
+| Player pose layering, action clocks and recovery | `scripts/lab/athlete_animation.gd` |
 | Camera state, framing and facing | `scripts/lab/camera_controller.gd` |
 | Editable camera defaults | `resources/lab_camera.tres`, `scripts/lab/camera_tuning.gd` |
 | Lab controls, help and bot panel | `scripts/lab/lab_hud.gd` |
@@ -27,6 +27,11 @@ adapter must preserve the source character pipeline.
 | Shared bot movement/preparation/poses | `scripts/bot_motion.gd`, `bot_preparation.gd`, `bot_animation.gd` |
 | Serving / drills | `interactive_serve.gd`, `serve_receive_station.gd`, `map_drills.gd` |
 | Flow, fatigue consequence, visual impact | `contact_flow.gd`, `bench_status.gd`, `impact_visual.gd` |
+| Block volume, lifecycle and response | `block_field.gd`, `block_state.gd`, `contact/block_response.gd` |
+| Map activities and rally legality | `map_activities.gd`, `rally_rules.gd` |
+| Morphology projection and stamina costs | `morphology_runtime.gd`, `stamina_costs.gd` |
+| Local slowdown and trajectory steering | `moment_of_contact.gd`, `moc_steering.gd` |
+| Shared Receive/Block contact presentation | `scripts/contact_response_pose.gd` |
 | Hand-authored poses | `data/poses/`, `scripts/pose_library.gd` and action stage scripts |
 
 Controller members own their clocks and state; callers use `lab.motion`,
@@ -109,6 +114,21 @@ updates camera/VFX and the preview. Pose evaluation remains available in both
 paths because confirmation geometry/recovery and immediate facing depend on it;
 removing it solely to lower a call count risks changing visible contact timing.
 Pose smoothing advances at most once per rendered frame.
+
+The motor schedules `animation.tick_action_clocks(dt)` once per physics step,
+with actor-local time. Animation owns receive, roll, dive, spike and set clocks.
+Its `update()` lists composition order: base locomotion, preparation, takeoff/roll,
+receive, dive, spike, recovery, set, locomotion spine, contact response, smoothing, final overrides.
+Private layer methods retain that ordering; later layers deliberately win.
+Court and Pepper controllers group dependencies, fixed configuration and state
+before lifecycle/action methods. Keep related declarations together when extending them.
+
+`contact_response_pose.gd` supplies bounded additive Receive/Block joint curves.
+Player animation receives finalized contact events; bot animation receives the
+resolved assessment. Both retain only response evidence and use actor-local
+clocks. Rebuild the base before applying the response, then smooth the combined
+pose to preserve action-switch continuity. Dive/floor recoveries retain priority.
+The layer must never write ball, collision, actor translation or contact timing.
 
 MoC exposes separate ball and actor scales. World time remains unscaled. Do not
 multiply the whole lab delta by MoC or alter `Engine.time_scale`.

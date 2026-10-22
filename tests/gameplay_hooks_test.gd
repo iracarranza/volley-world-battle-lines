@@ -10,8 +10,8 @@ const Influence := preload("res://scripts/directional_influence.gd")
 func _initialize() -> void: call_deferred("run")
 func run() -> void:
 	var athlete := Athlete.new()
-	athlete.gameplay_effects = {"cushioning":5,"ball_control":15,"swing_power_band":2,"swing_power_band_cap":2}
-	check(athlete.stat("cushioning") == 70 and athlete.cushioning_bonus() == 0.08,"Cushioning rating reaches its effective band")
+	athlete.gameplay_effects = {"resistance":5,"ball_control":15,"swing_power_band":2,"swing_power_band_cap":2}
+	check(athlete.stat("resistance") == 70 and athlete.cushioning_bonus() == 0.08,"Resistance rating reaches its effective band")
 	check(athlete.ball_control() == 80 and Stats.rating(athlete.build,"ball_control") == 65,"Effective Ball Control never changes stored rating")
 	check(athlete.stat("swing_power") == 70,"Capped band uplift reaches T2")
 	athlete.build.statistics = {"swing_power":99}

@@ -84,7 +84,7 @@ func run() -> void:
 	lab.ball.position = lab.player.position+Vector3(shape.center)+lab.Geometry.sector_point(shape,0.74,67.5,0)
 	lab.ball_velocity = Vector3(0,-4,10)
 	lab._confirm_action()
-	lab.confirm_window = lab.confirm_duration-0.22
+	lab.confirm_window = lab.confirm_duration - (preload("res://scripts/contact_execution.gd").SPIKE_PEAK if lab.locked_action == 2 else 0.22)
 	lab._contact()
 	check(moc.steering_active() and lab.last_contact_result.physical_hit,"Real spike starts steering only after physical contact")
 	check(not Preview.predict(lab).is_empty() and not lab.armed,"Real contact keeps trajectory visible after preparation ends")

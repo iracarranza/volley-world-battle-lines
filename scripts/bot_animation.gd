@@ -2,6 +2,7 @@ extends RefCounted
 
 # Shared action presentation for court helpers and Pepper partners. Uses the same
 # authored files/stages as the athlete; never moves the actor or changes collision.
+const ContactResponse := preload("res://scripts/contact_response_pose.gd")
 const Pose := preload("res://scripts/athlete_pose.gd")
 const Library := preload("res://scripts/pose_library.gd")
 const Smoother := preload("res://scripts/pose_smoother.gd")
@@ -29,9 +30,9 @@ func state_for(body: Node3D) -> Dictionary:
 		states[key] = {"since": 100.0, "action": -1, "point": Vector3.ZERO, "posture": "planted", "swing_yaw": 0.0, "rescue": false, "smoother": Smoother.new(), "source": "locomotion", "phase": -2.0, "dive_yaw": 0.0}
 	return states[key]
 
-func contact(rig: Dictionary, action: int, point: Vector3, posture: String = "planted", swing_yaw: float = 0.0, rescue: bool = false) -> void:
+func contact(rig: Dictionary, action: int, point: Vector3, posture: String = "planted", swing_yaw: float = 0.0, rescue: bool = false, evidence: Dictionary = {}) -> void:
 	var state := state_for(rig.body)
-	state.merge({"since": 0.0, "action": action, "point": point, "posture": posture, "swing_yaw": swing_yaw, "rescue": rescue}, true)
+	state.merge({"since": 0.0, "action": action, "point": point, "posture": posture, "swing_yaw": swing_yaw, "rescue": rescue, "contact_evidence": {"charge_match": evidence.get("charge_match", {}).duplicate(true), "block_response": evidence.get("block_response", {}).duplicate(true)}}, true)
 
 func update(rig: Dictionary, dt: float, context: Dictionary = {}) -> void:
 	var body: Node3D = rig.body
@@ -64,6 +65,8 @@ func update(rig: Dictionary, dt: float, context: Dictionary = {}) -> void:
 		source = "set"
 	elif shown_action == 2 and (airborne or follow):
 		phase = lerpf(0.0, 0.72, clampf(float(state.since) / 0.65, 0, 1)) if follow else lerpf(-0.62, 0.0, 1.0 - clampf(remaining / maxf(float(context.get("rise", 0.4)), 0.01), 0, 1))
+		if not follow and float(context.get("swing_age", -1.0)) >= 0.0:
+			phase = SpikeStage.swing_phase(float(context.swing_age))
 		var swing_yaw := float(state.swing_yaw) if follow else float(context.get("swing_yaw", 0.0))
 		var ball_local: Vector3 = state.point if follow else context.get("contact_point",Vector3(0,2.3,-0.4))
 		SpikeStage.apply(body,phase,hand,float(context.get("charge",0.65)),"Power swing",{"ball_local":ball_local,"shot_yaw":swing_yaw})
@@ -84,6 +87,8 @@ func update(rig: Dictionary, dt: float, context: Dictionary = {}) -> void:
 	elif context.has("dive_recovery_time"):
 		Recovery.apply(body, Recovery.at(float(context.dive_recovery_time), context.get("dive_direction", Vector2(0, 1)), float(context.get("dive_quality", 0.7)), context.get("dive_root", Vector2.ZERO)))
 		source = "dive"
+	if source != "dive":
+		ContactResponse.apply(body, ContactResponse.offsets(shown_action, float(state.since) if follow else -1.0, state.get("contact_evidence", {}), float(context.get("block_age", -1.0)) if airborne else -1.0))
 	var smoothed: Dictionary = state.smoother.update(Library.read_rig(body), source, dt)
 	Library.apply(body, Library.from_flat(smoothed, false), 1.0)
 	Wing.apply(body, "tucked", "block" if shown_action == 3 and airborne else ("balance" if source == "dive" else "tucked"), 1.0)

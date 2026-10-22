@@ -20,7 +20,10 @@ func run() -> void:
 		bots.replan()
 		check(bots.active_action == 0 and bots.actors[0].position == start, "Move planning never teleports receiver")
 		bots.tick_motion(0.1)
-		check(bots.actors[0].position.distance_to(start) <= speed * 0.1 + 0.001, "Move speed caps ground displacement")
+		# Running is capped by the move speed; a dive (a receiver reaching for a ball it cannot run to) is a faster, short, lifted lunge.
+		var dive_factor: float = 1.6 * bots.athlete_for(0).explosiveness_rate() if bots.dives.busy(0) else 1.0
+		var ground := Vector2(bots.actors[0].position.x - start.x, bots.actors[0].position.z - start.z).length()
+		check(ground <= speed * 0.1 * dive_factor + 0.001, "Move speed caps ground displacement")
 		if speed > 0:
 			check(bots.actors[0].position.x > start.x, "Move heads toward assigned contact")
 		for frame in range(180):

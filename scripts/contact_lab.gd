@@ -428,7 +428,7 @@ func _confirm_action(window: float = -1.0) -> void:
 		animation.spike_swing_time = 0.0
 	_capture_contact_intent()
 	confirmed_geometry = {}
-	confirm_window = minf(window, Execution.CONTACT_SECONDS) if window > 0 else Execution.CONTACT_SECONDS
+	confirm_window = minf(window, Execution.contact_seconds(locked_action)) if window > 0 else Execution.contact_seconds(locked_action)
 	confirm_duration = confirm_window
 	if ground_contact_locked():
 		player.velocity.x = 0.0
@@ -461,7 +461,7 @@ func _update_hurtbox_visual(dt: float) -> void:
 	var phase := "sweet" if (age >= 0 and age < 0.5 if hurtbox_action == 3 else Execution.sweet_active(hurtbox_action, age)) else ("windup" if age < Execution.sweet_start(hurtbox_action) else "rescue")
 	if phase != sweet_visual_phase:
 		for child in hurtbox_view.active.get_children():
-			if child is MeshInstance3D:
+			if child is MeshInstance3D and child.name != "ActiveSweep":
 				if not child.has_meta("sweet_material"):
 					child.set_meta("sweet_material", child.material_override)
 				child.material_override = child.get_meta("sweet_material") if phase == "sweet" or hurtbox_action == 3 else hurtbox_view.phase_material(phase)
@@ -471,6 +471,10 @@ func _update_hurtbox_visual(dt: float) -> void:
 		if block_state.active and hurtbox_action == 3: hurtbox_label.text = "BLOCK / PRESS %.0f%%" % (100*pow(clampf(1-age/0.5,0,1),3)) if age >= 0 and age < 0.5 else "BLOCK / PASSIVE"
 		if hurtbox_action == 2 and phase == "rescue" and age < Execution.SPIKE_RESCUE_SECONDS:
 			hurtbox_label.text = "ATTACK / ROLL SHOT" if age < Execution.SPIKE_POWER_START else "ATTACK / FORGIVING SPIKE"
+	if hurtbox_action == 2:
+		hurtbox_view.update_spike_sweep(_hurtbox_definition(2), age)
+		if is_instance_valid(hurtbox_label):
+			hurtbox_label.text = "ATTACK / WINDUP %.2f" % maxf(0.0, Execution.SPIKE_WINDUP - age) if age < Execution.SPIKE_WINDUP else ("ATTACK / " + ("ROLL" if age < Execution.SPIKE_POWER_START else ("POWER" if age < Execution.SPIKE_RESCUE_SECONDS else "PUSH")))
 	if hurtbox_action == 0 and is_instance_valid(hurtbox_label):
 		hurtbox_label.text += " / " + animation.receive_posture.to_upper()
 	hurtbox_root.visible = debug_volumes_visible and hurtbox_linger > 0
@@ -525,7 +529,7 @@ func contact_request(action: int) -> ContactRequest:
 		request.handling_charge = float(request.auto_evidence.handling_charge)
 	if action == 3 and not auto_preparation.active: request.block_charge_reference = request.charge
 	request.block_confirmation_age = block_state.confirmation_age if block_state.active else (confirm_duration-maxf(confirm_window,0) if confirm_window > 0 else -1.0)
-	request.confirmation_age = confirm_duration - maxf(confirm_window, 0) if confirm_duration > 0 else Execution.SWEET_DELAY
+	request.confirmation_age = confirm_duration - maxf(confirm_window, 0) if confirm_duration > 0 else Execution.ideal_age(action)
 	request.remembered = not Geometry.contains(request.shape, request.local_point) and contact_memory[action] > 0
 	request.facing = Vector3.FORWARD.rotated(Vector3.UP, _contact_yaw())
 	request.intent_direction = _intent_direction(action, committed_intent.get("direction", request.facing))
@@ -835,6 +839,8 @@ func _can_contact() -> bool:
 		return false
 	if locked_action == 0 and _local_contact_position().z > 0:
 		return false
+	if locked_action == 2:
+		return Geometry.spike_active(_hurtbox_definition(2), _local_contact_position(), confirm_duration - maxf(confirm_window, 0.0))
 	return _overlaps_contact(locked_action) or (ball_active and contact_memory[locked_action] > 0.0)
 
 func begin_auto_preparation(action: int) -> void:
@@ -964,12 +970,19 @@ func _impact_event(actor_id: String, action: int, incoming: Vector3, assessment:
 
 func _publish_impact(event: Dictionary) -> void:
 	if not station.running() and not drills.running() and not pepper.active():
-		rally_rules.touch(int(event.team))
+		var touching_side := int(event.team)
+		# An opponent's touch renews the team's allowance even when a block
+		# reverses the ball before it fully clears the net's crossing plane.
+		side_contacts[1 - touching_side] = 0
+		if touching_side != side_index(player.position.z):
+			contacts = 0
+		rally_rules.touch(touching_side)
 	clear_net_responses()
 	net_bounce_pending = false
 	net_response.clear_side = signf(ball.position.z)
 	if event.action == Action.RECEIVE:
 		receive_resolved.emit(event)
+	animation.on_contact(event)
 	contact_flow.record(event)
 	moc.begin(event)
 
@@ -1367,6 +1380,7 @@ func _reset() -> void:
 	animation.receive_pose_remaining = 0
 	animation.carry.reset()
 	animation.spike_impact_latched = false
+	animation.reset_contact()
 	animation.receive_pose_contact = Vector3.ZERO
 	if is_instance_valid(moc):
 		moc.clear()

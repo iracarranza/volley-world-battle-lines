@@ -44,11 +44,22 @@ func run() -> void:
 	check(not lab._can_contact(), "Distant ball must not be teleported into contact")
 	lab.locked_action = 2
 	lab.ball.position = lab.player.position + Vector3.UP * (a.reach() - 0.2)
-	check(lab._can_contact(), "Overhead ball must be attackable")
+	lab.armed = true
+	lab._confirm_action()
+	# The strike sweeps through the envelope; the ball is attackable when the sweep reaches it.
+	var overhead_age := -1.0
+	for step in range(41):
+		var age: float = lab.Execution.SPIKE_WINDUP + step * 0.005
+		lab.confirm_window = lab.confirm_duration - age
+		if lab._can_contact():
+			overhead_age = age
+			break
+	check(overhead_age > 0.0, "Overhead ball must be attackable")
 	lab.ball.position.y += 2
 	check(not lab._can_contact(), "Ball above reach must not be contactable")
 	lab._reset()
-	lab.camera_rig.view_pitch = 0.52 # Deliberate loft clears the net from a grounded driven attack.
+	lab.camera_rig.view_pitch = 0.56 # Deliberate loft clears the net from a grounded driven attack.
+	lab.rotate_hurtboxes = false # the ball is placed in the level box; tilting is covered by hurtbox_tilt_test
 	lab.court_half_width = 4.5
 	lab.court_half_depth = 9.0
 	lab.aim = Vector3(0, 0, -6)
@@ -58,10 +69,12 @@ func run() -> void:
 	lab.ball.position = lab.player.position + attack_shape.center + lab.Geometry.sector_point(attack_shape, 0.74, 67.5, 0)
 	lab.ball_active = true
 	lab.armed = true
+	lab._confirm_action()
+	lab.confirm_window = lab.confirm_duration - lab.Execution.SPIKE_PEAK
 	lab._contact()
 	check(lab.contacts == 1 and not lab.armed and lab.ball_velocity.z < 0, "Confirm must launch a real outgoing ball")
 	check(a.hp == 100 and a.stamina < a.max_stamina(), "Ordinary contact consumes stamina without spending HP")
-	for i in range(300):
+	for i in range(1500): # a sweet contact starts the local slowdown, so the flight takes longer
 		if not lab.ball_active:
 			break
 		lab._tick_ball(1.0 / 120.0)

@@ -10,13 +10,13 @@ func run() -> void:
 	var blank := Store.blank()
 	for parent in Store.ATTRIBUTES:
 		check(Store.STATS[parent].size() == 3 and blank.offsets[parent].size() == 3,"Three current substats per parent")
-	check(Store.STATS.accuracy.has("Stability") and Store.STATS.endurance == ["Cushioning","Work Rate","Capacity"],"Latest ACC/END definitions supersede old plan")
+	check(Store.STATS.accuracy.has("Stability") and Store.STATS.endurance == ["Resistance","Work Rate","Core Strength"],"Latest ACC/END definitions supersede old plan")
 	var old := {"power":65,"speed":65,"accuracy":65,"endurance":65,"offsets":{"power":[2,6,-8],"speed":[2,-2,0,0],"accuracy":[-3,3,0],"endurance":[5,-2,-3,0]},"name":"Legacy","picks":["power_power_serve"]}
 	var converted := Store.migrate(old)
 	check(converted.legacy_statistics.offsets == old.offsets,"Legacy allocation preserved losslessly in archive")
 	check(not old.has("stat_version"),"Migration does not mutate source")
 	check(converted.picks == old.picks and converted.name == old.name,"Identity and explicit trait ownership survive migration")
-	check(converted.statistics.jump_power == 65 and converted.statistics.stability == 65 and converted.statistics.cushioning == 65,"Unrelated legacy stats are not relabelled into new effects")
+	check(converted.statistics.jump_power == 65 and converted.statistics.stability == 65 and converted.statistics.resistance == 65,"Unrelated legacy stats are not relabelled into new effects")
 	check(Store.migrate(converted) == converted,"Migration is idempotent")
 	converted.offsets.power = [-2.0,0.0,2.0]
 	Store.sync_statistics(converted)
@@ -149,7 +149,7 @@ func run() -> void:
 	lab.ball.position = lab.player.position+Vector3(spike.center)+lab.Geometry.sector_point(spike,0.74,67.5,0)
 	lab.ball_velocity = incoming
 	lab._confirm_action()
-	lab.confirm_window = lab.confirm_duration-0.22
+	lab.confirm_window = lab.confirm_duration - (preload("res://scripts/contact_execution.gd").SPIKE_PEAK if lab.locked_action == 2 else 0.22)
 	lab._contact()
 	check(is_equal_approx(lab.last_contact_result.outgoing_shot.charge,effective),"Real attack metadata uses identical effective charge")
 	check(lab.athlete.flow <= 25*(1.0+lab.athlete.trait_effect("flow_state")/100.0),"Real Rhythm Hitter consumes old Flow, then new contact earns Flow with Flow State")

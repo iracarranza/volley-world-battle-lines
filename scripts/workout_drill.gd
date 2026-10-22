@@ -123,7 +123,6 @@ func interact() -> void:
 				phase = Phase.ACTIVE
 				elapsed = 0.0
 				_begin_run()
-				detail = "%s / go" % title
 		Phase.ACTIVE:
 			_abandon("%s stopped" % title)
 		_:

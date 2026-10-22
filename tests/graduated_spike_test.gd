@@ -13,7 +13,7 @@ func run() -> void:
 	var point: Vector3 = shape.center + Geometry.sector_point(shape, 0.74, 67.5, 0)
 	var spatial := Geometry.evaluate(shape, point)
 	var previous_speed := INF
-	for age in [0.22, 0.31, 0.36, 0.40, 0.48]:
+	for age in [0.5, 0.53, 0.55, 0.57, 0.59]:
 		var assessment := Execution.assess(spatial, age, false, 2)
 		check(assessment.spike_form == ("power" if age < Execution.SPIKE_RESCUE_SECONDS else "push"), "Contact after the power window is a reach/push")
 		var output := Execution.velocity(2, Vector3(2, -3, -24) * float(assessment.strength), Vector3.ZERO, Vector3.FORWARD, assessment, 65)
@@ -24,16 +24,16 @@ func run() -> void:
 		if age >= Execution.SPIKE_RESCUE_SECONDS:
 			check(assessment.rescue and output.length() < 5, "Very late contact becomes rescue push")
 	# Before the arm gets there: a roll shot, better than a push but not a power swing.
-	var early := Execution.assess(spatial, 0.05, false, 2)
+	var early := Execution.assess(spatial, 0.41, false, 2)
 	var roll := Execution.velocity(2, Vector3(2, -3, -24) * float(early.strength), Vector3.ZERO, Vector3.FORWARD, early, 65)
-	var push := Execution.velocity(2, Vector3.ZERO, Vector3.ZERO, Vector3.FORWARD, Execution.assess(spatial, 0.48, false, 2), 65)
+	var push := Execution.velocity(2, Vector3.ZERO, Vector3.ZERO, Vector3.FORWARD, Execution.assess(spatial, 0.59, false, 2), 65)
 	check(early.rescue and early.spike_form == "roll" and not early.sweet, "Contact before the arm reaches its extension is a roll shot")
 	check(roll.length() > push.length() and roll.length() < 10.0, "A roll shot is a controlled soft attack")
 	var inside := Execution.assess(spatial, Execution.SPIKE_POWER_START + 0.01, false, 2)
 	check(inside.spike_form == "power" and not inside.rescue, "Inside the central window early contact is still a power swing")
 	for depth in [0.65, 1.05]:
 		var extended: Vector3 = shape.center + Geometry.sector_point(shape, 0.74, 67.5, depth)
-		var assessment := Execution.assess(Geometry.evaluate(shape, extended), 0.22, false, 2)
+		var assessment := Execution.assess(Geometry.evaluate(shape, extended), 0.5, false, 2)
 		check(assessment.hit and not assessment.sweet, "Extra reach cannot award sweet contact")
 		check(assessment.rescue == (depth > 1), "Only extreme depth turns into rescue push")
 	print("GRADUATED SPIKES: %d / %d passed" % [checks - failures, checks])

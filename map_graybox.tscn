@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://c0xpxrx1v5xsv"]
 
-[ext_resource type="Script" path="res://scripts/map_lab.gd" id="1"]
+[ext_resource type="Script" uid="uid://7ehx41hop0h1" path="res://scripts/map_lab.gd" id="1"]
 
-[node name="MapGraybox" type="Node3D"]
+[node name="MapGraybox" type="Node3D" unique_id=1096237810]
 script = ExtResource("1")

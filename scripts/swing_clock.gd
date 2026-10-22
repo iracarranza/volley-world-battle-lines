@@ -10,6 +10,12 @@ const PEAK := Execution.SWEET_CENTER
 const POWER_HALF_WINDOW := 0.14
 const LOADED_PHASE := -0.30
 
+# The serve's own sweet window: the arm is within SWEET_HALF_WINDOW of its extension. (A spike has a clock of its own: see contact_execution.gd.)
+const SWEET_HALF_WINDOW := 0.09
+
+static func sweet_at(age: float) -> bool:
+	return absf(age - PEAK) <= SWEET_HALF_WINDOW + 0.000001
+
 static func power_start() -> float:
 	return PEAK - POWER_HALF_WINDOW
 

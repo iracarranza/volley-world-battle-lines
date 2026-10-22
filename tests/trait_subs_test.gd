@@ -13,7 +13,7 @@ func run() -> void:
 	var Store = load("res://scripts/athlete_store.gd")
 	Store.forget_trait_book()
 	var book = Store.trait_book()
-	check(Store.sub_parent("ball_control") == "accuracy" and Store.sub_parent("cushioning") == "endurance" and Store.sub_parent("nope") == "", "Sub-attributes map to their Attribute")
+	check(Store.sub_parent("ball_control") == "accuracy" and Store.sub_parent("resistance") == "endurance" and Store.sub_parent("core_strength") == "endurance" and Store.sub_parent("nope") == "", "Sub-attributes map to their Attribute")
 	var cfg := {"accuracy": 90.0, "power": 90.0, "speed": 90.0, "endurance": 90.0, "picks": [], "offsets": {}}
 	check(Store.sub_rating(cfg, "ball_control") == 90.0, "No offset: the sub-attribute equals its Attribute")
 	cfg["offsets"] = {"accuracy": [-4, 0, 4]}

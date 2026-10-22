@@ -20,7 +20,7 @@ func run() -> void:
 			var right := Vector3.RIGHT.rotated(Vector3.UP, yaw)
 			for side in [-1.0, 1.0]:
 				var point: Vector3 = sweet + Vector3.RIGHT * side * shape.radius * 0.35
-				var assessment := Execution.assess(Geometry.evaluate(shape, point), 0.22, false, 2)
+				var assessment := Execution.assess(Geometry.evaluate(shape, point), Execution.SPIKE_PEAK, false, 2)
 				var base: Vector3 = forward * 24 + Vector3.DOWN * 2
 				var neutral := SpikeDirection.resolve(base, assessment, Vector3.ZERO, forward)
 				var matching := SpikeDirection.resolve(base, assessment, right * side, forward)
@@ -48,7 +48,7 @@ func run() -> void:
 					lab.aim = lab.player.position + forward * 10
 					lab.directional_input.sample(input, 0.08)
 					lab._confirm_action()
-					lab.confirm_window = lab.confirm_duration - 0.22
+					lab.confirm_window = lab.confirm_duration - (preload("res://scripts/contact_execution.gd").SPIKE_PEAK if lab.locked_action == 2 else 0.22)
 					lab._contact()
 					actual.append(lab.ball_velocity)
 					check(lab.camera_rig.facing_yaw == yaw and lab.athlete.build.power == 65, "Contact changes neither committed facing nor Power stat")

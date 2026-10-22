@@ -2,7 +2,6 @@ class_name AthleteMotor
 extends RefCounted
 
 ## Owns motion state. LabSession schedules updates and composes peers.
-const SpikeStage := preload("res://scripts/spike_stage.gd")
 const Approach = preload("res://scripts/approach_run.gd")
 const Flight = preload("res://vendor/vwm/ball_flight_model.gd")
 const GRAVITY = Flight.DEFAULT_GRAVITY_MPS2
@@ -42,24 +41,8 @@ var quick_step_velocity := Vector3.ZERO
 func tick(dt: float, motion_scale: float) -> void:
 	lab.action_endlag = maxf(0,lab.action_endlag-dt*lab.athlete.transition_rate())
 	var jump_gravity := lab.athlete.jump_gravity(GRAVITY,lab.player.velocity.y > 0) if jumped else (GRAVITY*pow(lab.athlete.explosiveness_rate(),2) if approach_bound else GRAVITY)
-	lab.animation.receive_pose_remaining = maxf(0, lab.animation.receive_pose_remaining - dt*lab.athlete.transition_rate())
+	lab.animation.tick_action_clocks(dt)
 	lab.feedback_time = maxf(0.0, lab.feedback_time - dt)
-	lab.animation.roll_lock = maxf(0.0, lab.animation.roll_lock - dt*lab.athlete.transition_rate())
-	lab.animation.dive_air_time = lab.animation.dive_air_time + dt if jumped and airborne_action == 0 else 0.0
-	lab.animation.tick_dive_recovery(dt)
-	lab.animation.tick_floor_recovery(dt)
-	lab.animation.spike_air_time = lab.animation.spike_air_time + dt if jumped and airborne_action == 2 else 0.0
-	if jumped and airborne_action == 2 and lab.animation.spike_swing_time >= 0.0:
-		lab.animation.spike_swing_time += dt*(lab.athlete.transition_rate() if lab.animation.spike_hit_time >= 0 else 1.0)
-		# The swing waits at contact for the ball; if the window closes without a hit it carries on regardless.
-		if lab.animation.spike_hit_time < 0.0 and lab.animation.spike_swing_time > SpikeStage.STRIKE_SECONDS and lab.confirm_window <= 0.0:
-			lab.animation.spike_hit_time = lab.animation.spike_swing_time
-	lab.animation.set_air_time = lab.animation.set_air_time + dt if jumped and airborne_action == 1 else 0.0
-	if not (jumped and airborne_action == 2):
-		lab.animation.spike_swing_time = -1.0
-		lab.animation.spike_hit_time = -1.0
-		lab.animation.spike_contacted = false
-		lab.animation.spike_swing_yaw = 0.0
 	quick_step_time = maxf(0.0, quick_step_time - dt)
 	quick_step_cooldown = maxf(0.0, quick_step_cooldown - dt)
 	var local_move := Vector3(float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A)), 0, float(Input.is_physical_key_pressed(KEY_S)) - float(Input.is_physical_key_pressed(KEY_W))).normalized()
@@ -67,6 +50,9 @@ func tick(dt: float, motion_scale: float) -> void:
 		local_move = Vector3.ZERO
 	var move := lab.camera_rig.movement_direction(local_move)
 	lab.directional_input.sample(move, dt / motion_scale)
+	lab.athlete.terrain_stamina_multiplier = 1.0
+	if lab.drills.has_method("drill_motion") and lab.drills.drill_motion(dt, move):
+		return
 	var contact_locked := lab.ground_contact_locked()
 	var locomotion := Vector3.ZERO if contact_locked else move
 	var sprint := Input.is_physical_key_pressed(KEY_SHIFT) and locomotion.length() > 0 and lab.athlete.stamina > 0 and jump_charge < 0
@@ -134,11 +120,15 @@ func tick(dt: float, motion_scale: float) -> void:
 		lab.player.velocity.z = move_toward(lab.player.velocity.z, desired.z, dt * acceleration)
 	else:
 		lab.player.velocity.y -= jump_gravity * dt
+	var ordinary_floor_angle: float = lab.player.floor_max_angle
+	if lab.drills.has_method("terrain_motion"):
+		lab.drills.terrain_motion(dt, move, sprint)
 	var before_move := lab.player.position
 	lab.drills.update_one_way()
 	var knock_travel: Vector3 = lab.contact_flow.displacement("player",dt)
 	lab.player.velocity *= motion_scale
 	lab.player.move_and_slide()
+	lab.player.floor_max_angle = ordinary_floor_angle
 	lab.player.velocity /= motion_scale
 	if knock_travel.length_squared() > 0:
 		lab.player.move_and_collide(knock_travel)

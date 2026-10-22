@@ -6,19 +6,23 @@ const SWEET_DELAY := 0.20
 const SWEET_SECONDS := 0.18
 const SWEET_CENTER := 0.245
 const CONTACT_SECONDS := 0.55
-# A spike is a power swing from SPIKE_POWER_START to SPIKE_RESCUE_SECONDS (centred on the sweet window; see swing_clock.gd). Earlier is a roll
-# shot, later is a reach/push. The window's half-width is provisional.
-const SPIKE_POWER_HALF := 0.14
-const SPIKE_POWER_START := SWEET_CENTER - SPIKE_POWER_HALF
-const SPIKE_RESCUE_SECONDS := SWEET_CENTER + SPIKE_POWER_HALF
+# Spike timing is independent of Set/Receive/Block and the serve clock.
+const SPIKE_WINDUP := 0.4
+const SPIKE_SWEEP_SECONDS := 0.2
+const SPIKE_PEAK := SPIKE_WINDUP + SPIKE_SWEEP_SECONDS * 0.5
+const SPIKE_END := SPIKE_WINDUP + SPIKE_SWEEP_SECONDS
+const SPIKE_POWER_HALF := 0.06
+const SPIKE_POWER_START := SPIKE_PEAK - SPIKE_POWER_HALF
+const SPIKE_RESCUE_SECONDS := SPIKE_PEAK + SPIKE_POWER_HALF
+const SPIKE_SWEET_SECONDS := 0.06
 const RECEIVE_SWEET_SECONDS := 0.32
 const RECEIVE_SWEET_CENTER := 0.28
 
 static func sweet_seconds(action: int) -> float:
-	return RECEIVE_SWEET_SECONDS if action == 0 else SWEET_SECONDS
+	return SPIKE_SWEET_SECONDS if action == 2 else (RECEIVE_SWEET_SECONDS if action == 0 else SWEET_SECONDS)
 
 static func sweet_start(action: int) -> float:
-	var midpoint := RECEIVE_SWEET_CENTER if action == 0 else SWEET_CENTER
+	var midpoint := SPIKE_PEAK if action == 2 else (RECEIVE_SWEET_CENTER if action == 0 else SWEET_CENTER)
 	return midpoint - sweet_seconds(action) * 0.5
 
 static func sweet_end(action: int) -> float:
@@ -29,7 +33,7 @@ static func sweet_active(action: int, age: float) -> bool:
 
 static func assess(spatial: Dictionary, age: float, remembered: bool = false, action: int = -1) -> Dictionary:
 	var result := spatial.duplicate(true)
-	var live := age >= 0.0 and age <= CONTACT_SECONDS
+	var live := age >= (SPIKE_WINDUP if action == 2 else 0.0) and age <= contact_seconds(action)
 	var precision := live and sweet_active(action, age) and not remembered and not bool(result.get("rescue_only", false))
 	var sweet := precision and bool(result.get("hit", false)) and str(result.get("zone", "")) in ["SWEET SPOT", "CLEAN"]
 	result["sweet"] = sweet
@@ -101,3 +105,12 @@ static func velocity(action: int, outgoing: Vector3, incoming: Vector3, facing: 
 			outgoing = direction * returned_speed + tangent * (1.0 - clampf(absorption, 0, 0.95))
 			outgoing.y = minf(-0.6, incoming.y * (1.0 - absorption) - downward)
 	return outgoing
+
+static func contact_seconds(action: int) -> float:
+	return SPIKE_END if action == 2 else CONTACT_SECONDS
+
+static func ideal_age(action: int) -> float:
+	return SPIKE_PEAK if action == 2 else SWEET_DELAY
+
+static func spike_progress(age: float) -> float:
+	return clampf((age - SPIKE_WINDUP) / SPIKE_SWEEP_SECONDS, 0.0, 1.0)

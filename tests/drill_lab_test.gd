@@ -41,6 +41,14 @@ func run() -> void:
 			await settle(lab, Vector3(drill.anchor.x, drill.BEAM_TOP + 0.02, drill.anchor.z - 2.6))
 			check(drill.on_beam, "Standing on the beam registers")
 			await settle(lab, Vector3(drill.anchor.x, drill.BEAM_TOP + 0.02, drill.anchor.z - 2.0 - drill.BEAM_LENGTH + 0.4), 2)
+		elif key == "salmon_ladder":
+			for rung in range(drill.RUNGS):
+				drill.pull = 1.0
+				drill.kip_power = 1.0
+				drill.kip_age = 0.25
+				drill.propel()
+				drill.drill_motion(drill.FLIGHT_SECONDS, Vector3.ZERO)
+				drill.drill_motion(1.01, Vector3.ZERO)
 		else:
 			for i in range(drill.step_tops.size()):
 				var top: Vector3 = drill.step_tops[i]
@@ -79,7 +87,7 @@ func run() -> void:
 	check(ball_drill.running() and lab.inventory.held == false, "Setup takes the ball to start")
 	var start: Vector3 = lab.player.position
 	for i in range(30):
-		ball_drill.tick(1.0 / 60.0)
+		ball_drill.drill_motion(1.0 / 60.0, Vector3.ZERO)
 	check(lab.player.position.distance_to(start) > 0.001, "The balance ball wobbles the player")
 	check(ball_drill.wobble_amplitude() > 0.0, "Wobble scales with Stability")
 	var placement_before: float = lab.athlete.trait_effect("placement")

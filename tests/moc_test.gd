@@ -35,6 +35,8 @@ func run() -> void:
 		var count: int = lab.moc.event_count
 		lab._confirm_action()
 		check(lab.moc.event_count == count and not lab.moc.active, "Confirmation alone must not trigger MoC")
+		if action == 2:
+			lab.confirm_window = lab.confirm_duration - preload("res://scripts/contact_execution.gd").SPIKE_PEAK # the swing reaches the ball at its peak
 		var chosen: Dictionary = lab.committed_intent
 		check(chosen.is_read_only() and chosen.action == action and chosen.charge == 0.8, "Intent stores immutable action and charge")
 		lab._update_preview()

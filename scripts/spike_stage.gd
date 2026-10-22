@@ -23,7 +23,7 @@ const CHEST_TURN_LIMIT := 24.0
 # the strike, which takes STRIKE_SECONDS to reach contact (phase 0) and waits there; follow-through starts when
 # the ball is struck (`hit_time`, in swing-clock seconds) or when the contact window closes without a hit.
 const LOADED := -0.30
-const STRIKE_SECONDS := Execution.SWEET_CENTER # the arm reaches its extension at the centre of the sweet window (swing_clock.gd)
+const STRIKE_SECONDS := Execution.SPIKE_PEAK
 const FOLLOW_SECONDS := 0.30
 # A ball struck before the strike has finished (a click right as the ball is in reach) used to snap the arm from the loaded pose to contact in
 # one frame. The arm now carries on through the rest of the strike in this long, and the follow-through starts from contact.
@@ -35,14 +35,20 @@ static func phase_for(air_time: float, flight_time: float, swing_time: float = -
 		return lerpf(Spike.PLANT_END, LOADED, smoothstep(0.0, 0.45, f))
 	if hit_time >= 0.0:
 		var since := swing_time - hit_time
-		var struck_at := lerpf(LOADED, 0.0, pow(clampf(hit_time / STRIKE_SECONDS, 0.0, 1.0), 2.0))   # where the arm had got to when the ball was struck
+		var struck_at := swing_phase(hit_time)   # where the arm had got to when the ball was struck
 		if since < CATCH_SECONDS and struck_at < -0.001:
 			return lerpf(struck_at, 0.0, smoothstep(0.0, 1.0, since / CATCH_SECONDS))
 		var after := since - (CATCH_SECONDS if struck_at < -0.001 else 0.0)
 		return lerpf(0.0, Spike.FOLLOW_END, clampf(after / FOLLOW_SECONDS, 0.0, 1.0))
-	var t := clampf(swing_time / STRIKE_SECONDS, 0.0, 1.0)
-	# The arm accelerates into the ball.
-	return lerpf(LOADED, 0.0, t * t)
+	return swing_phase(swing_time)
+
+static func swing_phase(age: float) -> float:
+	if age < Execution.SPIKE_WINDUP:
+		# Deliberate cocking motion; contact is disabled throughout this lead-in.
+		return lerpf(LOADED, -0.22, smoothstep(0.0, Execution.SPIKE_WINDUP, age))
+	if age <= STRIKE_SECONDS:
+		return lerpf(-0.22, 0.0, smoothstep(Execution.SPIKE_WINDUP, STRIKE_SECONDS, age))
+	return lerpf(0.0, Spike.FOLLOW_END, smoothstep(STRIKE_SECONDS, Execution.SPIKE_END + FOLLOW_SECONDS, age))
 
 # The swing at `phase` as a flat pose (see PoseLibrary.flatten), unclamped so the shoulder can
 # travel through the overhead angles the swing uses.

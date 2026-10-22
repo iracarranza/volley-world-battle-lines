@@ -1,26 +1,14 @@
 extends Node3D
+# Court helpers with independent contact assignments and tracking/static modes.
+# Real ball physics continues between all contacts.
+
+# Dependencies and fixed configuration.
 const AttackTarget := preload("res://scripts/bot_attack_target.gd")
 const BotSettings := preload("res://scripts/bot_settings.gd")
-var settings: Array[BotSettings] = []
-
-func _init() -> void:
-	for slot in range(8):
-		var config := BotSettings.new()
-		config.contact_order = (slot % 4 + 1) % 4
-		settings.append(config)
-
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
-
-# Camera-test helpers with independent contact assignments and tracking/static modes.
-# Real ball physics continues between all contacts.
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
 const Preparation := preload("res://scripts/bot_preparation.gd")
-var preparation := Preparation.new()
-var charge_random := RandomNumberGenerator.new()
-var last_preparation: Dictionary = {}
-var last_receive_match: Dictionary = {}
-
 const Execution := preload("res://scripts/contact_execution.gd")
 const Influence := preload("res://scripts/directional_influence.gd")
 const Geometry := preload("res://scripts/contact_geometry.gd")
@@ -28,29 +16,38 @@ const Visual := preload("res://scripts/voli_visual.gd")
 const Athlete := preload("res://scripts/athlete.gd")
 const Store := preload("res://scripts/athlete_store.gd")
 const BotAnimation :=  preload("res://scripts/bot_animation.gd")
-var animation := BotAnimation.new()
 const Motion := preload("res://scripts/bot_motion.gd")
+const Vitals := preload("res://scripts/bot_vitals.gd")
+const NAMES := ["RECEIVE", "SET", "ATTACK", "BLOCK"]
+const HEIGHTS := [1.0, 2.25, 3.8, 3.15]
+const COLORS := [Color("74dacd"), Color("ac9df2"), Color("ffb46e"), Color("8bbdf4")]
+const ReturnController := preload("res://scripts/bot_return.gd")
+const BlockState := preload("res://scripts/block_state.gd")
+
+# Per-controller state; presentation arrays use the same slot ordering.
+var settings: Array[BotSettings] = []
+var preparation := Preparation.new()
+var charge_random := RandomNumberGenerator.new()
+var last_preparation: Dictionary = {}
+var last_receive_match: Dictionary = {}
+
+var animation := BotAnimation.new()
 var motion := Motion.new()
 var dives := preload("res://scripts/bot_receive_dive.gd").new()
 var rigs: Array[Dictionary] = []
 var incoming_action := -1
 var physique := Athlete.new()
-const Vitals := preload("res://scripts/bot_vitals.gd")
 var athletes: Array[LabAthlete] = []
 var shapes: Array[Dictionary] = []
 var random := RandomNumberGenerator.new()
 var aim_random := RandomNumberGenerator.new()
 var last_aim: Dictionary = {}
-const NAMES := ["RECEIVE", "SET", "ATTACK", "BLOCK"]
-const HEIGHTS := [1.0, 2.25, 3.8, 3.15]
-const COLORS := [Color("74dacd"), Color("ac9df2"), Color("ffb46e"), Color("8bbdf4")]
 var lab: Node3D
 var actors: Array[Node3D] = []
 var captions: Array[Label3D] = []
 var contact_boxes: Array[MeshInstance3D] = []
 var move_targets: Dictionary = {}
 var attack_targets: Dictionary = {}
-const ReturnController := preload("res://scripts/bot_return.gd")
 var returns := ReturnController.new()
 # Set after the ball comes off the net: receivers may then take a ball that drops right at the tape, and plans made on the pre-net flight are dropped.
 var net_rebound := false
@@ -64,6 +61,15 @@ var last_was_block := false
 # Ground destination is captured once when enabling the setter.
 var set_target_locked := false
 var set_target := Vector3(0, 3.8, 1.7)
+
+var block_states: Dictionary = {}
+var motion_clocks: Dictionary = {}
+
+func _init() -> void:
+	for slot in range(8):
+		var config := BotSettings.new()
+		config.contact_order = (slot % 4 + 1) % 4
+		settings.append(config)
 
 func setup(owner_lab: Node3D) -> void:
 	lab = owner_lab
@@ -435,6 +441,8 @@ func _static_intercept(slot: int, origin: Vector3, velocity: Vector3, gravity: f
 	return -1.0
 
 func contains_ball(slot: int, point: Vector3) -> bool:
+	if slot_action(slot) == 2:
+		return Geometry.spike_active(contact_shape(slot), (point - actors[slot].position).rotated(Vector3.UP, -actors[slot].rotation.y), float(preparation.state_for(slot).confirmation_age))
 	return Geometry.contains(contact_shape(slot), (point - actors[slot].position).rotated(Vector3.UP, -actors[slot].rotation.y))
 
 func contact_anchor(slot: int) -> Vector3:
@@ -525,9 +533,6 @@ func _plan(action: int, point: Vector3, time: float, chosen_slot: int = -1) -> v
 func tick_support_motion(_dt: float,_scales: Dictionary) -> void:
 	pass
 
-const BlockState := preload("res://scripts/block_state.gd")
-var block_states: Dictionary = {}
-var motion_clocks: Dictionary = {}
 func block_state_for(slot: int):
 	if not block_states.has(slot): block_states[slot] = BlockState.new()
 	return block_states[slot]
@@ -605,7 +610,8 @@ func tick_motion(dt: float) -> void:
 		if action == 0 and not Geometry.contains(contact_shape(slot), point):
 			point = contact_anchor(slot)
 		var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), point, speed) if action == 0 else "planted"
-		var pose_context := {"action": action, "charge": float(preparation.state_for(slot).charge), "planned": planned or not motion_plan.is_empty(), "airborne": airborne, "remaining": float(motion_plan.get("contact", remaining)) - float(motion_plan.get("elapsed", 0)) if not motion_plan.is_empty() else remaining, "rise": motion_plan.get("rise", 0.4), "preserve_base": not motion_plan.is_empty(), "contact_point": point, "posture": posture, "speed": speed, "cycle": float(motion_clocks.get(slot,0)) * 8.0, "swing_yaw": motion_plan.get("swing_yaw", 0.0),"transition_rate":athlete_for(slot).transition_rate()}
+		var pose_context := {"action": action, "charge": float(preparation.state_for(slot).charge), "planned": planned or not motion_plan.is_empty(), "airborne": airborne, "remaining": float(motion_plan.get("contact", remaining)) - float(motion_plan.get("elapsed", 0)) if not motion_plan.is_empty() else remaining, "rise": motion_plan.get("rise", 0.4), "preserve_base": not motion_plan.is_empty(), "contact_point": point, "posture": posture, "speed": speed, "cycle": float(motion_clocks.get(slot,0)) * 8.0, "block_age": blocking.confirmation_age, "swing_yaw": motion_plan.get("swing_yaw", 0.0),"transition_rate":athlete_for(slot).transition_rate()}
+		pose_context["swing_age"] = float(preparation.state_for(slot).confirmation_age)
 		pose_context.merge(dives.context(slot))
 		# A bot standing still with nothing to do, or one nobody can see, is re-posed only now and then (the time it missed is carried into the next
 		# update): posing a rig is the most expensive thing a bot does each frame. Anything moving, planned or following a contact updates every frame.
@@ -656,7 +662,7 @@ func tick_contact(dt: float) -> bool:
 	if remaining > 0 and not passive:
 		return false
 	if passive and block_state_for(active_slot).latched: return false
-	if not passive and remaining < -Execution.CONTACT_SECONDS:
+	if not passive and remaining < -Execution.contact_seconds(action):
 		active_action = -1
 		active_slot = -1
 		replan(action == 3)
@@ -672,7 +678,7 @@ func tick_contact(dt: float) -> bool:
 	var prepared := preparation.state_for(bot_slot)
 	if not passive and prepared.phase != "confirmed":
 		return false
-	if not passive and float(prepared.confirmation_age) > Execution.CONTACT_SECONDS:
+	if not passive and float(prepared.confirmation_age) > Execution.contact_seconds(action):
 		active_action = -1
 		active_slot = -1
 		preparation.finish(bot_slot)
@@ -696,7 +702,7 @@ func tick_contact(dt: float) -> bool:
 			var local: Vector3 = (lab.ball.position - actors[bot_slot].position).rotated(Vector3.UP, -actors[bot_slot].rotation.y)
 			var local_velocity: Vector3 = lab.ball_velocity.rotated(Vector3.UP, -actors[bot_slot].rotation.y)
 			var cleared_block: bool = action == 3 and local_velocity.z > 0 and local.z > float(contact_shape(bot_slot).center.z) + float(contact_shape(bot_slot).size.z) * 0.5 + Geometry.BALL_RADIUS
-			if (not passive and remaining < -Execution.CONTACT_SECONDS) or cleared_block:
+			if (not passive and remaining < -Execution.contact_seconds(action)) or cleared_block:
 				active_action = -1
 				active_slot = -1
 				if action == 3:
@@ -778,7 +784,7 @@ func tick_contact(dt: float) -> bool:
 	lab._emit_external_impact("training_bot_%d" % slot, action, incoming, execution,incoming_shot)
 	var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), local_contact, move_speed_for(slot) if settings[slot].moves else 0.0) if action == 0 else "planted"
 	var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actors[slot].rotation.y, -PI, PI) if action == 2 else 0.0
-	animation.contact(rigs[slot], action, local_contact, posture, swing_yaw, execution.get("rescue", false))
+	animation.contact(rigs[slot], action, local_contact, posture, swing_yaw, execution.get("rescue", false), execution)
 	dives.contacted(slot)
 	return_after_contact(slot)
 	var contact_cost: float = request.athlete.contact_cost(action,1,execution,incoming_shot).x

@@ -330,7 +330,7 @@ func strike(hand: Vector3, shape: Dictionary, local: Vector3, point: Vector3) ->
 	var floated: bool = float_mode and zone == "SWEET SPOT"
 	var true_distance := offset / (SERVE_SWEET_RADIUS * FLOAT_SWEET_SCALE) # 0 at the centre, 1 at the edge of the float's sweetspot
 	var form: String = Swing.form_at(swing_time)
-	var sweet: bool = zone == "SWEET SPOT" and (floated or lab.Execution.sweet_active(2, swing_time))
+	var sweet: bool = zone == "SWEET SPOT" and (floated or Swing.sweet_at(swing_time))
 	var contact_factor: float = float(ZONE_FACTOR.get(zone, 0.51)) * (1.0 if floated else float(FORM_FACTOR[form]))
 	if floated:
 		contact_factor *= FLOAT_PACE + FLOAT_PACE_RECOVERY * (1.0 - clampf(true_distance, 0.0, 1.0))

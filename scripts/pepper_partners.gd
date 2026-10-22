@@ -1,27 +1,31 @@
 extends Node3D
+
+# Dependencies and fixed configuration.
 const Settings := preload("res://scripts/bot_settings.gd")
 const Vitals := preload("res://scripts/bot_vitals.gd")
-var athletes: Array[LabAthlete] = []
-var settings: Array[Settings] = [Settings.new(), Settings.new(), Settings.new()]
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
 const Preparation := preload("res://scripts/bot_preparation.gd")
-var preparation := Preparation.new()
-var charge_random := RandomNumberGenerator.new()
 const Visual := preload("res://scripts/voli_visual.gd")
 const BotAnimation :=  preload("res://scripts/bot_animation.gd")
-var animation := BotAnimation.new()
 const Pose := preload("res://scripts/athlete_pose.gd")
 const Execution := preload("res://scripts/contact_execution.gd")
 const Influence := preload("res://scripts/directional_influence.gd")
 const Geometry := preload("res://scripts/contact_geometry.gd")
 const SPOTS := [Vector3(-29, 3.5, 3), Vector3(8, 0, 5), Vector3(0, 0, 27)]
 const LABELS := ["AWAY PEPPER / BOX 3", "AWAY PEPPER / EAST", "AWAY PEPPER / HOME PATH"]
-# Equal area to a one-player 5x10m court.
 const MOVEMENT_MODE := "Move"
 const MOVE_SPEED := 6.0
+# Equal area to a one-player 5x10m court.
 const RADIUS := 3.9894228
+
+# Per-controller state; presentation arrays use the same slot ordering.
+var athletes: Array[LabAthlete] = []
+var settings: Array[Settings] = [Settings.new(), Settings.new(), Settings.new()]
+var preparation := Preparation.new()
+var charge_random := RandomNumberGenerator.new()
+var animation := BotAnimation.new()
 var spots: Array = SPOTS.duplicate()
 var home_rings: Array[MeshInstance3D] = []
 var home_labels: Array[Label3D] = []
@@ -296,13 +300,13 @@ func tick(dt: float) -> bool:
 
 	if remaining > 0:
 		return false
-	if remaining < -Execution.CONTACT_SECONDS:
+	if remaining < -Execution.contact_seconds(stage):
 		planned = false
 		return false
 	var prepared := preparation.state_for(partner)
 	if prepared.phase != "confirmed":
 		return false
-	if float(prepared.confirmation_age) > Execution.CONTACT_SECONDS:
+	if float(prepared.confirmation_age) > Execution.contact_seconds(stage):
 		planned = false
 		preparation.finish(partner)
 		return false
@@ -311,12 +315,12 @@ func tick(dt: float) -> bool:
 	var steps := maxi(1, ceili(lab.ball_velocity.length() * dt / 0.025))
 	for sample in range(steps + 1):
 		var candidate: Vector3 = lab.ball.position - lab.ball_velocity * dt * float(sample) / steps
-		if Geometry.contains(definition, (candidate - actor.position).rotated(Vector3.UP, -actor.rotation.y)):
+		if (Geometry.spike_active(definition, (candidate - actor.position).rotated(Vector3.UP, -actor.rotation.y), float(prepared.confirmation_age)) if stage == 2 else Geometry.contains(definition, (candidate - actor.position).rotated(Vector3.UP, -actor.rotation.y))):
 			lab.ball.position = candidate
 			hit = true
 			break
 	if not hit:
-		if remaining < -Execution.CONTACT_SECONDS:
+		if remaining < -Execution.contact_seconds(stage):
 			planned = false
 		return false
 	player_contacts = 0
@@ -378,7 +382,7 @@ func tick(dt: float) -> bool:
 	var local_contact: Vector3 = (lab.ball.position - actor.position).rotated(Vector3.UP, -actor.rotation.y)
 	var posture := Geometry.ReceivePlatform.posture(definition, local_contact, MOVE_SPEED if travelled > 0.001 else 0.0) if stage == 0 else "planted"
 	var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actor.rotation.y, -PI, PI) if stage == 2 else 0.0
-	animation.contact(rig, stage, local_contact, posture, swing_yaw, assessment.get("rescue", false))
+	animation.contact(rig, stage, local_contact, posture, swing_yaw, assessment.get("rescue", false), assessment)
 	_animate(0, 0)
 	var contact_cost: float = request.athlete.contact_cost(stage,1,assessment,incoming_shot).x
 	athlete_for(partner).last_stamina_cost = request.athlete.last_stamina_cost

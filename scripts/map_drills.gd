@@ -313,13 +313,14 @@ func move_bonus_circle() -> void:
 		spike_bonus.position = spike_to_world(Vector3(spike_bonus_center.x, 0.03, spike_bonus_center.y))
 		spike_bonus.visible = true
 
-func load_spike() -> void:
+func load_spike(preserve_preparation: bool = false) -> void:
 	spike_state = State.ACTIVE
 	timer = 20.0
 	lab.selected = 2
-	lab.armed = false
-	lab.charging = false
-	lab.confirm_window = 0
+	if not preserve_preparation:
+		lab.armed = false
+		lab.charging = false
+		lab.confirm_window = 0
 	lab.contacts = 0
 	lab.side_contacts.assign([0, 0])
 	lab.contact_memory.assign([0.0, 0.0, 0.0, 0.0])
@@ -374,9 +375,6 @@ func tick(dt: float) -> void:
 			timer -= dt
 			if timer <= 0:
 				_spike_used(false, "player", "The ball was not hit in time")
-			return
-		if not in_spike_zone():
-			fail_spike("Left Spike Trainer area / I to retry")
 			return
 		timer -= dt
 		if timer <= 0:
@@ -470,7 +468,7 @@ func _resume() -> void:
 	parked = false
 	if is_instance_valid(parked_mesh):
 		parked_mesh.visible = false
-	load_spike()
+	load_spike(true)
 	lab.ball.position = parked_mesh.global_position if is_instance_valid(parked_mesh) else lab.ball.position
 
 func _interact_setup() -> void:

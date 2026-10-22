@@ -2,6 +2,7 @@ class_name AthleteAnimation
 extends RefCounted
 
 ## Owns animation state. LabSession schedules updates and composes peers.
+const ContactResponse := preload("res://scripts/contact_response_pose.gd")
 const ReceivePose := preload("res://scripts/receive_pose.gd")
 const ReceivePlatform := preload("res://scripts/receive_platform.gd")
 const SpikeDirection := preload("res://scripts/spike_direction.gd")
@@ -22,6 +23,9 @@ const ViewMode = LabCamera.ViewMode
 const ROLL_TIME := 0.9
 
 var lab: LabSession
+var contact_age := -1.0
+var contact_action := -1
+var contact_evidence := {}
 var receive_posture := "planted"
 var receive_pose_remaining := 0.0
 var receive_pose_contact := Vector3.ZERO
@@ -73,6 +77,28 @@ var floor_recovery_flat := {}
 var floor_slide_decel := 0.0
 var rolling := false
 
+# Called once per physics step with the actor-local delta, before pose composition.
+func tick_action_clocks(dt: float) -> void:
+	if contact_age >= 0.0:
+		contact_age += dt*lab.athlete.transition_rate()
+	receive_pose_remaining = maxf(0, receive_pose_remaining - dt*lab.athlete.transition_rate())
+	roll_lock = maxf(0.0, roll_lock - dt*lab.athlete.transition_rate())
+	dive_air_time = dive_air_time + dt if lab.motion.jumped and lab.motion.airborne_action == 0 else 0.0
+	tick_dive_recovery(dt)
+	tick_floor_recovery(dt)
+	spike_air_time = spike_air_time + dt if lab.motion.jumped and lab.motion.airborne_action == 2 else 0.0
+	if lab.motion.jumped and lab.motion.airborne_action == 2 and spike_swing_time >= 0.0:
+		spike_swing_time += dt*(lab.athlete.transition_rate() if spike_hit_time >= 0 else 1.0)
+		# The swing waits at contact for the ball; if the window closes without a hit it carries on regardless.
+		if spike_hit_time < 0.0 and spike_swing_time > SpikeStage.STRIKE_SECONDS and lab.confirm_window <= 0.0:
+			spike_hit_time = spike_swing_time
+	set_air_time = set_air_time + dt if lab.motion.jumped and lab.motion.airborne_action == 1 else 0.0
+	if not (lab.motion.jumped and lab.motion.airborne_action == 2):
+		spike_swing_time = -1.0
+		spike_hit_time = -1.0
+		spike_contacted = false
+		spike_swing_yaw = 0.0
+
 func update() -> void:
 	if lab.is_benched():
 		carry.hide_visual()
@@ -114,6 +140,28 @@ func update() -> void:
 	lab.body.get_node("Head").rotation.y = 0
 	# 0 standing, 1 travelling. In the air the raised pose always holds.
 	var travel_weight := 0.0 if lab.motion.jumped else smoothstep(0.35, 1.4, speed)
+	_apply_prepared_pose(travel_weight)
+	_apply_takeoff_and_roll_pose()
+	lab.body.get_node("Torso").rotation.x = float(gait.torso_pitch_radians)
+	_apply_receive_pose(receive_ready or follow_receive, speed, receive_weight)
+	var diving_now := lab.motion.jumped and lab.motion.airborne_action == 0
+	var preparing_dive := not lab.motion.jumped and lab.motion.jump_charge >= 0 and lab.motion.approach_action == 0 and lab.motion.approach_bound
+	_apply_dive_pose(diving_now, preparing_dive)
+	_apply_spike_pose()
+	if dive_recovery_time >= 0.0 and roll_lock <= 0.0:
+		apply_dive_recovery()
+	elif floor_recovery_time >= 0.0 and roll_lock <= 0.0:
+		apply_floor_recovery()
+	_apply_set_pose(travel_weight, diving_now, preparing_dive)
+	if loco_on and loco_weight > 0.001:
+		apply_locomotion_spine(locomotion_state)
+	_apply_contact_response(diving_now, preparing_dive)
+	smooth_pose(pose_source(diving_now, preparing_dive, receive_ready or follow_receive))
+	_finish_pose(diving_now, preparing_dive)
+
+
+# Pose layers execute in update() order; later layers intentionally override earlier ones.
+func _apply_prepared_pose(travel_weight: float) -> void:
 	var raise_weight := 1.0 - travel_weight
 	for i in range(2):
 		lab.legs[i].position.x = -lab.visual_hip_x if i == 0 else lab.visual_hip_x
@@ -135,6 +183,9 @@ func update() -> void:
 		lab.arms[1 - dominant].rotation.x = lerpf(lab.arms[1 - dominant].rotation.x, -1.3, raise_weight)
 		for arm in lab.arms:
 			arm.get_node("Elbow").rotation_degrees.x = lerpf(arm.get_node("Elbow").rotation_degrees.x, 0.0, raise_weight)
+
+
+func _apply_takeoff_and_roll_pose() -> void:
 	lab.body.position.y = 0.0
 	if (lab.motion.generic_jump or lab.motion.approach_action in [1,3]) and lab.motion.jump_charge >= 0:
 		lab.body.position.y = -0.22 * lab.motion.jump_charge
@@ -170,8 +221,10 @@ func update() -> void:
 		var roll_progress := 1.0 - roll_lock / ROLL_TIME
 		lab.body.rotation.x = -TAU * roll_progress
 		lab.body.position.y = 0.45 * sin(roll_progress * PI)
-	lab.body.get_node("Torso").rotation.x = float(gait.torso_pitch_radians)
-	if (receive_ready or follow_receive or (lab.motion.jumped and lab.motion.airborne_action == 0)) and roll_lock <= 0 and dive_recovery_time < 0.0 and floor_recovery_time < 0.0:
+
+
+func _apply_receive_pose(receiving: bool, speed: float, receive_weight: float) -> void:
+	if (receiving or (lab.motion.jumped and lab.motion.airborne_action == 0)) and roll_lock <= 0 and dive_recovery_time < 0.0 and floor_recovery_time < 0.0:
 		if receive_pose_remaining <= 0:
 			var shape := lab._hurtbox_definition(0)
 			receive_pose_contact = Vector3(shape.center)
@@ -179,8 +232,9 @@ func update() -> void:
 				receive_pose_contact = lab._local_contact_position()
 			receive_posture = ReceivePlatform.posture(shape, receive_pose_contact, speed)
 		ReceivePose.apply(lab.body, receive_posture, receive_pose_contact, 1.0 if lab.motion.jumped else receive_weight)
-	var diving_now := lab.motion.jumped and lab.motion.airborne_action == 0
-	var preparing_dive := not lab.motion.jumped and lab.motion.jump_charge >= 0 and lab.motion.approach_action == 0 and lab.motion.approach_bound
+
+
+func _apply_dive_pose(diving_now: bool, preparing_dive: bool) -> void:
 	if (diving_now or (preparing_dive and lab.motion.approach_bound)) and roll_lock <= 0:
 		var dive_dir := dive_world_direction if diving_now else (lab.motion.approach_direction if lab.motion.approach_direction.length_squared() > 0.01 else Vector3(-sin(lab.camera_rig.facing_yaw), 0, -cos(lab.camera_rig.facing_yaw)))
 		var dive_phase := DiveStage.phase_for(lab.motion.jump_charge, dive_air_time, dive_flight_time, diving_now)
@@ -193,6 +247,9 @@ func update() -> void:
 			lab.body.position.y = 0.0
 			lab.legs[Approach.LEAD_FOOT].rotation.x = -0.45
 			lab.legs[1-Approach.LEAD_FOOT].rotation.x = 0.30
+
+
+func _apply_spike_pose() -> void:
 	if not lab.motion.jumped or lab.motion.airborne_action != 2 or not spike_contacted:
 		spike_impact_latched = false
 	if lab.motion.jumped and lab.motion.airborne_action == 2 and roll_lock <= 0.0:
@@ -212,10 +269,9 @@ func update() -> void:
 		elif lab.ball_active:
 			aim_context["ball_local"] = lab.body.global_transform.affine_inverse() * lab.ball.position
 		SpikeStage.apply(lab.body, SpikeStage.phase_for(spike_air_time, spike_flight_time, spike_swing_time, spike_hit_time), -1.0 if lab.dominant_hand == "Left" else 1.0, lab.locked_charge, "Roll shot" if spike_contacted and str(lab.last_contact_result.get("spike_form", "")) == "roll" else "Power swing", aim_context)
-	if dive_recovery_time >= 0.0 and roll_lock <= 0.0:
-		apply_dive_recovery()
-	elif floor_recovery_time >= 0.0 and roll_lock <= 0.0:
-		apply_floor_recovery()
+
+
+func _apply_set_pose(travel_weight: float, diving_now: bool, preparing_dive: bool) -> void:
 	var set_phase := set_phase()
 	if set_phase > -1.5 and roll_lock <= 0.0 and dive_recovery_time < 0.0 and floor_recovery_time < 0.0 and not (diving_now or preparing_dive):
 		var set_jump: bool = lab.motion.jumped and lab.motion.airborne_action == 1
@@ -227,9 +283,17 @@ func update() -> void:
 				if walk.has(key) and not (key.begins_with("shoulder_") or key.begins_with("elbow") or key.begins_with("forearm_")):
 					set_flat[key] = lerpf(float(set_flat[key]), float(walk[key]), travel_weight)
 		PoseLibrary.apply(lab.body, PoseLibrary.from_flat(set_flat, false), 1.0)
-	if loco_on and loco_weight > 0.001:
-		apply_locomotion_spine(locomotion_state)
-	smooth_pose(pose_source(diving_now, preparing_dive, receive_ready or follow_receive))
+
+
+func _apply_contact_response(diving_now: bool, preparing_dive: bool) -> void:
+	if not (diving_now or preparing_dive) and roll_lock <= 0.0 and dive_recovery_time < 0.0 and floor_recovery_time < 0.0:
+		var action: int = lab.motion.airborne_action if lab.motion.jumped else lab.selected
+		var age := contact_age if action == contact_action else -1.0
+		var press: float = lab.block_state.confirmation_age if lab.block_state.active and action == 3 else -1.0
+		ContactResponse.apply(lab.body, ContactResponse.offsets(action, age, contact_evidence, press))
+
+
+func _finish_pose(diving_now: bool, preparing_dive: bool) -> void:
 	var wing_pose := "tucked"
 	var wing_weight := 0.0
 	if diving_now or preparing_dive:
@@ -251,9 +315,22 @@ func update() -> void:
 	if is_instance_valid(lab.serve):
 		lab.serve.apply_pose()
 	carry.update(lab,pose_frame_dt)
+	if lab.drills.has_method("apply_drill_pose"):
+		lab.drills.apply_drill_pose()
 
-# Where the set is: -2 when the body is not setting. Hands up and ready while a set is armed, the push and
-# extension after contact, and through the air for a jump set (contact at the top).
+# Only presentation consumes this finalized snapshot; floor recoveries retain priority.
+func on_contact(event: Dictionary) -> void:
+	if str(event.get("actor", "")) != "player" or not bool(event.get("physical_hit", false)):
+		return
+	contact_action = int(event.get("action", -1))
+	contact_age = 0.0
+	contact_evidence = {"charge_match": event.get("charge_match", {}).duplicate(true), "block_response": event.get("block_response", {}).duplicate(true)}
+
+func reset_contact() -> void:
+	contact_age = -1.0
+	contact_action = -1
+	contact_evidence.clear()
+
 # Steps the locomotion layer once per rendered frame, however many times the pose is rebuilt in it.
 func step_locomotion(enabled: bool) -> Dictionary:
 	var frame := Engine.get_process_frames()
@@ -280,6 +357,8 @@ func anticipated_gather() -> float:
 	var arrives_in: float = to_athlete.length() / closing
 	return lerpf(-0.72, SetStage.GATHER_PHASE, smoothstep(1.0, 0.12, arrives_in))
 
+# Hands gather while armed, extend after contact, and follow the jump-set flight.
+# Returns -2 when no set layer is active.
 func set_phase() -> float:
 	if lab.motion.jumped and lab.motion.airborne_action == 1:
 		var f := clampf(set_air_time / maxf(set_flight_time, 0.001), 0.0, 1.0)

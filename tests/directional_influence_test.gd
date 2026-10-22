@@ -83,7 +83,7 @@ func run() -> void:
 			lab.ball_velocity = Vector3(0, -3, -2)
 			lab.aim = lab.ball.position + Vector3.FORWARD * 7
 			lab._confirm_action()
-			lab.confirm_window = lab.confirm_duration - 0.22
+			lab.confirm_window = lab.confirm_duration - (preload("res://scripts/contact_execution.gd").SPIKE_PEAK if lab.locked_action == 2 else 0.22)
 			var intent: Dictionary = lab.committed_intent
 			lab.directional_input.sample(input, 0.08) # Late input after confirmation.
 			lab.player.velocity = Vector3(-50, 0, 0) # Momentum must not control DI.

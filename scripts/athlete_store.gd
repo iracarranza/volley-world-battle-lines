@@ -11,12 +11,12 @@ const MAX_RATING := 77
 const AP_BUDGET := 12
 const STAT_RANGE := 8
 const ROLES := ["OH", "OP", "S", "MB", "L"]
-const STAT_VERSION := 3
+const STAT_VERSION := 4
 const STATS := {
  "power":["Explosiveness","Jump Power","Swing Power"],
  "speed":["Acceleration","Reaction Speed","Transition Speed"],
  "accuracy":["Ball Control","Timing","Stability"],
- "endurance":["Cushioning","Work Rate","Capacity"],
+ "endurance":["Resistance","Work Rate","Core Strength"],
 }
 const LEGACY_STATS := {
 	"power": ["Jump Explosiveness", "Hitting Force", "Upper-Body Strength"],
@@ -153,13 +153,17 @@ static func migrate(config: Dictionary) -> Dictionary:
 	var out := config.duplicate(true)
 	var current := int(out.get("stat_version",0)) >= STAT_VERSION
 	var old_offsets: Dictionary = out.get("offsets",{})
-	var previous_names := STATS.duplicate(true)
+	var version_three := STATS.duplicate(true)
+	version_three.endurance = ["Cushioning", "Work Rate", "Capacity"]
+	if old_offsets.get("power", []).size() == 4:
+		version_three.power.append("Core Strength")
+	var previous_names := version_three.duplicate(true)
 	previous_names.speed = ["Acceleration","Lateral Speed","Transition Speed"]
-	var old_names: Dictionary = out.get("stat_names",STATS if current else (previous_names if int(out.get("stat_version",0)) == 2 else LEGACY_STATS))
+	var old_names: Dictionary = out.get("stat_names",STATS if current else (version_three if int(out.get("stat_version",0)) == 3 else (previous_names if int(out.get("stat_version",0)) == 2 else LEGACY_STATS)))
 	var named: Dictionary = out.get("statistics",{})
 	if not current and not out.has("legacy_statistics"):
 		out["legacy_statistics"] = {"offsets":old_offsets.duplicate(true),"names":old_names.duplicate(true),"statistics":named.duplicate(true)}
-	var equivalent := {"jump_explosiveness":"explosiveness","stamina_capacity":"capacity"}
+	var equivalent := {"jump_explosiveness":"explosiveness","stamina_capacity":"core_strength","capacity":"core_strength","cushioning":"resistance"}
 	var resolved := {}
 	for parent in ATTRIBUTES:
 		out[parent] = clampf(float(out.get(parent,BASE_RATING)),50,99)
@@ -173,6 +177,18 @@ static func migrate(config: Dictionary) -> Dictionary:
 		var canonical: String = equivalent.get(str(key).to_snake_case(),str(key).to_snake_case())
 		# Named values are canonical; offsets are an editor projection.
 		resolved[canonical] = float(named[key])
+	# Explicit Core Strength wins over its retired Capacity alias in mixed saves.
+	if named.has("core_strength"):
+		resolved["core_strength"] = float(named.core_strength)
+	if named.has("resistance"):
+		resolved["resistance"] = float(named.resistance)
+	var counts: Dictionary = out.get("workout_counts", {}).duplicate(true)
+	for old_key in ["capacity", "cushioning"]:
+		if counts.has(old_key):
+			var new_key: String = equivalent[old_key]
+			counts[new_key] = int(counts.get(new_key, 0)) + int(counts[old_key])
+			counts.erase(old_key)
+	out["workout_counts"] = counts
 	out.offsets = {}
 	for parent in ATTRIBUTES:
 		out.offsets[parent] = []

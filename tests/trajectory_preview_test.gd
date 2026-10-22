@@ -34,7 +34,7 @@ func run() -> void:
 	for action in range(4):
 		ready(lab,action)
 		lab._confirm_action()
-		lab.confirm_window = lab.confirm_duration-0.22
+		lab.confirm_window = lab.confirm_duration - (preload("res://scripts/contact_execution.gd").SPIKE_PEAK if lab.locked_action == 2 else 0.22)
 		var hp: float = lab.athlete.hp
 		var stamina: float = lab.athlete.stamina
 		var incoming: Vector3 = lab.ball_velocity

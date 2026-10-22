@@ -1,0 +1,25 @@
+extends "res://tests/support/test_case.gd"
+const Store := preload("res://scripts/athlete_store.gd")
+const Stats := preload("res://scripts/stat_tuning.gd")
+const Athlete := preload("res://scripts/athlete.gd")
+func _initialize() -> void: call_deferred("run")
+func run() -> void:
+	check(Store.STATS.endurance == ["Resistance", "Work Rate", "Core Strength"], "END contains the three corrected subattributes")
+	check(Store.STATS.power.size() == 3 and Store.sub_parent("core_strength") == "endurance", "Core Strength is removed from POW")
+	check(Store.sub_parent("cushioning") == "" and Store.sub_parent("capacity") == "", "Retired names do not appear in the attribute editor")
+	var migrated := Store.migrate({"stat_version":3,"power":65,"endurance":70,"statistics":{"cushioning":76,"capacity":78},"workout_counts":{"capacity":2,"cushioning":1}})
+	check(migrated.statistics.resistance == 76 and migrated.statistics.core_strength == 78, "Legacy named ratings migrate without losing progress")
+	check(migrated.workout_counts.core_strength == 2 and migrated.workout_counts.resistance == 1, "Workout counters migrate too")
+	var mixed := Store.migrate({"stat_version":3,"power":65,"endurance":70,"statistics":{"core_strength":81,"capacity":74}})
+	check(mixed.statistics.core_strength == 81, "An explicit Core Strength rating wins over old Capacity")
+	var offsets := Store.migrate({"stat_version":3,"power":65,"endurance":70,"offsets":{"endurance":[3,0,-3]}})
+	check(offsets.statistics.resistance == 73 and offsets.statistics.core_strength == 67, "Version-three unlabeled offsets use their original END order")
+	check(Store.migrate(migrated).statistics == migrated.statistics, "Migration is idempotent")
+	check(Stats.rating({"power":50,"endurance":80},"core_strength") == 80, "Core strength inherits END at runtime")
+	var athlete := Athlete.new()
+	athlete.build = Store.blank()
+	athlete.build.statistics.resistance = 99
+	athlete.build.statistics.core_strength = 99
+	check(athlete.max_stamina() == Stats.capacity(99) and athlete.cushioning_bonus() == Stats.cushioning(99), "Renamed stats retain the existing stamina and receive effects")
+	print("ENDURANCE SUBATTRIBUTES: %d / %d passed" % [checks - failures, checks])
+	quit(1 if failures else 0)

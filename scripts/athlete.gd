@@ -133,10 +133,10 @@ func strafe_factor() -> float:
 	return 0.75 # Retained neutral strafe penalty; Reaction Speed owns Auto preparation.
 
 func max_stamina() -> float:
-	return Stats.capacity(stat("capacity"))
+	return Stats.capacity(stat("core_strength"))
 
 func cushioning_bonus() -> float:
-	return Stats.cushioning(stat("cushioning"))+trait_effect("receive_charge_bonus")/100.0
+	return Stats.cushioning(stat("resistance"))+trait_effect("receive_charge_bonus")/100.0
 
 func jump_charge_for_height(charge: float) -> float:
 	var threshold := trait_effect("jump_stamina_threshold")/100.0
@@ -252,9 +252,11 @@ func attack_jump_floor() -> float:
 func spend(sta: float, hitting: float = 0.0) -> void:
 	spend_resolved(maxf(0,sta)*maxf(0.1,1.0-trait_effect("exertion_efficiency")/100.0),hitting)
 
+var terrain_stamina_multiplier := 1.0
+
 func spend_resolved(sta: float,hitting: float = 0.0) -> void:
 	var before := stamina
-	stamina = maxf(0.0,stamina-maxf(0,sta))
+	stamina = maxf(0.0,stamina-maxf(0,sta)*terrain_stamina_multiplier)
 	hp = maxf(0.0, hp - hitting * (1.5 if exhausted else 1.0))
 	# Repeated costs at zero are not a second depletion event.
 	if before > 0.0 and stamina <= 0.0 and not exhausted:

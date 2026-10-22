@@ -179,3 +179,15 @@ static func arm_length(arm: Node3D, scale: float) -> float:
 		return -1.0
 	var anchor := arm.get_node_or_null("Elbow/Wrist/ContactAnchor") as Node3D
 	return (elbow.position.length() + wrist.position.length() + (anchor.position.length() if anchor != null else 0.0)) * scale
+
+# The whole envelope remains visible; only a shallow slice can strike at a time.
+# Local +z is behind the athlete. The slice crosses overhead and ends ahead (-z).
+static func spike_active(shape: Dictionary, local_ball: Vector3, age: float) -> bool:
+	var clock := preload("res://scripts/contact_execution.gd")
+	if age < clock.SPIKE_WINDUP or age > clock.SPIKE_END or not contains(shape, local_ball):
+		return false
+	var base: Dictionary = shape.get("base_geometry", shape)
+	var point := unscaled_point(shape, local_ball) - Vector3(base.center)
+	var depth := float(base.depth)
+	var active_z := lerpf(depth * 0.5, -depth * 0.5, clock.spike_progress(age))
+	return absf(point.z - active_z) <= BALL_RADIUS + 0.18

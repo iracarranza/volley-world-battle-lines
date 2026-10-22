@@ -38,7 +38,7 @@ static func predict(lab: Node3D) -> Dictionary:
 		return {}
 	var request = lab.contact_request(action)
 	request.local_point = sample
-	request.confirmation_age = Execution.SWEET_DELAY
+	request.confirmation_age = Execution.ideal_age(action)
 	request.remembered = false
 	request.ideal_charge_match = true
 	request.apply_set_spread = false

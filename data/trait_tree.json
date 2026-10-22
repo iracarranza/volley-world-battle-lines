@@ -723,7 +723,7 @@
 			"effects": {
 				"ball_control": 4.0,
 				"charge_tolerance": 8.0,
-				"cushioning": 6.0
+				"resistance": 6.0
 			},
 			"exclusive": "",
 			"flow": false,

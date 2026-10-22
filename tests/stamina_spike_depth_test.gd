@@ -26,6 +26,8 @@ func run() -> void:
 			point = Vector3(shape.hand_x,shape.palm,shape.center.z)
 		lab.ball.position = lab.player.position + point
 		lab._confirm_action()
+		if action == 2:
+			lab.confirm_window = lab.confirm_duration - lab.Execution.SPIKE_PEAK
 		lab._contact()
 		check(lab.athlete.hp == 50 and lab.athlete.stamina < 100, "Ordinary action %d spends only stamina" % action)
 	lab._reset()
@@ -44,10 +46,10 @@ func run() -> void:
 	var spike: Dictionary = lab._raw_hurtbox_definition(2)
 	for depth in [-0.95, 0.95]:
 		var point: Vector3 = spike.center + lab.Geometry.sector_point(spike, 0.74, 67.5, depth)
-		var result: Dictionary = lab.Execution.assess(lab.Geometry.evaluate(spike, point), 0.22, false, 2)
+		var result: Dictionary = lab.Execution.assess(lab.Geometry.evaluate(spike, point), lab.Execution.SPIKE_PEAK, false, 2)
 		check(result.hit and not result.sweet, "Extended spike depth permits forgiving contact on either side of the arm plane")
 	var sweet: Vector3 = spike.center + lab.Geometry.sector_point(spike, 0.74, 67.5, 0)
-	check(lab.Execution.assess(lab.Geometry.evaluate(spike, sweet), 0.22, false, 2).sweet, "Physical sweetspot stays available")
+	check(lab.Execution.assess(lab.Geometry.evaluate(spike, sweet), lab.Execution.SPIKE_PEAK, false, 2).sweet, "Physical sweetspot stays available")
 	var outside: Vector3 = sweet + Vector3(0, 0, 1.3)
 	check(not lab.Geometry.contains(spike, outside), "Forgiving spike depth still has a finite boundary")
 	print("STAMINA / SPIKE DEPTH: %d / %d passed" % [checks - failures, checks])
