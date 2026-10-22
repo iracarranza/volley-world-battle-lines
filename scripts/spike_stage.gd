@@ -42,13 +42,50 @@ static func phase_for(air_time: float, flight_time: float, swing_time: float = -
 		return lerpf(0.0, Spike.FOLLOW_END, clampf(after / FOLLOW_SECONDS, 0.0, 1.0))
 	return swing_phase(swing_time)
 
+# The striking shoulder marks the sweep. Through the 0.2 s the active slice crosses the hurtbox, the shoulder turns at an even rate from its cocked
+# angle (the slice behind the athlete) to the extension at the peak (the slice overhead) and on to the follow-through angle as the slice reaches
+# the front, so the rotation of the arm is the timing: where it is, is where the strike is. The phase it needs is found from the pose's own
+# shoulder curve, which is not linear in phase.
+const SWEEP_SHOULDER := "shoulder_pitch:Right"
+static var _shoulder_table: Array = [] # [phase, shoulder pitch], phases from the cock to the end of the follow-through
+
+static func _shoulder_curve() -> Array:
+	if _shoulder_table.is_empty():
+		var phase := -0.22
+		while phase <= Spike.FOLLOW_END + 0.0001:
+			_shoulder_table.append([phase, float(pose_for(phase, 1.0)[SWEEP_SHOULDER])])
+			phase += 0.01
+	return _shoulder_table
+
+static func shoulder_at(phase: float) -> float:
+	var table := _shoulder_curve()
+	var index := clampi(int((phase - float(table[0][0])) / 0.01), 0, table.size() - 2)
+	var low: Array = table[index]
+	var high: Array = table[index + 1]
+	return lerpf(float(low[1]), float(high[1]), clampf((phase - float(low[0])) / (float(high[0]) - float(low[0])), 0.0, 1.0))
+
+# The phase at which the striking shoulder is at `angle` (the pitch falls as the arm goes over, so the table is searched from the cock onward).
+static func phase_at_shoulder(angle: float) -> float:
+	var table := _shoulder_curve()
+	for index in range(table.size() - 1):
+		var low: Array = table[index]
+		var high: Array = table[index + 1]
+		if angle >= float(high[1]):
+			var span := float(low[1]) - float(high[1])
+			return lerpf(float(low[0]), float(high[0]), clampf((float(low[1]) - angle) / maxf(span, 0.0001), 0.0, 1.0))
+	return float(table[table.size() - 1][0])
+
 static func swing_phase(age: float) -> float:
 	if age < Execution.SPIKE_WINDUP:
 		# Deliberate cocking motion; contact is disabled throughout this lead-in.
 		return lerpf(LOADED, -0.22, smoothstep(0.0, Execution.SPIKE_WINDUP, age))
+	var back := shoulder_at(-0.22)
+	var extension := shoulder_at(0.0)
+	var follow := shoulder_at(Spike.FOLLOW_END)
+	var half := (Execution.SPIKE_END - Execution.SPIKE_WINDUP) * 0.5
 	if age <= STRIKE_SECONDS:
-		return lerpf(-0.22, 0.0, smoothstep(Execution.SPIKE_WINDUP, STRIKE_SECONDS, age))
-	return lerpf(0.0, Spike.FOLLOW_END, smoothstep(STRIKE_SECONDS, Execution.SPIKE_END + FOLLOW_SECONDS, age))
+		return phase_at_shoulder(lerpf(back, extension, clampf((age - Execution.SPIKE_WINDUP) / half, 0.0, 1.0)))
+	return phase_at_shoulder(lerpf(extension, follow, clampf((age - STRIKE_SECONDS) / half, 0.0, 1.0)))
 
 # The swing at `phase` as a flat pose (see PoseLibrary.flatten), unclamped so the shoulder can
 # travel through the overhead angles the swing uses.
