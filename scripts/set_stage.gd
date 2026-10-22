@@ -36,15 +36,16 @@ static func apply(body: Node3D, phase: float, hand: float = 1.0, posture: String
 # seconds, so the follow-through starts from the pose already on screen.
 const GATHER_PHASE := -0.16
 const CONTACT_PHASE := 0.04
-const FOLLOW_SECONDS := 0.5
+const FOLLOW_SECONDS := 0.6
 const FOLLOW_BLEND := 0.20
 
 static func follow_phase(since: float) -> float:
 	var base := lerpf(CONTACT_PHASE, 0.88, clampf(since / FOLLOW_SECONDS, 0.0, 1.0))
 	return base - (CONTACT_PHASE - GATHER_PHASE) * maxf(0.0, 1.0 - since / FOLLOW_BLEND)
 
-const KEYS_STANDING := [[-0.72, "ready_stance"], [-0.16, "set_gather"], [0.04, "set_contact"], [0.40, "set_extend"], [0.88, "ready_stance"]]
-const KEYS_JUMP := [[-0.72, "ready_stance"], [-0.16, "set_gather"], [0.04, "set_jump_contact"], [0.40, "set_jump_contact"], [0.88, "ready_stance"]]
+# The push snaps out to full extension by 0.20 and holds there to 0.55 before the hands come back, so the push and the follow-through can be seen.
+const KEYS_STANDING := [[-0.72, "ready_stance"], [-0.16, "set_gather"], [0.04, "set_contact"], [0.20, "set_extend"], [0.55, "set_extend"], [0.88, "ready_stance"]]
+const KEYS_JUMP := [[-0.72, "ready_stance"], [-0.16, "set_gather"], [0.04, "set_jump_contact"], [0.22, "set_jump_extend"], [0.55, "set_jump_extend"], [0.88, "ready_stance"]]
 
 # The set at `phase`, blended between the pose files either side of it. `hand` mirrors the foot split for left-handers.
 static func data_pose(phase: float, jump: bool = false, hand: float = 1.0) -> Dictionary:

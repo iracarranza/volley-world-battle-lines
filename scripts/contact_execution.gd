@@ -7,13 +7,21 @@ const SWEET_SECONDS := 0.18
 const SWEET_CENTER := 0.245
 const CONTACT_SECONDS := 0.55
 # Spike timing is independent of Set/Receive/Block and the serve clock.
-const SPIKE_WINDUP := 0.4
+# Session-wide tuning shared by collision, animation, previews and bots.
+static var spike_windup_enabled := true
+static var spike_windup_seconds := 0.4
+static var SPIKE_WINDUP: float:
+	get: return clampf(spike_windup_seconds, 0.0, 1.0) if spike_windup_enabled else 0.0
 const SPIKE_SWEEP_SECONDS := 0.2
-const SPIKE_PEAK := SPIKE_WINDUP + SPIKE_SWEEP_SECONDS * 0.5
-const SPIKE_END := SPIKE_WINDUP + SPIKE_SWEEP_SECONDS
+static var SPIKE_PEAK: float:
+	get: return SPIKE_WINDUP + SPIKE_SWEEP_SECONDS * 0.5
+static var SPIKE_END: float:
+	get: return SPIKE_WINDUP + SPIKE_SWEEP_SECONDS
 const SPIKE_POWER_HALF := 0.06
-const SPIKE_POWER_START := SPIKE_PEAK - SPIKE_POWER_HALF
-const SPIKE_RESCUE_SECONDS := SPIKE_PEAK + SPIKE_POWER_HALF
+static var SPIKE_POWER_START: float:
+	get: return SPIKE_PEAK - SPIKE_POWER_HALF
+static var SPIKE_RESCUE_SECONDS: float:
+	get: return SPIKE_PEAK + SPIKE_POWER_HALF
 const SPIKE_SWEET_SECONDS := 0.06
 const RECEIVE_SWEET_SECONDS := 0.32
 const RECEIVE_SWEET_CENTER := 0.28

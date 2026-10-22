@@ -90,7 +90,7 @@ const RUN_STANCE_SHARE: float = 0.36
 
 ## How far the thigh swings either side of vertical.
 const WALK_HIP_DEGREES: float = 20.0
-const RUN_HIP_DEGREES: float = 39.0
+const RUN_HIP_DEGREES: float = 28.0 # was 39: the thigh swing sets how far the hips rise and fall (17 cm of bob at a sprint)
 
 ## The yield: how far the knee folds under load at midstance. Nearly straight in
 ## a walk, which is exactly what lets the body vault over it; deeply compressed

@@ -23,7 +23,8 @@ const CHEST_TURN_LIMIT := 24.0
 # the strike, which takes STRIKE_SECONDS to reach contact (phase 0) and waits there; follow-through starts when
 # the ball is struck (`hit_time`, in swing-clock seconds) or when the contact window closes without a hit.
 const LOADED := -0.30
-const STRIKE_SECONDS := Execution.SPIKE_PEAK
+static var STRIKE_SECONDS: float:
+	get: return Execution.SPIKE_PEAK
 const FOLLOW_SECONDS := 0.30
 # A ball struck before the strike has finished (a click right as the ball is in reach) used to snap the arm from the loaded pose to contact in
 # one frame. The arm now carries on through the rest of the strike in this long, and the follow-through starts from contact.

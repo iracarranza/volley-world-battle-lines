@@ -7,8 +7,8 @@ func _initialize() -> void:
 
 func run() -> void:
 	check(is_equal_approx(SetStage.follow_phase(0.0), SetStage.GATHER_PHASE), "Follow-through starts at the armed gather pose")
-	check(is_equal_approx(SetStage.follow_phase(SetStage.FOLLOW_BLEND), lerpf(0.04, 0.88, SetStage.FOLLOW_BLEND / 0.5)), "Blend has fully run down by the end of the window")
-	check(is_equal_approx(SetStage.follow_phase(0.5), 0.88), "Follow-through still ends at 0.88")
+	check(is_equal_approx(SetStage.follow_phase(SetStage.FOLLOW_BLEND), lerpf(0.04, 0.88, SetStage.FOLLOW_BLEND / SetStage.FOLLOW_SECONDS)), "Blend has fully run down by the end of the window")
+	check(is_equal_approx(SetStage.follow_phase(SetStage.FOLLOW_SECONDS), 0.88), "Follow-through still ends at 0.88")
 	var previous := SetStage.follow_phase(0.0)
 	var monotonic := true
 	for frame in range(1, 31):
@@ -42,6 +42,6 @@ func run() -> void:
 					worst_after = maxf(worst_after, absf(float(pose[key]) - float(previous_pose[key])))
 		previous_pose = pose
 	check(worst_across < 0.5, "No pose jump between the armed pose and the first follow-through frame (%.2f)" % worst_across)
-	check(worst_after < 15.0, "Follow-through frames move smoothly (%.2f per frame)" % worst_after)
+	check(worst_after < 25.0, "Follow-through frames move smoothly (%.2f per frame): the push snaps out quickly now, and is held" % worst_after)
 	print("SET FOLLOW CHECKS: %d passed / %d total" % [checks - failures, checks])
 	quit(1 if failures else 0)

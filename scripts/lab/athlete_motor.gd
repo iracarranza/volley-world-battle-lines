@@ -53,8 +53,7 @@ func tick(dt: float, motion_scale: float) -> void:
 	lab.athlete.terrain_stamina_multiplier = 1.0
 	if lab.drills.has_method("drill_motion") and lab.drills.drill_motion(dt, move):
 		return
-	var contact_locked := lab.ground_contact_locked()
-	var locomotion := Vector3.ZERO if contact_locked else move
+	var locomotion := move
 	var sprint := Input.is_physical_key_pressed(KEY_SHIFT) and locomotion.length() > 0 and lab.athlete.stamina > 0 and jump_charge < 0
 	var facing_right := Vector3.RIGHT.rotated(Vector3.UP,lab._contact_yaw())
 	var strafe := absf(locomotion.dot(facing_right))
@@ -62,10 +61,7 @@ func tick(dt: float, motion_scale: float) -> void:
 	if lab.animation.dive_recovery_time >= 0.0:
 		desired *= 0.55
 	var acceleration := lab.athlete.acceleration()
-	if contact_locked:
-		lab.player.velocity.x = 0.0
-		lab.player.velocity.z = 0.0
-	elif (generic_jump or approach_action in [1,3]) and jump_charge >= 0 and not jumped:
+	if (generic_jump or approach_action in [1,3]) and jump_charge >= 0 and not jumped:
 		jump_charge = minf(1.0, jump_charge + dt * (1.0 if generic_jump else lab.athlete.explosiveness_rate()) / 0.8)
 		approach_direction = move
 		approach_phase_name = "TRAVEL JUMP / CHARGING" if generic_jump else ("JUMP SET / LOADING" if approach_action == 1 else "BLOCK JUMP / LOADING")
@@ -177,7 +173,7 @@ func note_direction_tap(event: InputEventKey) -> void:
 		tap_times[code] = now
 
 func quick_step(tapped: Vector3 = Vector3(0, 0, -1)) -> void:
-	if lab.ground_contact_locked() or lab.paused or not lab.athlete.has_trait("speed_quick_step") or not (lab.armed or lab.charging) or jumped or jump_charge >= 0.0 or not lab.player.is_on_floor() or lab.animation.roll_lock > 0.0:
+	if lab.paused or not lab.athlete.has_trait("speed_quick_step") or not (lab.armed or lab.charging) or jumped or jump_charge >= 0.0 or not lab.player.is_on_floor() or lab.animation.roll_lock > 0.0:
 		return
 	if quick_step_cooldown > 0.0:
 		lab._message("Quick Step ready in %.1fs" % quick_step_cooldown)
@@ -199,8 +195,6 @@ func quick_step(tapped: Vector3 = Vector3(0, 0, -1)) -> void:
 
 func begin_jump() -> void:
 	if lab.is_benched():
-		return
-	if lab.ground_contact_locked():
 		return
 	if lab.charging:
 		lab.locked_action = lab.selected
@@ -341,7 +335,8 @@ func takeoff() -> void:
 		# Release input controls carry; these jumps never use the attack plant.
 		var input_direction := Vector3(float(Input.is_physical_key_pressed(KEY_D))-float(Input.is_physical_key_pressed(KEY_A)),0,float(Input.is_physical_key_pressed(KEY_S))-float(Input.is_physical_key_pressed(KEY_W)))
 		var direction := lab.camera_rig.movement_direction(input_direction)
-		var retention := 0.85 if direction.length_squared() > 0.01 else 0.15
+		# A set or block jump sheds most of its run like the spike jump does; the held direction only nudges it.
+		var retention := SPIKE_LATERAL_RETENTION if airborne_action in [1, 3] else (0.85 if direction.length_squared() > 0.01 else 0.15)
 		var carry := Vector3(lab.player.velocity.x,0,lab.player.velocity.z)*retention
 		if direction.length_squared() > 0.01:
 			var flight_time := lab.athlete.jump_flight_time(last_jump_height,GRAVITY)

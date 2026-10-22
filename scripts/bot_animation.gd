@@ -52,7 +52,7 @@ func update(rig: Dictionary, dt: float, context: Dictionary = {}) -> void:
 	var phase := -2.0
 	if not context.get("preserve_base", false):
 		Pose.base(body, float(context.get("cycle", 0.0)), speed, float(context.get("heading", 0.0)), planned and action == 0)
-	var follow := float(state.since) < (0.75 if int(state.action) == 2 else 0.50) and (not planned or action == int(state.action))
+	var follow := float(state.since) < (0.75 if int(state.action) == 2 else (SetStage.FOLLOW_SECONDS if int(state.action) == 1 else 0.50)) and (not planned or action == int(state.action))
 	var shown_action := int(state.action) if follow else (action if planned else -1)
 	if shown_action == 0:
 		var point: Vector3 = state.point if follow else context.get("contact_point", Vector3(0, 0.95, -0.65))

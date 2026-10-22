@@ -3,6 +3,9 @@ const Gait := preload("res://vendor/vwm/construction/scripts/data/gait_biomechan
 const Ready := preload("res://vendor/vwm/construction/scripts/data/ready_stance.gd")
 
 const PoseLibrary := preload("res://scripts/pose_library.gd")
+# The gait advances by distance over stride length; stepping a little slower than the stride length alone gives makes the footwork readable.
+const GAIT_PACE := 0.78
+
 
 static func base(root: Node3D, cycle: float, speed: float, heading: float, receiving: bool, receive_weight: float = 1.0) -> Dictionary:
 	PoseLibrary.release_trunk(root)
@@ -20,7 +23,7 @@ static func base(root: Node3D, cycle: float, speed: float, heading: float, recei
 	if receiving:
 		var sideways := maxf(absf(sin(heading)), receive_weight)
 		heading = atan2((signf(sin(heading)) if absf(sin(heading)) > 0.001 else 1.0) * sideways, cos(heading) * (1.0 - receive_weight))
-	var gait := Gait.resolve(cycle, speed, heading, stance)
+	var gait := Gait.resolve(cycle * GAIT_PACE, speed, heading, stance)
 	for side in ["Left", "Right"]:
 		var key: String = side.to_lower()
 		var leg := root.get_node(side + "Leg") as Node3D

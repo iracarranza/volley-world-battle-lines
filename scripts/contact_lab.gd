@@ -414,9 +414,6 @@ func _build_hurtbox() -> void:
 	hurtbox_root.hide()
 	hurtbox_view = LabHurtboxView.new(hurtbox_root, world_builder)
 
-func ground_contact_locked() -> bool:
-	return (confirm_window > 0.0 or action_endlag > 0.0 or (is_instance_valid(serve) and serve.channeling())) and player.is_on_floor() and not motion.jumped and not motion.approach_bound
-
 func _confirm_action(window: float = -1.0) -> void:
 	if block_state.active and locked_action == 3 and not block_state.confirm(): return
 	if _check_bench():
@@ -430,10 +427,6 @@ func _confirm_action(window: float = -1.0) -> void:
 	confirmed_geometry = {}
 	confirm_window = minf(window, Execution.contact_seconds(locked_action)) if window > 0 else Execution.contact_seconds(locked_action)
 	confirm_duration = confirm_window
-	if ground_contact_locked():
-		player.velocity.x = 0.0
-		player.velocity.z = 0.0
-		motion.quick_step_time = 0.0
 	sweet_visual_expired = false
 	sweet_visual_phase = ""
 	hurtbox_action = locked_action

@@ -1,6 +1,9 @@
 extends RefCounted
 
 ## Contact-lab tuning UI. Values persist across lab resets within this session.
+const Execution := preload("res://scripts/contact_execution.gd")
+var spike_windup: HSlider
+var spike_windup_toggle: CheckButton
 var _hud: WeakRef
 var hud: RefCounted:
 	get: return _hud.get_ref()
@@ -20,7 +23,21 @@ func _init(owner_hud: RefCounted) -> void:
 	panel = hud.panel(Vector2(390,70),Vector2(540,580))
 	var stack := VBoxContainer.new()
 	stack.add_theme_constant_override("separation",6)
-	panel.add_child(stack)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	panel.add_child(scroll)
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(stack)
+	stack.add_child(hud.label("SPIKE TIMING",22,hud.TEAL))
+	spike_windup_toggle = toggle_control(stack,"Enable spike windup",func(value: bool):
+		Execution.spike_windup_enabled = value
+		spike_windup.editable = value
+	)
+	spike_windup = slider(stack,"Spike windup",0,1000,Execution.spike_windup_seconds*1000," ms",func(value: float): Execution.spike_windup_seconds = value/1000.0)
+	spike_windup.step = 10
+	spike_windup_toggle.set_pressed_no_signal(Execution.spike_windup_enabled)
+	spike_windup.editable = Execution.spike_windup_enabled
+	stack.add_child(hud.label("Active sweep: 200 ms. Tuning lasts for this session.",13))
 	stack.add_child(hud.label("MOMENT OF CONTACT",22,hud.TEAL))
 	mode = OptionButton.new()
 	for title in ["Current", "Tuned — spikes only", "Off", "Trajectory steering — all contacts"]:

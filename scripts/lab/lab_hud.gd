@@ -217,7 +217,7 @@ func build() -> void:
 	moc_button.tooltip_text = "Cycle Current, Tuned, Off and Trajectory Steering; open MoC Settings to tune local slowdown."
 	toolbar.add_child(moc_button)
 	moc_menu = preload("res://scripts/lab/moc_menu.gd").new(self)
-	toolbar.add_child(button("MoC SETTINGS", moc_menu.toggle))
+	toolbar.add_child(button("CONTACT SETTINGS", moc_menu.toggle))
 	toolbar.add_child(button("HIDE HUD [F8]", func(): ui.visible = false))
 	facing_compass = preload("res://scripts/facing_indicator.gd").new()
 	facing_compass.lab = lab

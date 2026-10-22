@@ -34,6 +34,9 @@ var dive_air_time := 0.0
 var dive_applied_yaw := 0.0
 var spike_air_time := 0.0
 var spike_flight_time := 0.5
+# How far a running setter's hands relax from the gather toward their sides.
+const SET_RUN_RELAX := 0.7
+var jump_air_time := 0.0        # seconds since takeoff, for any jump
 var spike_swing_time := -1.0   # seconds since the click started the strike; -1 while only loaded
 var spike_hit_time := -1.0     # swing-clock time of the hit, or of the window closing
 var spike_contacted := false
@@ -93,6 +96,7 @@ func tick_action_clocks(dt: float) -> void:
 		if spike_hit_time < 0.0 and spike_swing_time > SpikeStage.STRIKE_SECONDS and lab.confirm_window <= 0.0:
 			spike_hit_time = spike_swing_time
 	set_air_time = set_air_time + dt if lab.motion.jumped and lab.motion.airborne_action == 1 else 0.0
+	jump_air_time = jump_air_time + dt if lab.motion.jumped else 0.0
 	if not (lab.motion.jumped and lab.motion.airborne_action == 2):
 		spike_swing_time = -1.0
 		spike_hit_time = -1.0
@@ -134,6 +138,7 @@ func update() -> void:
 	var gait_heading := lerp_angle(travel_heading, float(locomotion_state.heading), loco_weight) if loco_weight > 0.0 else travel_heading
 	var gait := Pose.base(lab.body, lab.motion.gait_cycle, speed if not lab.motion.jumped and (lab.motion.jump_charge < 0 or receive_mobile) else 0.0, gait_heading, receive_ready or follow_receive, receive_weight)
 	locomotion_hips = {"left": float(gait.left_hip_degrees), "right": float(gait.right_hip_degrees)}
+	var gait_arms := _read_arms()
 	if loco_on and loco_weight > 0.0:
 		Locomotion.apply_legs(lab.legs, locomotion_state.legs)
 	lab.body.get_node("Torso").rotation.y = 0
@@ -141,9 +146,13 @@ func update() -> void:
 	# 0 standing, 1 travelling. In the air the raised pose always holds.
 	var travel_weight := 0.0 if lab.motion.jumped else smoothstep(0.35, 1.4, speed)
 	_apply_prepared_pose(travel_weight)
+	_apply_block_jump_pose()
 	_apply_takeoff_and_roll_pose()
 	lab.body.get_node("Torso").rotation.x = float(gait.torso_pitch_radians)
 	_apply_receive_pose(receive_ready or follow_receive, speed, receive_weight)
+	if (receive_ready or follow_receive) and not lab.motion.jumped and not follow_receive:
+		# Moving with a receive prepared, the arms stay in the stride; the platform comes out as the athlete slows, or as the ball gets close.
+		_blend_arms(gait_arms, smoothstep(0.28, 0.5, speed / maxf(lab.athlete.speed(), 0.1)) * (1.0 - near_ball))
 	var diving_now := lab.motion.jumped and lab.motion.airborne_action == 0
 	var preparing_dive := not lab.motion.jumped and lab.motion.jump_charge >= 0 and lab.motion.approach_action == 0 and lab.motion.approach_bound
 	_apply_dive_pose(diving_now, preparing_dive)
@@ -159,6 +168,35 @@ func update() -> void:
 	smooth_pose(pose_source(diving_now, preparing_dive, receive_ready or follow_receive))
 	_finish_pose(diving_now, preparing_dive)
 
+
+func _read_arms() -> Array:
+	var arms := []
+	for arm in lab.arms:
+		arms.append({"rotation": arm.rotation, "elbow": (arm.get_node("Elbow") as Node3D).rotation})
+	return arms
+
+func _blend_arms(target: Array, weight: float) -> void:
+	for index in range(lab.arms.size()):
+		lab.arms[index].rotation = (lab.arms[index].rotation as Vector3).lerp(target[index].rotation, weight)
+		var elbow := lab.arms[index].get_node("Elbow") as Node3D
+		elbow.rotation = elbow.rotation.lerp(target[index].elbow, weight)
+
+# A block jump: the hands go up from the guard to full reach over the net, spread a little, as the legs tuck on the way up, stretch at the top and
+# bend again to land. (The set jump's legs and hands come from its pose files.)
+func _apply_block_jump_pose() -> void:
+	if not (lab.motion.jumped and lab.motion.airborne_action == 3) or roll_lock > 0.0:
+		return
+	var flight: float = lab.athlete.jump_flight_time(lab.motion.last_jump_height, lab.GRAVITY)
+	var f := clampf(jump_air_time / maxf(flight, 0.001), 0.0, 1.0)
+	var reach := smoothstep(0.0, 0.45, f)
+	var landing := smoothstep(0.6, 1.0, f)
+	for index in range(2):
+		var outward := 1.0 if index == 0 else -1.0
+		lab.arms[index].rotation.x = lerpf(-2.1, -2.95, reach)
+		lab.arms[index].rotation.z = outward * lerpf(0.06, 0.2, reach)
+		lab.arms[index].get_node("Elbow").rotation_degrees.x = lerpf(35.0, 0.0, reach)
+		lab.legs[index].rotation.x = lerpf(-0.42, -0.06, reach) - 0.3 * landing
+		lab.legs[index].get_node("Knee").rotation_degrees.x = lerpf(-52.0, -10.0, reach) - 28.0 * landing
 
 # Pose layers execute in update() order; later layers intentionally override earlier ones.
 func _apply_prepared_pose(travel_weight: float) -> void:
@@ -282,6 +320,13 @@ func _apply_set_pose(travel_weight: float, diving_now: bool, preparing_dive: boo
 			for key in set_flat:
 				if walk.has(key) and not (key.begins_with("shoulder_") or key.begins_with("elbow") or key.begins_with("forearm_")):
 					set_flat[key] = lerpf(float(set_flat[key]), float(walk[key]), travel_weight)
+		# Running with a set ready, the hands relax down and out a little but stay in front, ready to come up to the forehead.
+		if travel_weight > 0.0 and not set_jump and lab.armed and lab.locked_action == 1 and set_phase <= SetStage.GATHER_PHASE + 0.01:
+			for side in PoseLibrary.SIDES:
+				var relax := travel_weight * SET_RUN_RELAX
+				set_flat["shoulder_pitch:%s" % side] = lerpf(float(set_flat["shoulder_pitch:%s" % side]), 62.0, relax)
+				set_flat["shoulder_roll:%s" % side] = lerpf(float(set_flat["shoulder_roll:%s" % side]), 34.0, relax)
+				set_flat["elbow:%s" % side] = lerpf(float(set_flat["elbow:%s" % side]), 76.0, relax)
 		PoseLibrary.apply(lab.body, PoseLibrary.from_flat(set_flat, false), 1.0)
 
 
@@ -366,7 +411,7 @@ func set_phase() -> float:
 	if lab.motion.jumped or lab.motion.jump_charge >= 0.0:
 		return -2.0
 	var since := (lab.elapsed - lab.last_contact)*lab.athlete.transition_rate()
-	if since >= 0.0 and since < 0.5 and int(lab.last_contact_result.get("action", -1)) == 1:
+	if since >= 0.0 and since < SetStage.FOLLOW_SECONDS and int(lab.last_contact_result.get("action", -1)) == 1:
 		return SetStage.follow_phase(since)
 	if lab.armed and lab.locked_action == 1:
 		return anticipated_gather()

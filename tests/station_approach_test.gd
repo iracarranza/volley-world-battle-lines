@@ -171,7 +171,7 @@ func run() -> void:
 	for action in [1, 3]:
 		var still: Vector3 = await launch_velocity(lab, action, Vector3.ZERO)
 		var moving: Vector3 = await launch_velocity(lab, action, Vector3(3, 0, 4))
-		check(absf(Vector2(moving.x, moving.z).length() - 0.75) < 0.001, "Set/Block without held movement brake most lateral carry")
+		check(absf(Vector2(moving.x, moving.z).length() - 5.0 * lab.motion.SPIKE_LATERAL_RETENTION) < 0.001, "Set/Block without held movement shed their run like the spike jump (2 percent carry)")
 		check(absf(still.y - moving.y) < 0.001, "Set/Block must not receive the Attack momentum-to-lift conversion")
 	print("STATION / APPROACH CHECKS: %d passed / %d total" % [checks - failures, checks])
 	lab.queue_free()
