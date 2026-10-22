@@ -1,5 +1,6 @@
 extends RefCounted
 ## Gameplay response curves, not a rigid-body solver. All actors use these rules.
+const ReceivePass := preload("res://scripts/receive_pass.gd")
 const Execution := preload("res://scripts/contact_execution.gd")
 const BALL_RADIUS := 0.105 * 1.25
 const CLEARANCE := 0.012
@@ -58,10 +59,10 @@ static func resolve(request: RefCounted, assessment: Dictionary, controlled: Vec
 	if under:
 		outgoing = intended.lerp(passive, failure)
 	elif over:
-		var excess := maxf(0, float(match_result.get("receive_charge", 0)) - float(match_result.get("maximum", 0)))
-		var overhit := intended.rotated(Vector3.UP, -handedness * (0.25 + excess * 0.35 + scatter)) * (1.25 + excess * 0.75)
-		overhit.y = maxf(0.1, intended.y * (0.45 - minf(excess, 1) * 0.20))
-		outgoing = intended.lerp(overhit, failure)
+		# Overcharge carries the pass past where it was meant to go, toward an overpass: deterministic, along the aim, with the arc kept.
+		var carry: float = ReceivePass.overpass_factor(float(request.get("net_distance")))
+		var overpass := Vector3(intended.x * carry, intended.y, intended.z * carry)
+		outgoing = intended.lerp(overpass, failure)
 	# This is separation from the effective contacting surface, not a permanent
 	# collider. Clean contacts use their intended platform rather than a shank plane.
 	var separating_normal := normal if failure > 0.5 else (intended.normalized() if intended.length_squared() > 0.001 else normal)

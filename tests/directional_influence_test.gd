@@ -19,11 +19,23 @@ func run() -> void:
 		check(away.velocity.distance_to(Vector3(right.velocity).rotated(Vector3.UP, PI)) < 0.0001, "Away court behaves as rotated home court")
 		var diagonal := resolve(base, action, Vector3(1, 0, -1))
 		check(diagonal.axes.length() <= 1.00001 and absf(diagonal.yaw_degrees) < absf(right.yaw_degrees), "Diagonals share influence budget")
-	for action in [0, 1]:
+	for action in [1]:
 		var forward := resolve(base, action, Vector3.FORWARD)
 		var back := resolve(base, action, Vector3.BACK)
-		check(forward.velocity.y == base.y and back.velocity.y == base.y, "Receive/Set influence preserves arc height")
+		check(forward.velocity.y == base.y and back.velocity.y == base.y, "Set influence preserves arc height")
 		check(absf(forward.range_factor - (1 + DI.RANGE_LIMITS[action])) < 0.0001 and absf(back.range_factor - (1 - DI.RANGE_LIMITS[action])) < 0.0001, "Range adjustments are capped")
+	# A receive is steered in height, not distance: S raises the arc and W flattens it, landing in the same place.
+	var receive_base := Vector3(0, 7, -8)
+	var landing := func(v: Vector3) -> float:
+		var drop := 1.0 - DI.LANDING_HEIGHT
+		return Vector2(v.x, v.z).length() * (v.y + sqrt(v.y * v.y + 2.0 * DI.GRAVITY * drop)) / DI.GRAVITY
+	var higher := resolve(receive_base, 0, Vector3.BACK)
+	var flatter := resolve(receive_base, 0, Vector3.FORWARD)
+	check(higher.velocity.y > receive_base.y and flatter.velocity.y < receive_base.y, "S raises a receive and W flattens it")
+	check(absf(landing.call(higher.velocity) - landing.call(receive_base)) < 0.01 and absf(landing.call(flatter.velocity) - landing.call(receive_base)) < 0.01, "Steering the arc keeps the landing distance")
+	check(is_equal_approx(higher.velocity.y, receive_base.y * sqrt(DI.ARC_HIGH)) and resolve(receive_base, 0, Vector3.BACK * 0.5).velocity.y < higher.velocity.y, "The arc follows how much is steered")
+	check(resolve(receive_base, 0, Vector3.BACK, 0.4).velocity.y < higher.velocity.y, "Weak contact reduces the arc steering")
+	check(DI.YAW_LIMITS[0] >= 30.0, "A receive can be turned a long way post-geometry")
 	var drive := resolve(base, 2, Vector3.FORWARD)
 	var roll := resolve(base, 2, Vector3.BACK)
 	check(drive.velocity.y < base.y and roll.velocity.y > base.y, "Attack forward drives flatter, back rolls higher")

@@ -65,9 +65,19 @@ func run() -> void:
 	key.pressed = true
 	lab._unhandled_input(key)
 	check(lab.bench.spectator == 0, "V starts optional teammate spectating")
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_RIGHT
+	click.pressed = true
+	lab._unhandled_input(click)
+	check(lab.bench.spectator == 1, "Right click cycles to the next enabled Home teammate")
+	click.button_index = MOUSE_BUTTON_LEFT
+	lab._unhandled_input(click)
+	check(lab.bench.spectator == 0, "Left click cycles back")
+	click.button_index = MOUSE_BUTTON_RIGHT
+	lab._unhandled_input(click)
 	key.keycode = KEY_R
 	lab._unhandled_input(key)
-	check(lab.bench.spectator == 1, "R cycles enabled Home teammate")
+	check(lab.bench.spectator == 1, "R no longer cycles teammates")
 	lab.camera_rig.update(2)
 	check(lab.camera.position.distance_to(lab.training_bots.actors[1].position) < 8, "Spectator camera follows teammate")
 	lab.training_bots.toggle(1)

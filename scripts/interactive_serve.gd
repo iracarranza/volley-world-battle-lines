@@ -16,10 +16,26 @@ var main_court := false
 var hand_volume: MeshInstance3D
 const HAND_RADIUS := 0.28
 # With the ball economy on: holding E charges the toss for this long; release tosses between the two speeds.
+# The serve now meets the toss on its way down through the hurtbox, so the launch angle is measured from how fast that fall normally is: a ball
+# struck earlier in its fall, or still rising, leaves higher, one struck later leaves lower.
+const TYPICAL_FALL_SPEED := -3.7
+const TOSS_FORWARD_SPEED := 1.6 # the toss travels forward, toward where the serve is going, not straight up
 const TOSS_CHARGE_SECONDS := 1.0
 const TOSS_SPEED_MIN := 5.2
 const TOSS_SPEED_MAX := 8.6
 var toss_charge := 0.0
+# R during a serve: the float serve (needs the Float Serve Trait). Chosen before the strike, used up by it.
+var float_mode := false
+const FLOAT_SWEET_SCALE := 1.25 # the float's sweetspot is slightly larger; it grades how centred the contact is, not its timing
+const FLOAT_PACE := 0.80        # the float's pace cost, eased back by how true the contact is (provisional)
+const FLOAT_PACE_RECOVERY := 0.15
+# Jump serve: a toss high enough to be worth jumping for turns the jump into an approach run. The strike is then a jump-serve:
+# its pace is JUMP_SERVE_PACE of an equivalent clean spike (same charge, attributes and resources, before action-specific modifiers) and it leaves
+# higher. Serve Velocity adds effective charge before that 65%, which is why its nodes grant more than Spike Velocity's.
+const JUMP_SERVE_PACE := 0.65
+const JUMP_SERVE_ANGLE_BONUS := 10.0
+const JUMP_SERVE_CLEARANCE := 0.5  # the toss must peak this far above the athlete's standing reach
+const JUMP_SERVE_MIN_TIME := 0.9   # and stay above that reach-plus-clearance long enough to run up and jump
 # The serve's swing runs on the shared swing clock: the arm reaches its extension at Swing.PEAK and the swing is live until the late window closes.
 const Swing := preload("res://scripts/swing_clock.gd")
 const SWING_DURATION := Swing.PEAK + Swing.POWER_HALF_WINDOW
@@ -36,8 +52,44 @@ const SERVE_BOX_RADIUS := 0.60
 func serve_center(shape: Dictionary) -> Vector3:
 	return shape.center + lab.Geometry.sector_point(shape, 0.74, 67.5, 0)
 
-static func serve_zone(distance: float) -> String:
-	if distance <= SERVE_SWEET_RADIUS: return "SWEET SPOT"
+# Predicted from the live ball: how high the toss will peak, and how long it stays above the height worth jumping for.
+func toss_prediction() -> Dictionary:
+	var target: float = lab.player.position.y + lab.athlete.reach() + JUMP_SERVE_CLEARANCE
+	var g: float = lab.GRAVITY
+	var y0: float = lab.ball.position.y
+	var vy: float = lab.ball_velocity.y
+	var apex := y0 + (vy * vy / (2.0 * g) if vy > 0.0 else 0.0)
+	var discriminant := vy * vy - 2.0 * g * (target - y0)
+	var time_above := 0.0
+	if discriminant > 0.0:
+		var root := sqrt(discriminant)
+		time_above = maxf(0.0, (vy + root) / g - maxf((vy - root) / g, 0.0))
+	return {"apex": apex, "target": target, "time_above": time_above}
+
+# Seconds until the live ball next passes through the serving hurtbox's centre height on its way down; the swing needs Swing.PEAK of that to arrive.
+func time_to_center() -> float:
+	var center: Vector3 = lab.hurtbox_center_local(serve_center(lab._raw_hurtbox_definition(2)))
+	var g: float = lab.GRAVITY
+	var vy: float = lab.ball_velocity.y
+	var drop: float = lab.ball.position.y - (lab.player.position.y + center.y)
+	var discriminant := vy * vy + 2.0 * g * drop
+	return (vy + sqrt(maxf(discriminant, 0.0))) / g
+
+func jump_serve_ready() -> bool:
+	if state != State.TOSS or not lab.ball_active or lab.motion.jumped:
+		return false
+	var prediction := toss_prediction()
+	return float(prediction.apex) >= float(prediction.target) and float(prediction.time_above) >= JUMP_SERVE_MIN_TIME
+
+func toggle_float() -> void:
+	if not lab.athlete.has_access(lab.FLOAT_SERVE_TRAIT):
+		lab._message("Float Serve needs the Float Serve Trait")
+		return
+	float_mode = not float_mode
+	lab._message("FLOAT SERVE / a centred contact floats" if float_mode else "TOPSPIN SERVE")
+
+static func serve_zone(distance: float, sweet_scale: float = 1.0) -> String:
+	if distance <= SERVE_SWEET_RADIUS * sweet_scale: return "SWEET SPOT"
 	if distance <= SERVE_FAIR_RADIUS: return "FAIR"
 	if distance <= SERVE_WEAK_RADIUS: return "WEAK"
 	return "SOUR SPOT" if distance <= SERVE_BOX_RADIUS else "MISS"
@@ -52,6 +104,7 @@ func tossing() -> bool:
 	return state in [State.TOSS, State.SWING, State.CHANNEL]
 
 func clear() -> void:
+	float_mode = false
 	state = State.IDLE
 	input_held = false
 	held_time = 0
@@ -162,11 +215,16 @@ func _begin_toss(up_speed: float) -> void:
 	lab.contact_memory.fill(0.0)
 	var sign := -1.0 if lab.dominant_hand == "Left" else 1.0
 	var shoulder: Vector3 = lab.arms[0 if sign < 0 else 1].position * (float(lab.athlete.build.height) / lab.visual_rig_height)
-	# The toss is released over the serving hurtbox's centre, so a ball that falls straight back comes down through it.
+	# The toss travels forward as well as up, and is released far enough behind the serving hurtbox's centre that the falling ball comes down
+	# through it.
 	var center: Vector3 = lab.hurtbox_center_local(serve_center(lab._raw_hurtbox_definition(2)))
-	var local := Vector3(center.x, float(lab.athlete.build.height) * 0.68, center.z)
+	var release_height: float = float(lab.athlete.build.height) * 0.68
+	var gravity: float = lab.GRAVITY
+	var discriminant := up_speed * up_speed - 2.0 * gravity * (center.y - release_height)
+	var fall_time := (up_speed + sqrt(maxf(discriminant, 0.0))) / gravity if discriminant > 0.0 else up_speed / gravity
+	var local := Vector3(center.x, release_height, center.z + TOSS_FORWARD_SPEED * fall_time)
 	lab.ball.position = lab.player.position + local.rotated(Vector3.UP, lab.camera_rig.facing_yaw)
-	lab.ball_velocity = Vector3.UP * up_speed + Vector3.FORWARD.rotated(Vector3.UP, lab.camera_rig.facing_yaw) * 0.18
+	lab.ball_velocity = Vector3.UP * up_speed + Vector3.FORWARD.rotated(Vector3.UP, lab.camera_rig.facing_yaw) * TOSS_FORWARD_SPEED
 	lab.ball_active = true
 	lab.outgoing = false
 	lab._message("TOSS / E again to strike / early rising contact lofts higher; late contact drives flatter")
@@ -266,16 +324,29 @@ func strike(hand: Vector3, shape: Dictionary, local: Vector3, point: Vector3) ->
 	var camera_pitch := atan2(camera_forward.y, Vector2(camera_forward.x, camera_forward.z).length())
 	var height_ratio: float = clampf((lab.ball.position.y - lab.player.position.y - float(lab.athlete.build.height) * 0.68) / 1.4, 0, 1)
 	# At identical aim, a rising high toss leaves a higher trajectory than a falling one.
-	var angle := clampf(22.0 + rad_to_deg(camera_pitch) * 0.7 + incoming.y * 3.5 + height_ratio * 5.0, -12, 72)
-	var zone := serve_zone(local.distance_to(serve_center(shape)))
+	var angle := clampf(22.0 + rad_to_deg(camera_pitch) * 0.7 + (incoming.y - TYPICAL_FALL_SPEED) * 3.5 + height_ratio * 5.0, -12, 72)
+	var offset := local.distance_to(serve_center(shape))
+	var zone := serve_zone(offset, FLOAT_SWEET_SCALE if float_mode else 1.0)
+	var floated: bool = float_mode and zone == "SWEET SPOT"
+	var true_distance := offset / (SERVE_SWEET_RADIUS * FLOAT_SWEET_SCALE) # 0 at the centre, 1 at the edge of the float's sweetspot
 	var form: String = Swing.form_at(swing_time)
-	var sweet: bool = zone == "SWEET SPOT" and lab.Execution.sweet_active(2, swing_time)
-	var contact_factor: float = float(ZONE_FACTOR.get(zone, 0.51)) * float(FORM_FACTOR[form])
+	var sweet: bool = zone == "SWEET SPOT" and (floated or lab.Execution.sweet_active(2, swing_time))
+	var contact_factor: float = float(ZONE_FACTOR.get(zone, 0.51)) * (1.0 if floated else float(FORM_FACTOR[form]))
+	if floated:
+		contact_factor *= FLOAT_PACE + FLOAT_PACE_RECOVERY * (1.0 - clampf(true_distance, 0.0, 1.0))
 	var speed: float = (9.0 + 65.0 * 0.035) * lab.athlete.serve_speed_factor(lab._default_charge())*(1.0+0.12*lab.athlete.flow/100.0) * contact_factor
+	var jumping: bool = lab.motion.jumped
+	var spike_reference := 0.0
+	if jumping:
+		# 65% of the spike an equivalent clean contact would be: the spike's own pace formula at this charge, before spike-only modifiers.
+		var hp_factor := lerpf(0.7, 1.0, lab.athlete.hp / 100.0)
+		spike_reference = (6.0 + lab.athlete.effective_serve_charge(lab._default_charge()) * 7.0 + 65.0 * 0.02) * hp_factor * lab.ATTACK_DRIVE_FACTOR * lab.SPIKE_SPEED_MULTIPLIER
+		speed = spike_reference * JUMP_SERVE_PACE * (1.0+0.12*lab.athlete.flow/100.0) * contact_factor
+		angle = clampf(angle + JUMP_SERVE_ANGLE_BONUS, -12, 75)
 	lab.ball_velocity = horizontal * cos(deg_to_rad(angle)) * speed + Vector3.UP * sin(deg_to_rad(angle)) * speed
 	lab.ball_shot = lab.ReceiveCharge.shot("serve", lab.athlete.effective_serve_charge(lab._default_charge()), "player")
 	lab.ball_shot = lab.contact_flow.decorate_serve(lab.ball_shot,"player")
-	evidence = {"mode": "tap", "sweet": sweet, "zone": zone, "form": form, "contact_factor": contact_factor, "charge": lab.athlete.effective_serve_charge(lab._default_charge()), "hand": hand, "point": lab.ball.position, "incoming_velocity": incoming, "outgoing_velocity": lab.ball_velocity, "angle_degrees": angle, "toss_time": toss_time, "swing_time": swing_time}
+	evidence = {"mode": "tap", "sweet": sweet, "zone": zone, "form": form, "contact_factor": contact_factor, "float": floated, "wobble": clampf(true_distance, 0.0, 1.0) if floated else 0.0, "charge": lab.athlete.effective_serve_charge(lab._default_charge()), "hand": hand, "point": lab.ball.position, "incoming_velocity": incoming, "outgoing_velocity": lab.ball_velocity, "angle_degrees": angle, "jump": jumping, "spike_reference_speed": spike_reference, "toss_time": toss_time, "swing_time": swing_time}
 	evidence.make_read_only()
 	_finish_strike(incoming, sweet)
 
@@ -322,6 +393,7 @@ func basic_strike() -> void:
 	lab._message("STANDING SERVE / safe arc into the opposing court")
 
 func _finish_strike(incoming: Vector3, sweet: bool) -> void:
+	float_mode = false
 	lab.inventory.free_ball = false # a Serve: now the ball starts a Pepper or Rally
 	state = State.FLIGHT
 	follow_time = 0.22

@@ -77,7 +77,7 @@ func run() -> void:
 	lab.camera_rig.rotate_view(Vector2(200, 0))
 	var serve_facing := Vector3(-sin(lab.camera_rig.facing_yaw), 0, -cos(lab.camera_rig.facing_yaw))
 	lab._serve()
-	for frame in range(18):
+	for frame in range(roundi((lab.serve.time_to_center() - lab.serve.Swing.PEAK) * 120)): # the arm takes Swing.PEAK to reach the toss
 		lab._tick_ball(1.0 / 120)
 		lab.camera_rig.update(1.0 / 120)
 	lab._serve()

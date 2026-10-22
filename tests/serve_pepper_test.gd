@@ -1,17 +1,19 @@
 extends "res://tests/support/test_case.gd"
 func _initialize() -> void:
 	call_deferred("run")
-func toss_trial(lab: Node3D, wait_time: float) -> Dictionary:
+# `offset` is seconds from the ideal press: the swing takes Swing.PEAK to reach the point the falling toss passes through the hurtbox centre.
+func toss_trial(lab: Node3D, offset: float) -> Dictionary:
 	lab._reset()
 	lab.camera_rig.view_pitch = 0.27
 	lab.camera_rig.update_aim()
 	lab.animation.update()
 	lab.camera_rig.update(2)
 	lab._serve()
+	var wait_time: float = lab.serve.time_to_center() - lab.serve.Swing.PEAK + offset
 	for frame in range(roundi(wait_time * 120)):
 		lab._tick_ball(1.0 / 120)
 	lab._serve()
-	for frame in range(40):
+	for frame in range(60):
 		if lab.serve.state == lab.serve.State.FLIGHT or not lab.ball_active:
 			break
 		lab._tick_ball(1.0 / 120)
@@ -25,11 +27,11 @@ func run() -> void:
 	lab._serve()
 	check(lab.serve.tossing() and lab.ball_active and not lab.outgoing and lab.ball_velocity.y > 0, "First E tosses without automatically serving")
 	check(not lab.training_bots.settings[(0) + 4].enabled, "Toss does not spawn court receiver yet")
-	var early: Dictionary = await toss_trial(lab, 0.15)
-	var late: Dictionary = await toss_trial(lab, 0.6)
+	var early: Dictionary = await toss_trial(lab, -0.06)
+	var late: Dictionary = await toss_trial(lab, 0.0)
 	check(not early.is_empty() and not late.is_empty(), "Both early and late swings can meet the physical toss")
 	if not early.is_empty() and not late.is_empty():
-		check(early.incoming_velocity.y > 0 and late.incoming_velocity.y < 0 and early.angle_degrees > late.angle_degrees + 8, "Identical aim produces higher arc on rising contact")
+		check(early.incoming_velocity.y > late.incoming_velocity.y and early.angle_degrees > late.angle_degrees + 2, "Identical aim produces a higher arc on a ball struck earlier in its fall")
 		check(early.has("zone") and early.has("form") and late.has("zone"), "A serve is struck in the serving hurtbox and graded by zone and swing time")
 		check(lab.training_bots.settings[(0) + 4].enabled, "Successful main-Net strike enables away receiver")
 	lab._reset()
@@ -93,12 +95,14 @@ func run() -> void:
 		lab.camera_rig.camera_mode = lab.ViewMode.ATHLETE
 		lab.camera_rig.view_yaw = 0
 		lab.camera_rig.facing_yaw = 0
-		lab.camera_rig.view_pitch = 1.0 if index == 0 else -0.12
+		lab.camera_rig.view_pitch = 0.7 if index == 0 else -0.12
 		lab.camera_rig.update_aim()
 		lab.animation.update()
 		lab.camera_rig.update(2)
 		lab._serve()
-		lab._serve() # the arm takes 0.24 s to reach the ball, so strike as it is tossed over the serving hurtbox
+		for frame in range(roundi((lab.serve.time_to_center() - lab.serve.Swing.PEAK) * 120)): # the arm takes Swing.PEAK to reach the ball
+			lab._tick_ball(1.0 / 120)
+		lab._serve()
 		for frame in range(1000):
 			if not lab.ball_active or lab.pepper.exchanges > 0:
 				break

@@ -13,7 +13,7 @@ func run() -> void:
 	lab.camera_rig.view_pitch = 0.27
 	lab.camera_rig.update(2)
 	lab._serve()
-	for frame in range(18):
+	for frame in range(roundi((lab.serve.time_to_center() - lab.serve.Swing.PEAK) * 120)): # the arm takes Swing.PEAK to reach the toss
 		lab._tick_ball(1.0 / 120)
 	lab._serve()
 	for frame in range(40):

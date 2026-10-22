@@ -47,7 +47,7 @@ func run() -> void:
 	var shank := flight(controlled, incoming, under)
 	check(shank != controlled and shank.z <= 0, "Central undercharge deflects without passing through the athlete")
 	var overhit := flight(controlled, incoming, over)
-	check(overhit.y < controlled.y and Vector2(overhit.x, overhit.z).length() > 8, "Overcharge drives a flatter overhit")
+	check(absf(overhit.y - controlled.y) < 0.01 and Vector2(overhit.x, overhit.z).length() > Vector2(controlled.x, controlled.z).length() * 1.4 and absf(overhit.x) < 0.01, "Overcharge carries the pass straight on toward an overpass")
 	for boundary in [0.6, 0.75]:
 		var previous_error := -1.0
 		for gap in [0.00001, 0.01, 0.05, 0.15, 0.30]:

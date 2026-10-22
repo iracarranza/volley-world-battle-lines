@@ -49,10 +49,10 @@ func run() -> void:
 	key.pressed = false
 	lab._input(key)
 	check(lab.serve.state == lab.serve.State.TOSS and not lab.serve.input_held, "Short E press selects manual toss mode")
-	step_serve(lab, 0.1)
+	step_serve(lab, lab.serve.time_to_center() - lab.serve.Swing.PEAK - 0.05)
 	key.pressed = true
 	lab._unhandled_input(key)
-	step_serve(lab, 0.4)
+	step_serve(lab, 0.6)
 	check(not lab.serve.evidence.is_empty() and lab.serve.evidence.mode == "tap", "Second tap hits through physical hand sweep")
 	lab._reset()
 	var drill = lab.station

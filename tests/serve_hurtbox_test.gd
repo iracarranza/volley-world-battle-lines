@@ -28,9 +28,12 @@ func run() -> void:
 	lab._serve()
 	var shape: Dictionary = lab._raw_hurtbox_definition(2)
 	var center: Vector3 = lab.serve.serve_center(shape)
-	# The toss is released over the hurtbox's centre.
-	var local: Vector3 = lab.local_contact_position_at(lab.ball.position)
-	check(absf(local.x - center.x) < 0.01 and absf(local.z - center.z) < 0.01, "The toss comes down through the serving hurtbox")
+	# The toss travels forward and comes down through the hurtbox's centre.
+	check(lab.ball_velocity.dot(Vector3.FORWARD.rotated(Vector3.UP, lab.camera_rig.facing_yaw)) > 1.0, "The toss travels forward")
+	var fall: float = lab.serve.time_to_center()
+	var arrival: Vector3 = lab.ball.position + Vector3(lab.ball_velocity.x, 0.0, lab.ball_velocity.z) * fall
+	var local: Vector3 = lab.local_contact_position_at(arrival)
+	check(absf(local.x - center.x) < 0.02 and absf(local.z - center.z) < 0.02, "The toss comes down through the serving hurtbox")
 	# A ball held at the centre is struck when the arm gets there, not before, and as a sweet power swing.
 	lab.ball_velocity = Vector3.ZERO
 	lab.ball.position = lab.player.position + (center).rotated(Vector3.UP, lab._contact_yaw())

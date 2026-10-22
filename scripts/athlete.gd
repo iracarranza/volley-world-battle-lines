@@ -171,6 +171,10 @@ func stabilize_set(assessment: Dictionary) -> Dictionary:
 	result["stability"] = stat("stability")
 	return result
 
+# Whether the athlete has taken a Trait at all, including one a successor has since consumed: what it unlocked (an action variant, say) stays unlocked.
+func has_access(trait_id: String) -> bool:
+	return trait_id in trait_ids
+
 func has_trait(trait_id: String) -> bool:
 	if not (trait_id in trait_ids):
 		return false

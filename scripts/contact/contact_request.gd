@@ -15,6 +15,7 @@ var handling_charge := 0.0
 var auto_evidence: Dictionary = {}
 var confirmation_age := 0.20
 var response_seed := 0
+var net_distance := -1.0 # the receiver's distance from the net; negative when there is no net (a Pepper)
 var remembered := false
 var movement_speed := 0.0
 var facing := Vector3.FORWARD

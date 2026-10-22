@@ -251,7 +251,7 @@ func travel_takeoff() -> void:
 func begin_approach() -> void:
 	generic_jump = false
 	jump_charge = 0.0
-	approach_action = lab.locked_action if lab.armed else lab.selected
+	approach_action = 2 if lab.serve.jump_serve_ready() else (lab.locked_action if lab.armed else lab.selected) # a high toss makes the jump a serving run-up
 	if approach_action == 2: lab.contact_flow.on_attack_charge("player")
 	approach_distance = 0.0
 	approach_plant_speed = 0.0

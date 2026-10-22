@@ -29,6 +29,7 @@ var last_contact_result: Dictionary = {}
 var _contact_event_serial := 0
 
 const Athlete = preload("res://scripts/athlete.gd")
+const ReceivePass := preload("res://scripts/receive_pass.gd")
 const Execution = preload("res://scripts/contact_execution.gd")
 const Geometry = preload("res://scripts/contact_geometry.gd")
 const Pose := preload("res://scripts/athlete_pose.gd")
@@ -60,6 +61,10 @@ var pepper: Node3D
 var debug_volumes_visible := true
 # Hurtboxes tilt with the aimed angle (the half-pipe faces where the athlete is aiming), about the shoulder. A setting, on by default.
 var rotate_hurtboxes := true
+# R toggles the modified action: Back Set (with the Back Set Trait) when setting, Float Serve (with the Float Serve Trait) when serving.
+var back_set := false
+const BACK_SET_TRAIT := "accuracy_back_set"
+const FLOAT_SERVE_TRAIT := "acc_float_serve"
 const NEUTRAL_VIEW_PITCH := -0.12 # the resting view: boxes tilt by how far the aim has moved from it
 const MAX_HURTBOX_PITCH := 0.6
 const BallFraming := preload("res://scripts/ball_camera_framing.gd")
@@ -522,12 +527,13 @@ func contact_request(action: int) -> ContactRequest:
 	request.confirmation_age = confirm_duration - maxf(confirm_window, 0) if confirm_duration > 0 else Execution.SWEET_DELAY
 	request.remembered = not Geometry.contains(request.shape, request.local_point) and contact_memory[action] > 0
 	request.facing = Vector3.FORWARD.rotated(Vector3.UP, _contact_yaw())
-	request.intent_direction = committed_intent.get("direction", request.facing)
+	request.intent_direction = _intent_direction(action, committed_intent.get("direction", request.facing))
 	request.directional_input = Vector3.ZERO if moc.enabled and moc.steering_duration > 0 and moc.mode == moc.Mode.TRAJECTORY_STEERING else directional_input.value()
 	request.movement_speed = Vector2(player.velocity.x, player.velocity.z).length()
 	request.flow = athlete.flow
 	request.gravity = GRAVITY
 	request.apply_set_spread = true
+	request.net_distance = receive_net_distance()
 	request.apply_block_spread = true
 	return request
 
@@ -564,8 +570,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event is InputEventKey and event.pressed and not event.echo:
 			match event.keycode:
 				KEY_V: bench.toggle_spectate()
-				KEY_Q: bench.cycle(-1)
-				KEY_R: bench.cycle(1)
+		# Left and right click cycle the watched teammate (R is the float serve / back set toggle).
+		if event is InputEventMouseButton and event.pressed:
+			match event.button_index:
+				MOUSE_BUTTON_LEFT: bench.cycle(-1)
+				MOUSE_BUTTON_RIGHT: bench.cycle(1)
 		if not (event is InputEventKey and event.keycode in [KEY_O, KEY_M, KEY_P, KEY_T, KEY_H, KEY_F8, KEY_F9, KEY_K]):
 			return
 	if is_instance_valid(creator) and creator.visible:
@@ -594,6 +603,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_E: serve.input_press()
 			KEY_TAB: _cycle_build()
 			KEY_F5:
+			KEY_R: toggle_modifier()
 				debug_feed_target = Vector3(clampf(player.position.x,court_center.x-court_half_width+0.3,court_center.x+court_half_width-0.3), 0.95, clampf(player.position.z, 0.6, 8.5))
 				debug_feed_locked = true
 				_message("Feed landing locked here / F5 to retarget; F7 restores tracking feed")
@@ -849,19 +859,26 @@ func _bump_ceiling(contact_height: float) -> float:
 
 # Level aim retains the calibrated arc. Downward aim has a 35% minimum rise;
 # upward aim reaches 2.5 times the rise, preserving charge-dependent range.
-func _contact_loft_factor() -> float:
+func _contact_loft_factor(inverted: bool = false) -> float:
 	var pitch := camera_rig.view_pitch - 0.27 # Camera optical axis is level here.
 	return lerpf(1.0, 2.5, clampf(pitch / 0.88, 0, 1)) if pitch >= 0 else lerpf(1.0, 0.35, clampf(-pitch / 0.92, 0, 1))
 
+	if inverted:
+		pitch = -pitch # A back set inverts the aimed offset from neutral: a high front set is a low back set.
 func _loft_velocity(origin: Vector3, action: int, power: float, direction: Vector3) -> Vector3:
 	var peak: float
+# The receiver's distance from the net, or -1 in a Pepper (no net).
+func receive_net_distance() -> float:
+	if pepper.active():
+		return -1.0
+	return absf(player.position.z - court_center.z)
+
 	var distance: float
 	if action == 0:
 		power = ReceiveCharge.CONTROL_CHARGE
 		var ceiling := _bump_ceiling(origin.y)
 		peak = origin.y + (ceiling - origin.y) * lerpf(0.25, 1.0, clampf(power, 0, 1))
-		var previous := Flight.solve_flight(5.0 + power * 5.5, BUMP_ANGLE, maxf(origin.y - 0.105, 0.0))
-		distance = previous.range_meters
+		distance = ReceivePass.matched_distance(receive_net_distance())
 	else:
 		var ceiling := maxf(origin.y + 0.35, _bump_ceiling(1.0))
 		peak = origin.y + (ceiling - origin.y) * SET_RISE_FACTOR * lerpf(0.65, 1.0, clampf(power, 0, 1))
@@ -870,7 +887,7 @@ func _loft_velocity(origin: Vector3, action: int, power: float, direction: Vecto
 		if not motion.jumped:
 			distance *= GROUND_SET_RANGE_FACTOR
 			peak = origin.y + (peak - origin.y) * GROUND_SET_RISE_FACTOR
-	peak = origin.y + (peak - origin.y) * _contact_loft_factor()
+	peak = origin.y + (peak - origin.y) * _contact_loft_factor(action == 1 and back_set)
 	var upward := sqrt(2.0 * GRAVITY * maxf(peak - origin.y, 0.1))
 	var duration := (upward + sqrt(upward * upward + 2.0 * GRAVITY * maxf(origin.y - 0.105, 0.0))) / GRAVITY
 	return direction * distance / maxf(duration, 0.01) + Vector3.UP * upward
@@ -883,6 +900,8 @@ func _shot_velocity(origin: Vector3, action: int, power: float, target: Variant 
 	direction = direction.normalized()
 	if action in [0, 1]:
 		return _loft_velocity(origin, action, power, direction)*athlete.low_stamina_factor()
+	if action == 1 and back_set:
+		direction = -direction # the athlete still faces and aims forward; the set leaves behind
 	if action == 2:
 		power = contact_flow.attack_charge(power,"player",origin,evidence) if is_instance_valid(contact_flow) else athlete.effective_attack_charge(power)
 	var hp_factor := lerpf(0.7, 1.0, athlete.hp / 100.0)
@@ -899,10 +918,27 @@ func _shot_velocity(origin: Vector3, action: int, power: float, target: Variant 
 
 func _capture_contact_intent() -> void:
 	var origin := player.position + Vector3.UP * (athlete.reach() - (1.2 if locked_action == 0 else 0.2))
+# A back set travels away from the aim, so steering it is relative to its own direction of travel.
+func _intent_direction(action: int, direction: Vector3) -> Vector3:
+	return -direction if action == 1 and back_set else direction
+
+func toggle_modifier() -> void:
+	if serve.tossing() or serve.state == serve.State.TOSS_CHARGE:
+		serve.toggle_float()
+	elif selected == 1 or locked_action == 1:
+		if not athlete.has_access(BACK_SET_TRAIT):
+			_message("Back Set needs the Back Set Trait")
+			return
+		back_set = not back_set
+		committed_intent = {}
+		_message("BACK SET" if back_set else "FRONT SET")
+	else:
+		_message("R toggles Back Set while setting and Float Serve while serving")
+
 	var forward := aim - origin
 	forward.y = 0
 	var input_charge := prepared_output_charge()
-	var influence := DirectionalInfluence.resolve(_shot_velocity(origin, locked_action, input_charge), locked_action, directional_input.value(), forward, 1.0)
+	var influence := DirectionalInfluence.resolve(_shot_velocity(origin, locked_action, input_charge), locked_action, directional_input.value(), forward, 1.0, 0.0, origin.y)
 	committed_intent = ContactIntent.capture("player", side_index(player.position.z), locked_action, input_charge, origin, aim, influence.velocity, elapsed, influence,"auto" if auto_preparation.active else "manual")
 
 func _impact_event(actor_id: String, action: int, incoming: Vector3, assessment: Dictionary, incoming_shot: Dictionary) -> ContactEvent:
@@ -1048,7 +1084,7 @@ func _contact() -> void:
 		athlete.spend(0.0, LabAthlete.ROLLING_RECEIVE_HP)
 	request.base_velocity = ball_velocity
 	request.rolling_receive = rolled
-	request.intent_direction = committed_intent.direction
+	request.intent_direction = _intent_direction(locked_action, committed_intent.direction)
 	var result := ContactResolver.resolve(request, assessment)
 	ball_velocity = result.velocity
 	ball.position += result.separation_offset
@@ -1076,6 +1112,8 @@ func _contact() -> void:
 	_update_hurtbox_visual(0.0)
 	confirm_window = 0
 	trail_points.clear()
+	if locked_action == 1:
+		back_set = false
 	if pepper.active():
 		pepper.on_player_contact(locked_action, quality)
 	else:
@@ -1309,6 +1347,7 @@ func _reset() -> void:
 	net_bounce_pending = false
 	if is_instance_valid(impact_visual):
 		impact_visual.clear()
+	back_set = false
 	if is_instance_valid(contact_flow):
 		contact_flow.clear()
 	if is_instance_valid(bench):

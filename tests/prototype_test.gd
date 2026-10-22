@@ -221,11 +221,11 @@ func run() -> void:
 		check(absf(a.leap(1.0,1.0)-effective_height) < 0.001,"Build jump height uses neutral baseline and tiered Jump Power charge")
 	for height in [0.3, 1.0, 1.6]:
 		for power in [0.0, 0.25, 0.5, 0.75, 1.0]:
-			var legacy: Dictionary = lab.Flight.solve_flight(5.0 + lab.ReceiveCharge.CONTROL_CHARGE * 5.5, lab.BUMP_ANGLE, height - 0.105)
+			var legacy := {"range_meters": preload("res://scripts/receive_pass.gd").matched_distance(lab.receive_net_distance())} # the matched pass depends on the net, not the charge
 			var velocity: Vector3 = lab._shot_velocity(Vector3(0, height, 5), 0, power)
 			var flight_time: float = (velocity.y + sqrt(velocity.y * velocity.y + 2.0 * lab.GRAVITY * (height - 0.105))) / lab.GRAVITY
 			var horizontal_speed := Vector2(velocity.x, velocity.z).length()
-			check(absf(horizontal_speed * flight_time - float(legacy.range_meters)) < 0.001, "Controlled receive range must be charge independent at height %s, charge %s" % [height, power])
+			check(absf(horizontal_speed * flight_time - float(legacy.range_meters)) < 0.001, "Matched receive range must be charge independent at height %s, charge %s" % [height, power])
 			var old_rise: float = pow((5.0 + power * 5.5) * sin(deg_to_rad(60.0)), 2) / (2.0 * lab.GRAVITY)
 			check(height + velocity.y * velocity.y / (2.0 * lab.GRAVITY) <= lab._bump_ceiling(height) + 0.001, "No bump charge may exceed the former tapped-bump ceiling")
 	lab._reset()

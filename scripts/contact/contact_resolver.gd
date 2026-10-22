@@ -102,7 +102,7 @@ static func resolve(request: Request, assessment: Dictionary) -> Result:
 		)
 	else:
 		result.influence = Influence.resolve(
-			velocity, request.action, request.directional_input, request.intent_direction, quality, request.athlete.trait_effect("court_vision")
+			velocity, request.action, request.directional_input, request.intent_direction, quality, request.athlete.trait_effect("court_vision"), request.origin.y
 		)
 	velocity = Execution.velocity(
 		request.action, result.influence.velocity, request.incoming, request.facing,
