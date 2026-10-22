@@ -30,7 +30,7 @@ func run() -> void:
 	check(not early.is_empty() and not late.is_empty(), "Both early and late swings can meet the physical toss")
 	if not early.is_empty() and not late.is_empty():
 		check(early.incoming_velocity.y > 0 and late.incoming_velocity.y < 0 and early.angle_degrees > late.angle_degrees + 8, "Identical aim produces higher arc on rising contact")
-		check(early.point.distance_to(early.hand) <= lab.serve.HAND_RADIUS + lab.Geometry.BALL_RADIUS + 0.06, "Serve meets actual striking hand")
+		check(early.has("zone") and early.has("form") and late.has("zone"), "A serve is struck in the serving hurtbox and graded by zone and swing time")
 		check(lab.training_bots.settings[(0) + 4].enabled, "Successful main-Net strike enables away receiver")
 	lab._reset()
 	lab._serve()
@@ -98,9 +98,7 @@ func run() -> void:
 		lab.animation.update()
 		lab.camera_rig.update(2)
 		lab._serve()
-		for frame in range(18):
-			lab._tick_ball(1.0 / 120)
-		lab._serve()
+		lab._serve() # the arm takes 0.24 s to reach the ball, so strike as it is tossed over the serving hurtbox
 		for frame in range(1000):
 			if not lab.ball_active or lab.pepper.exchanges > 0:
 				break

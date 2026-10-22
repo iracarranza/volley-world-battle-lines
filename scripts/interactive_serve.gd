@@ -20,7 +20,27 @@ const TOSS_CHARGE_SECONDS := 1.0
 const TOSS_SPEED_MIN := 5.2
 const TOSS_SPEED_MAX := 8.6
 var toss_charge := 0.0
-const SWING_DURATION := 0.24
+# The serve's swing runs on the shared swing clock: the arm reaches its extension at Swing.PEAK and the swing is live until the late window closes.
+const Swing := preload("res://scripts/swing_clock.gd")
+const SWING_DURATION := Swing.PEAK + Swing.POWER_HALF_WINDOW
+# Zone and timing scale the serve's pace: a clean strike inside the power window is full pace, a scraped or badly timed one is not.
+const ZONE_FACTOR := {"SWEET SPOT": 1.0, "FAIR": 1.0, "WEAK": 0.82, "SOUR SPOT": 0.51}
+const FORM_FACTOR := {"roll": 0.75, "power": 1.0, "push": 0.65}
+# The serving hurtbox: a ball-sized region centred where the striking arm is at its forward-and-up-most extension (the spiking hurtbox's
+# sweetspot), tilted with the aim like every hurtbox. It is most effective at the centre and radially less effective outward.
+const SERVE_SWEET_RADIUS := 0.16
+const SERVE_FAIR_RADIUS := 0.34
+const SERVE_WEAK_RADIUS := 0.50
+const SERVE_BOX_RADIUS := 0.60
+
+func serve_center(shape: Dictionary) -> Vector3:
+	return shape.center + lab.Geometry.sector_point(shape, 0.74, 67.5, 0)
+
+static func serve_zone(distance: float) -> String:
+	if distance <= SERVE_SWEET_RADIUS: return "SWEET SPOT"
+	if distance <= SERVE_FAIR_RADIUS: return "FAIR"
+	if distance <= SERVE_WEAK_RADIUS: return "WEAK"
+	return "SOUR SPOT" if distance <= SERVE_BOX_RADIUS else "MISS"
 
 func setup(owner_lab: Node3D) -> void:
 	lab = owner_lab
@@ -142,7 +162,9 @@ func _begin_toss(up_speed: float) -> void:
 	lab.contact_memory.fill(0.0)
 	var sign := -1.0 if lab.dominant_hand == "Left" else 1.0
 	var shoulder: Vector3 = lab.arms[0 if sign < 0 else 1].position * (float(lab.athlete.build.height) / lab.visual_rig_height)
-	var local := Vector3(shoulder.x, float(lab.athlete.build.height) * 0.68, -0.55)
+	# The toss is released over the serving hurtbox's centre, so a ball that falls straight back comes down through it.
+	var center: Vector3 = lab.hurtbox_center_local(serve_center(lab._raw_hurtbox_definition(2)))
+	var local := Vector3(center.x, float(lab.athlete.build.height) * 0.68, center.z)
 	lab.ball.position = lab.player.position + local.rotated(Vector3.UP, lab.camera_rig.facing_yaw)
 	lab.ball_velocity = Vector3.UP * up_speed + Vector3.FORWARD.rotated(Vector3.UP, lab.camera_rig.facing_yaw) * 0.18
 	lab.ball_active = true
@@ -161,7 +183,7 @@ func apply_pose() -> void:
 	var dominant := 0 if lab.dominant_hand == "Left" else 1
 	var arm: Node3D = lab.arms[dominant]
 	var phase := clampf(swing_time / SWING_DURATION, 0, 1) if state == State.SWING else (1.0 if follow_time > 0 else 0.0)
-	arm.rotation = Vector3(lerpf(3.45, 1.65, phase), 0, 0)
+	arm.rotation = Vector3(lerpf(3.45, 1.65, Swing.extension_at(phase * SWING_DURATION) if state == State.SWING else phase), 0, 0)
 	arm.get_node("Elbow").rotation = Vector3.ZERO
 	lab.arms[1 - dominant].rotation.x = 1.15 if state == State.TOSS else 0.5
 
@@ -210,19 +232,27 @@ func tick(dt: float, previous_ball: Vector3) -> void:
 	hand_volume.position = hand
 	hand_volume.visible = lab.debug_volumes_visible
 	if state == State.SWING:
-		# Relative swept hand/ball motion, so a fast swing cannot tunnel through a toss.
-		var a := previous_ball - last_hand
-		var b: Vector3 = lab.ball.position - hand
-		var delta := b - a
-		var t := clampf(-a.dot(delta) / maxf(delta.length_squared(), 0.000001), 0, 1)
-		if swing_time >= 0.025 and (a + delta * t).length() <= HAND_RADIUS + lab.Geometry.BALL_RADIUS:
-			strike(hand)
-		elif swing_time > SWING_DURATION:
+		# The ball is struck when it is in the serving hurtbox (the spiking half-pipe, tilted with the aim). The path since the last frame is
+		# swept, so a fast ball cannot skip through it. What it is graded on is where in the box, and when on the swing clock.
+		var shape: Dictionary = lab._raw_hurtbox_definition(2)
+		var struck := false
+		for step in range(1, 5):
+			var sample: Vector3 = previous_ball.lerp(lab.ball.position, float(step) / 4.0)
+			var local: Vector3 = lab.local_contact_position_at(sample)
+			if local.distance_to(serve_center(shape)) <= SERVE_BOX_RADIUS:
+				# The arm has to have swept round to where the ball is; the ball's place in the box decides when that happens.
+				var offset: Vector3 = local - shape.center
+				var ball_angle := rad_to_deg(atan2(maxf(offset.y, 0.0), offset.x * float(shape.dominant_sign)))
+				if Swing.arm_angle_at(swing_time) <= ball_angle:
+					strike(hand, shape, local, sample)
+					struck = true
+					break
+		if not struck and swing_time > SWING_DURATION:
 			state = State.TOSS
 			lab._message("Serve swing missed / reposition and E again before the toss falls")
 	last_hand = hand
 
-func strike(hand: Vector3) -> void:
+func strike(hand: Vector3, shape: Dictionary, local: Vector3, point: Vector3) -> void:
 	if lab.athlete.exhausted or lab.is_benched():
 		return
 	var incoming: Vector3 = lab.ball_velocity
@@ -237,12 +267,15 @@ func strike(hand: Vector3) -> void:
 	var height_ratio: float = clampf((lab.ball.position.y - lab.player.position.y - float(lab.athlete.build.height) * 0.68) / 1.4, 0, 1)
 	# At identical aim, a rising high toss leaves a higher trajectory than a falling one.
 	var angle := clampf(22.0 + rad_to_deg(camera_pitch) * 0.7 + incoming.y * 3.5 + height_ratio * 5.0, -12, 72)
-	var speed: float = (9.0 + 65.0 * 0.035) * lab.athlete.serve_speed_factor(lab._default_charge())*(1.0+0.12*lab.athlete.flow/100.0)
+	var zone := serve_zone(local.distance_to(serve_center(shape)))
+	var form: String = Swing.form_at(swing_time)
+	var sweet: bool = zone == "SWEET SPOT" and lab.Execution.sweet_active(2, swing_time)
+	var contact_factor: float = float(ZONE_FACTOR.get(zone, 0.51)) * float(FORM_FACTOR[form])
+	var speed: float = (9.0 + 65.0 * 0.035) * lab.athlete.serve_speed_factor(lab._default_charge())*(1.0+0.12*lab.athlete.flow/100.0) * contact_factor
 	lab.ball_velocity = horizontal * cos(deg_to_rad(angle)) * speed + Vector3.UP * sin(deg_to_rad(angle)) * speed
 	lab.ball_shot = lab.ReceiveCharge.shot("serve", lab.athlete.effective_serve_charge(lab._default_charge()), "player")
 	lab.ball_shot = lab.contact_flow.decorate_serve(lab.ball_shot,"player")
-	var sweet: bool = hand.distance_to(lab.ball.position) <= HAND_RADIUS * 0.60 + lab.Geometry.BALL_RADIUS
-	evidence = {"mode": "tap", "sweet": sweet, "charge": lab.athlete.effective_serve_charge(lab._default_charge()), "hand": hand, "point": lab.ball.position, "incoming_velocity": incoming, "outgoing_velocity": lab.ball_velocity, "angle_degrees": angle, "toss_time": toss_time, "swing_time": swing_time}
+	evidence = {"mode": "tap", "sweet": sweet, "zone": zone, "form": form, "contact_factor": contact_factor, "charge": lab.athlete.effective_serve_charge(lab._default_charge()), "hand": hand, "point": lab.ball.position, "incoming_velocity": incoming, "outgoing_velocity": lab.ball_velocity, "angle_degrees": angle, "toss_time": toss_time, "swing_time": swing_time}
 	evidence.make_read_only()
 	_finish_strike(incoming, sweet)
 

@@ -488,7 +488,11 @@ func hurtbox_center_local(center: Vector3) -> Vector3:
 	return pivot + (center - pivot).rotated(Vector3.RIGHT, pitch)
 
 func _local_contact_position() -> Vector3:
-	var point := (ball.position - player.position).rotated(Vector3.UP, -_contact_yaw())
+	return local_contact_position_at(ball.position)
+
+# A world point in the athlete's hurtbox frame: turned by the contact yaw and untilted about the shoulder.
+func local_contact_position_at(world_point: Vector3) -> Vector3:
+	var point := (world_point - player.position).rotated(Vector3.UP, -_contact_yaw())
 	var pitch := hurtbox_pitch()
 	if pitch == 0.0:
 		return point
