@@ -61,6 +61,47 @@ const BUILTIN := {
 }
 
 static var _cache := {}
+# Rig lookups run for every joint of every posed athlete every frame, so the strings they need are built once and the nodes are remembered per body.
+const AXES := [["x", 0], ["y", 1], ["z", 2]]
+static var _joint_paths := []        # [joint][side] -> node path
+static var _joint_keys := []         # [joint][axis][side] -> "channel:Side" (or "" when the joint has no such axis)
+static var _split := {}              # "channel:Side" -> [channel, side]
+
+static func _tables() -> void:
+	if not _joint_paths.is_empty():
+		return
+	for joint in JOINTS:
+		var paths := []
+		var keys := []
+		for index in range(2):
+			paths.append((joint.path as String) % SIDES[index])
+		for axis in AXES:
+			var per_side := []
+			for index in range(2):
+				per_side.append("%s:%s" % [joint[axis[0]], SIDES[index]] if joint.has(axis[0]) else "")
+			keys.append(per_side)
+		_joint_paths.append(paths)
+		_joint_keys.append(keys)
+
+static func rig_node(body: Node3D, path: String) -> Node3D:
+	var nodes: Dictionary
+	if body.has_meta("pose_nodes"):
+		nodes = body.get_meta("pose_nodes")
+	else:
+		nodes = {}
+		body.set_meta("pose_nodes", nodes)
+	var node = nodes.get(path)
+	if node == null or not is_instance_valid(node):
+		node = body.get_node_or_null(path)
+		nodes[path] = node
+	return node as Node3D
+static var _flat_cache := {}
+
+# A named pose as a flat pose, cached (the staged swings ask for their base pose every frame for every athlete). Returns a copy the caller may change.
+static func flat_pose(name: String) -> Dictionary:
+	if not _flat_cache.has(name):
+		_flat_cache[name] = flatten(load_pose(name))
+	return (_flat_cache[name] as Dictionary).duplicate()
 
 static func file_path(name: String) -> String:
 	return DIR + name + ".json"
@@ -108,6 +149,7 @@ static func save_pose(name: String, pose: Dictionary) -> Error:
 		return FileAccess.get_open_error()
 	file.store_string(JSON.stringify(_ordered(pose), "\t") + "\n")
 	_cache.erase(name)
+	_flat_cache.erase(name)
 	return OK
 
 # One number per joint per side, keyed "knee:Left" (unsided: "hip_hinge"), for blending.
@@ -124,8 +166,13 @@ static func flatten(pose: Dictionary) -> Dictionary:
 static func from_flat(flat: Dictionary, clamp_to_range: bool = true) -> Dictionary:
 	var pose := {"mirror": false, "channels": {}, "left": {}, "right": {}}
 	for key in flat:
-		var parts: PackedStringArray = String(key).split(":")
-		var channel := parts[0]
+		var parts: Array
+		if _split.has(key):
+			parts = _split[key]
+		else:
+			parts = Array(String(key).split(":"))
+			_split[key] = parts
+		var channel: String = parts[0]
 		if not CHANNELS.has(channel):
 			continue
 		var v := float(flat[key])
@@ -147,11 +194,12 @@ static func read_rig(body: Node3D) -> Dictionary:
 	if body.has_meta("spine_xf"):
 		thorax_inverse = (body.get_meta("spine_xf").thorax as Transform3D).basis.inverse()
 	var before_leg_solve: Dictionary = body.get_meta("pre_ik", {})
-	for joint in JOINTS:
+	_tables()
+	for joint_index in range(JOINTS.size()):
+		var joint: Dictionary = JOINTS[joint_index]
 		for index in range(2):
 			var side: String = SIDES[index]
-			var path: String = joint.path % side
-			var node := body.get_node_or_null(path) as Node3D
+			var node := rig_node(body, _joint_paths[joint_index][index])
 			if node == null:
 				continue
 			var basis := node.basis
@@ -165,10 +213,11 @@ static func read_rig(body: Node3D) -> Dictionary:
 					euler.x = before_leg_solve[side].hip
 				elif joint.path == "%sLeg/Knee":
 					euler = Vector3(before_leg_solve[side].knee, 0.0, 0.0)
-			for axis in [["x", 0], ["y", 1], ["z", 2]]:
-				if joint.has(axis[0]):
-					var channel: String = joint[axis[0]]
-					flat["%s:%s" % [channel, side]] = rad_to_deg(euler[axis[1]]) * float(CHANNELS[channel].sign[index])
+			for axis_index in range(3):
+				var key: String = _joint_keys[joint_index][axis_index][index]
+				if key != "":
+					var channel: String = joint[AXES[axis_index][0]]
+					flat[key] = rad_to_deg(euler[axis_index]) * float(CHANNELS[channel].sign[index])
 	var torso := body.get_node_or_null("Torso") as Node3D
 	var head := body.get_node_or_null("Head") as Node3D
 	for channel in CHANNELS:
@@ -216,6 +265,7 @@ static func list_poses() -> Array:
 
 static func forget(name: String) -> void:
 	_cache.erase(name)
+	_flat_cache.erase(name)
 
 # Value of one channel on one side ("Left", "Right", or "" for an unsided joint).
 static func value(pose: Dictionary, channel: String, side: String = "") -> float:
@@ -257,17 +307,19 @@ static func apply(body: Node3D, pose: Dictionary, weight: float = 1.0) -> void:
 	# If the spine was already posed this frame (another pose layered under this one), blend from that.
 	var spine_from: Dictionary = body.get_meta("spine_angles", {})
 	SpineRig.release(body)
-	for joint in JOINTS:
+	_tables()
+	for joint_index in range(JOINTS.size()):
+		var joint: Dictionary = JOINTS[joint_index]
 		for index in range(2):
-			var node := body.get_node_or_null(joint.path % SIDES[index]) as Node3D
+			var node := rig_node(body, _joint_paths[joint_index][index])
 			if node == null:
 				continue
 			var euler := node.basis.get_euler(EULER_ORDER_XZY)
-			for axis in [["x", 0], ["y", 1], ["z", 2]]:
-				if joint.has(axis[0]):
-					var channel: String = joint[axis[0]]
+			for axis_index in range(3):
+				if joint.has(AXES[axis_index][0]):
+					var channel: String = joint[AXES[axis_index][0]]
 					var target := deg_to_rad(value(pose, channel, SIDES[index]) * CHANNELS[channel].sign[index])
-					euler[axis[1]] = lerpf(euler[axis[1]], target, w)
+					euler[axis_index] = lerpf(euler[axis_index], target, w)
 			node.basis = Basis.from_euler(euler, EULER_ORDER_XZY)
 	# The spine is a chain over the rig's rigid parts. The caller's torso lean (the gait's) is
 	# the starting point, so a partial weight blends from it to the authored hinge.

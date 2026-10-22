@@ -531,6 +531,11 @@ var motion_clocks: Dictionary = {}
 func block_state_for(slot: int):
 	if not block_states.has(slot): block_states[slot] = BlockState.new()
 	return block_states[slot]
+# Seconds of pose time an idle bot (IDLE) or one off screen accumulates between updates.
+const IDLE_POSE_INTERVAL := 0.1
+const OFFSCREEN_POSE_INTERVAL := 0.25
+var pose_debt := {}
+
 func tick_motion(dt: float) -> void:
 	for slot in range(settings.size()):
 		if slot_enabled(slot):
@@ -602,7 +607,17 @@ func tick_motion(dt: float) -> void:
 		var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), point, speed) if action == 0 else "planted"
 		var pose_context := {"action": action, "charge": float(preparation.state_for(slot).charge), "planned": planned or not motion_plan.is_empty(), "airborne": airborne, "remaining": float(motion_plan.get("contact", remaining)) - float(motion_plan.get("elapsed", 0)) if not motion_plan.is_empty() else remaining, "rise": motion_plan.get("rise", 0.4), "preserve_base": not motion_plan.is_empty(), "contact_point": point, "posture": posture, "speed": speed, "cycle": float(motion_clocks.get(slot,0)) * 8.0, "swing_yaw": motion_plan.get("swing_yaw", 0.0),"transition_rate":athlete_for(slot).transition_rate()}
 		pose_context.merge(dives.context(slot))
-		animation.update(rigs[slot],dt*float(scales[slot]),pose_context)
+		# A bot standing still with nothing to do, or one nobody can see, is re-posed only now and then (the time it missed is carried into the next
+		# update): posing a rig is the most expensive thing a bot does each frame. Anything moving, planned or following a contact updates every frame.
+		var busy := planned or not motion_plan.is_empty() or following_contact or speed > 0.01 or dives.busy(slot)
+		var interval := 0.0
+		if not busy:
+			var seen: bool = lab.camera == null or lab.camera.is_position_in_frustum(actors[slot].global_position + Vector3.UP)
+			interval = IDLE_POSE_INTERVAL if seen else OFFSCREEN_POSE_INTERVAL
+		pose_debt[slot] = float(pose_debt.get(slot, 0.0)) + dt*float(scales[slot])
+		if float(pose_debt[slot]) >= interval:
+			animation.update(rigs[slot],float(pose_debt[slot]),pose_context)
+			pose_debt[slot] = 0.0
 	for slot in range(actors.size()):
 		var travel: Vector3 = lab.contact_flow.displacement("training_bot_%d" % slot,dt*float(scales[slot])) if is_instance_valid(lab.contact_flow) else Vector3.ZERO
 		actors[slot].position += travel
@@ -611,6 +626,8 @@ func tick_motion(dt: float) -> void:
 			motion.plans[slot].start += travel
 			motion.plans[slot].ground += travel
 	for slot in range(contact_boxes.size()):
+		if not contact_boxes[slot].is_visible_in_tree():
+			continue # nothing to draw: a hidden debug volume (or a disabled bot's) is refreshed the frame it is shown
 		var geometry := contact_shape(slot)
 		contact_boxes[slot].position = geometry.center
 		contact_boxes[slot].scale = geometry.get("geometry_scale",Vector3.ONE)

@@ -52,7 +52,7 @@ static func phase_for(air_time: float, flight_time: float, swing_time: float = -
 # follow-through on in the direction of the shot.
 static func pose_for(phase: float, hand: float, power: float = 0.5, attack_type: String = "Power swing", context: Dictionary = {}) -> Dictionary:
 	var swing := Attack.resolve(phase, hand, power, attack_type)
-	var flat := Library.flatten(Library.read_file(BASE_POSE))
+	var flat := Library.flat_pose(BASE_POSE)
 	var strike: String = "Left" if hand < 0.0 else "Right"
 	var guide: String = "Right" if hand < 0.0 else "Left"
 	var strike_index := 0 if strike == "Left" else 1

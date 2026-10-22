@@ -10,7 +10,7 @@ const BASE_POSE := "ready_stance"
 # The set at `phase` as a flat pose (see PoseLibrary.flatten). `hand` is +1 right-handed, -1 left.
 static func pose_for(phase: float, hand: float = 1.0, posture: StringName = Set.POSTURE_STANDING, back_set: bool = false) -> Dictionary:
 	var push := Set.resolve(phase, hand, posture, back_set)
-	var flat := Library.flatten(Library.read_file(BASE_POSE))
+	var flat := Library.flat_pose(BASE_POSE)
 	# VWM tips the whole body by the torso pitch (negative leans forward); the hips carry it here.
 	flat["hip_hinge"] = -rad_to_deg(float(push.torso_pitch_radians))
 	var split := float(push.hip_split_degrees)
