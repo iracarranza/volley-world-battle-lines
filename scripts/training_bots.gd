@@ -31,6 +31,7 @@ const BotAnimation :=  preload("res://scripts/bot_animation.gd")
 var animation := BotAnimation.new()
 const Motion := preload("res://scripts/bot_motion.gd")
 var motion := Motion.new()
+var dives := preload("res://scripts/bot_receive_dive.gd").new()
 var rigs: Array[Dictionary] = []
 var incoming_action := -1
 var physique := Athlete.new()
@@ -136,7 +137,12 @@ func responsible_for(slot: int,contact: int,action: int) -> bool:
 func idle_return_enabled(slot: int) -> bool:
 	return settings[slot].moves
 
+func return_after_contact(slot: int) -> void:
+	move_targets.erase(slot)
+	returns.request(slot)
+
 func on_rally_end() -> void:
+	dives.clear()
 	animation.reset()
 	active_action = -1
 	active_slot = -1
@@ -212,6 +218,7 @@ func _capture_set_target() -> void:
 	lab._message("SET BOT target locked to your position / F6 to retarget")
 
 func reset() -> void:
+	dives.clear()
 	block_states.clear()
 	refresh_for_rally()
 	returns.clear()
@@ -267,6 +274,7 @@ func replan(skip_block: bool = false) -> void:
 	var best_distance := INF
 	for slot in range(settings.size()):
 		var action := slot_action(slot)
+		if dives.busy(slot): continue
 		if action == 3 or not slot_enabled(slot):
 			continue
 		var time := -1.0
@@ -465,12 +473,18 @@ func _plan(action: int, point: Vector3, time: float, chosen_slot: int = -1) -> v
 	active_slot = slot
 	returns.release(slot)
 	if action == 2: lab.contact_flow.on_attack_charge("training_bot_%d"%slot)
-	preparation.begin(slot, action, lab.ball_shot, time, settings[slot].charge_accuracy, charge_random,athlete_for(slot).cushioning_bonus(),athlete_for(slot).low_stamina_factor(),intended_charge_for(slot))
 	if action == 0:
 		var toward_setter := setter_direction(slot, actors[slot].position)
 		if toward_setter.length_squared() > 0:
 			actors[slot].rotation.y = atan2(-toward_setter.x, -toward_setter.z)
 	var aim_yaw: float = actors[slot].rotation.y
+	var dive := dives.offer(self,slot,point,time,aim_yaw) if action == 0 else {}
+	if not dive.is_empty():
+		point = dive.point
+		time = dive.time
+		intercept = point
+		remaining = time
+	preparation.begin(slot, action, lab.ball_shot, time, settings[slot].charge_accuracy, charge_random,athlete_for(slot).cushioning_bonus(),athlete_for(slot).low_stamina_factor(),intended_charge_for(slot))
 	if action == 2:
 		var current_plan: Dictionary = motion.plans.get(slot,{})
 		var committed := int(current_plan.get("action",-1)) == 2 and current_plan.has("committed_yaw")
@@ -479,13 +493,15 @@ func _plan(action: int, point: Vector3, time: float, chosen_slot: int = -1) -> v
 		var heading := destination - point
 		aim_yaw = atan2(-heading.x, -heading.z)
 	if settings[slot].follows_ball:
-		var anchor := contact_anchor(slot).rotated(Vector3.UP, aim_yaw)
+		var anchor := Vector3(Geometry.ReceivePlatform.definition(float(athlete_for(slot).build.height),true,0,athlete_for(slot).build).center).rotated(Vector3.UP,aim_yaw) if not dive.is_empty() else contact_anchor(slot).rotated(Vector3.UP, aim_yaw)
 		var error_radius: float = 2.5 * (1.0 - settings[slot].tracking_accuracy / 100.0)
 		var angle := random.randf_range(0, TAU)
 		var error := Vector3(cos(angle), 0, sin(angle)) * sqrt(random.randf()) * error_radius
 		var target := point - anchor + error
 		target.y = maxf(0, target.y)
-		if action in [2, 3] or (action == 1 and settings[slot].moves):
+		if not dive.is_empty():
+			dives.begin(self,slot,target,time)
+		elif action in [2, 3] or (action == 1 and settings[slot].moves):
 			if action in [1, 2]:
 				target.y = maxf(0.25, target.y)
 			target.y = minf(target.y, _jump_ceiling(slot) * (1.2 if action == 2 else 1.0))
@@ -527,6 +543,7 @@ func tick_motion(dt: float) -> void:
 		scales[slot] = lab.moc.bot_scale("training_bot_%d" % slot)
 		motion_clocks[slot] = float(motion_clocks.get(slot,0))+dt*float(scales[slot])
 	returns.tick(self,dt)
+	dives.tick(self,dt,scales)
 	for slot in motion.plans:
 		if float(motion.plans[slot].move_speed) >= 0: motion.plans[slot].move_speed = move_speed_for(slot)
 	motion.tick(dt, actors, rigs, scales)
@@ -542,7 +559,7 @@ func tick_motion(dt: float) -> void:
 	tick_support_motion(dt,scales)
 	# A move helper walks back to its placed spot once it has no ball to go to: after its contact and landing, and whenever it has been pulled away.
 	for slot in range(settings.size()):
-		if not idle_return_enabled(slot) or returns.contains(slot) or not slot_enabled(slot) or move_targets.has(slot) or motion.plans.has(slot):
+		if not idle_return_enabled(slot) or returns.contains(slot) or not slot_enabled(slot) or move_targets.has(slot) or motion.plans.has(slot) or dives.busy(slot):
 			continue
 		if lab.ball_active and active_action == slot_action(slot) and slot == active_slot:
 			continue
@@ -583,7 +600,9 @@ func tick_motion(dt: float) -> void:
 		if action == 0 and not Geometry.contains(contact_shape(slot), point):
 			point = contact_anchor(slot)
 		var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), point, speed) if action == 0 else "planted"
-		animation.update(rigs[slot], dt * float(scales[slot]), {"action": action, "charge": float(preparation.state_for(slot).charge), "planned": planned or not motion_plan.is_empty(), "airborne": airborne, "remaining": float(motion_plan.get("contact", remaining)) - float(motion_plan.get("elapsed", 0)) if not motion_plan.is_empty() else remaining, "rise": motion_plan.get("rise", 0.4), "preserve_base": not motion_plan.is_empty(), "contact_point": point, "posture": posture, "speed": speed, "cycle": float(motion_clocks.get(slot,0)) * 8.0, "swing_yaw": motion_plan.get("swing_yaw", 0.0),"transition_rate":athlete_for(slot).transition_rate()})
+		var pose_context := {"action": action, "charge": float(preparation.state_for(slot).charge), "planned": planned or not motion_plan.is_empty(), "airborne": airborne, "remaining": float(motion_plan.get("contact", remaining)) - float(motion_plan.get("elapsed", 0)) if not motion_plan.is_empty() else remaining, "rise": motion_plan.get("rise", 0.4), "preserve_base": not motion_plan.is_empty(), "contact_point": point, "posture": posture, "speed": speed, "cycle": float(motion_clocks.get(slot,0)) * 8.0, "swing_yaw": motion_plan.get("swing_yaw", 0.0),"transition_rate":athlete_for(slot).transition_rate()}
+		pose_context.merge(dives.context(slot))
+		animation.update(rigs[slot],dt*float(scales[slot]),pose_context)
 	for slot in range(actors.size()):
 		var travel: Vector3 = lab.contact_flow.displacement("training_bot_%d" % slot,dt*float(scales[slot])) if is_instance_valid(lab.contact_flow) else Vector3.ZERO
 		actors[slot].position += travel
@@ -744,6 +763,8 @@ func tick_contact(dt: float) -> bool:
 	var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), local_contact, move_speed_for(slot) if settings[slot].moves else 0.0) if action == 0 else "planted"
 	var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actors[slot].rotation.y, -PI, PI) if action == 2 else 0.0
 	animation.contact(rigs[slot], action, local_contact, posture, swing_yaw, execution.get("rescue", false))
+	dives.contacted(slot)
+	return_after_contact(slot)
 	var contact_cost: float = request.athlete.contact_cost(action,1,execution,incoming_shot).x
 	athlete_for(slot).last_stamina_cost = request.athlete.last_stamina_cost
 	spend_stamina(slot,contact_cost,true)
@@ -850,7 +871,7 @@ func contact_shape(slot: int) -> Dictionary:
 	var base: Dictionary = shapes[slot]
 	if slot_action(slot) == 0:
 		var profile := athlete_for(slot)
-		base = Geometry.ReceivePlatform.definition(float(profile.build.height),false,0,profile.build)
+		base = Geometry.ReceivePlatform.definition(float(profile.build.height),dives.active(slot),0,profile.build)
 	if not is_instance_valid(lab.contact_flow): return base
 	var effects: Dictionary = lab.contact_flow.shape_effects("training_bot_%d"%slot,slot_action(slot))
 	var control := athlete_for(slot).ball_control()

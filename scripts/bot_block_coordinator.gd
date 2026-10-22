@@ -68,7 +68,7 @@ func update(bots: Node3D,dt: float) -> void:
 	if crossing_time <= 0 or crossing_time > 0.85 or crossing.y < lab.net_height-0.3: return
 	var group: Array[int] = []
 	for slot in range(bots.settings.size()):
-		if bots.slot_enabled(slot) and bots.slot_away(slot) == defending_away and bots.settings[slot].can_block(): group.append(slot)
+		if bots.slot_enabled(slot) and bots.slot_away(slot) == defending_away and bots.settings[slot].can_block() and not bots.dives.busy(slot): group.append(slot)
 	var spacing := 0.65
 	for index in range(group.size()):
 		var slot := group[index]

@@ -2,8 +2,10 @@ extends RefCounted
 ## Returning is independent of Follow/Static/Move and never rewrites saved homes.
 var falling: Dictionary = {}
 var slots: Dictionary = {}
+var pending: Dictionary = {}
 
 func clear() -> void:
+	pending.clear()
 	slots.clear()
 	falling.clear()
 
@@ -16,12 +18,16 @@ func begin(bots: Node3D) -> void:
 		if is_instance_valid(bots.lab.contact_flow):
 			bots.lab.contact_flow.impulses.erase("training_bot_%d" % slot)
 
+func request(slot: int) -> void:
+	pending[slot] = true
+
 func release(slot: int) -> void:
+	pending.erase(slot)
 	slots.erase(slot)
 	falling.erase(slot)
 
 func contains(slot: int) -> bool:
-	return slots.has(slot)
+	return slots.has(slot) or pending.has(slot)
 
 func net_clear(bots: Node3D) -> bool:
 	for slot in range(bots.settings.size()):
@@ -30,6 +36,14 @@ func net_clear(bots: Node3D) -> bool:
 	return true
 
 func tick(bots: Node3D,dt: float) -> void:
+	for slot in pending.keys():
+		if not bots.settings[slot].enabled:
+			release(slot)
+			continue
+		if bots.motion.plans.has(slot) or bots.dives.busy(slot) or bots.active_slot == slot: continue
+		pending.erase(slot)
+		slots[slot] = true
+		falling[slot] = 0.0
 	for slot in slots.keys():
 		if not bots.settings[slot].enabled:
 			release(slot)

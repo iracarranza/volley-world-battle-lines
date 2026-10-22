@@ -232,6 +232,7 @@ func place_at_player(slot: int) -> void:
 	replan()
 
 func dismiss(slot: int) -> void:
+	dives.remove(slot)
 	block_states.erase(slot)
 	if is_instance_valid(lab.contact_flow): lab.contact_flow.clear_actor("training_bot_%d" % slot)
 	settings[slot].enabled = false
@@ -263,8 +264,12 @@ func on_rally_end() -> void:
 	last_delivery.clear()
 	super.on_rally_end()
 
+func return_after_contact(slot: int) -> void:
+	support_targets.erase(slot)
+	super.return_after_contact(slot)
+
 func idle_return_enabled(slot: int) -> bool:
-	return not generic_mode() and super.idle_return_enabled(slot)
+	return not support_targets.has(slot) and super.idle_return_enabled(slot)
 
 func player_available(away: bool) -> bool:
 	if lab.is_benched() or lab.athlete.exhausted or (lab.player.position.z < 0) != away: return false
@@ -277,7 +282,7 @@ func opposing_target(slot: int) -> Vector3:
 
 func can_take(slot: int,contact: int) -> bool:
 	if not slot_enabled(slot) or not actions_for(slot).has(contact): return false
-	return not blocks.airborne(slot,self)
+	return not blocks.airborne(slot,self) and not dives.busy(slot)
 
 func replan(skip_block: bool = false) -> void:
 	if not generic_mode():
@@ -384,7 +389,7 @@ func tick_motion(dt: float) -> void:
 func tick_support_motion(dt: float,scales: Dictionary) -> void:
 	if generic_mode():
 		for slot in support_targets.keys():
-			if not slot_enabled(slot) or returns.contains(slot) or motion.plans.has(slot) or active_slot == slot or not settings[slot].moves: continue
+			if not slot_enabled(slot) or returns.contains(slot) or motion.plans.has(slot) or dives.busy(slot) or active_slot == slot or not settings[slot].moves: continue
 			var ground: Vector3 = support_targets[slot]
 			ground.y = actors[slot].position.y
 			actors[slot].position = actors[slot].position.move_toward(ground,move_speed_for(slot)*dt*float(scales.get(slot,1.0)))

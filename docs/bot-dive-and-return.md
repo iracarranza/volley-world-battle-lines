@@ -1,0 +1,9 @@
+# Bot receive dives and contact returns
+
+`bot_receive_dive.gd` owns physical dive attempts and recovery clocks. Move receivers compare their available running travel against the normal receive intercept. When a standing attempt is out of reach (or the planned ball is low), they predict a later, lower platform contact and dive toward it. Movement remains speed-limited and uses the bot's Move slider, Explosiveness, fatigue and actor-local MoC clock. Tracking error still affects the destination. The ordinary contact resolver/charge preparation must award the contact; a dive does not guarantee a save. Static and teleporting Follow behavior do not gain autonomous movement.
+
+Diving uses the player's low receive-platform definition and existing DiveStage/DiveRecovery animation hooks. Recovery temporarily excludes the bot from new ordinary/block assignments. The new movement module does not classify receive outcomes or own Core Strength/Resistance/stat migration; those remain part of the separate attribute work. Missed dives also recover. Dive takeoff pays the existing jump expenditure once.
+
+Every successful bot contact requests a return to its saved placement, including Static/Follow bots. Return waits for jump landing or dive recovery. A newly assigned contact cancels the return. Generic bots clear obsolete support targets on contact; ordinary idle Move bots may return unless staging for a next-contact support target. Saved positions are never rewritten by these movements. Rally-end returns remain in place.
+
+Validation includes physical dive contact, low platform selection, speed-limited travel, shared dive pose, recovery before returning, generic jump/landing return, Static/Follow returns, routine standing receives and interruption by a new responsibility. Existing bot/net/block/MoC regressions remain applicable. `render_bot_dive.gd` captures the receive/dive/recovery stages.
