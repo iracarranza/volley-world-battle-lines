@@ -15,13 +15,22 @@ func run() -> void:
 	var previous_speed := INF
 	for age in [0.22, 0.31, 0.36, 0.40, 0.48]:
 		var assessment := Execution.assess(spatial, age, false, 2)
+		check(assessment.spike_form == ("power" if age < Execution.SPIKE_RESCUE_SECONDS else "push"), "Contact after the power window is a reach/push")
 		var output := Execution.velocity(2, Vector3(2, -3, -24) * float(assessment.strength), Vector3.ZERO, Vector3.FORWARD, assessment, 65)
 		check(output.length() <= previous_speed + 0.001, "Spike strength decreases gradually with timing")
 		previous_speed = output.length()
-		if age > Execution.sweet_end(2) and age < 0.42:
+		if age > Execution.sweet_end(2) and age < Execution.SPIKE_RESCUE_SECONDS:
 			check(not assessment.sweet and not assessment.rescue and output.length() > 17, "Moderate mistiming remains a driven spike")
-		if age >= 0.42:
+		if age >= Execution.SPIKE_RESCUE_SECONDS:
 			check(assessment.rescue and output.length() < 5, "Very late contact becomes rescue push")
+	# Before the arm gets there: a roll shot, better than a push but not a power swing.
+	var early := Execution.assess(spatial, 0.05, false, 2)
+	var roll := Execution.velocity(2, Vector3(2, -3, -24) * float(early.strength), Vector3.ZERO, Vector3.FORWARD, early, 65)
+	var push := Execution.velocity(2, Vector3.ZERO, Vector3.ZERO, Vector3.FORWARD, Execution.assess(spatial, 0.48, false, 2), 65)
+	check(early.rescue and early.spike_form == "roll" and not early.sweet, "Contact before the arm reaches its extension is a roll shot")
+	check(roll.length() > push.length() and roll.length() < 10.0, "A roll shot is a controlled soft attack")
+	var inside := Execution.assess(spatial, Execution.SPIKE_POWER_START + 0.01, false, 2)
+	check(inside.spike_form == "power" and not inside.rescue, "Inside the central window early contact is still a power swing")
 	for depth in [0.65, 1.05]:
 		var extended: Vector3 = shape.center + Geometry.sector_point(shape, 0.74, 67.5, depth)
 		var assessment := Execution.assess(Geometry.evaluate(shape, extended), 0.22, false, 2)

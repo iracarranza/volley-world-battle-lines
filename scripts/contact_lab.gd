@@ -58,6 +58,10 @@ const GOLD = Color("ffce73")
 var serve: Node3D
 var pepper: Node3D
 var debug_volumes_visible := true
+# Hurtboxes tilt with the aimed angle (the half-pipe faces where the athlete is aiming), about the shoulder. A setting, on by default.
+var rotate_hurtboxes := true
+const NEUTRAL_VIEW_PITCH := -0.12 # the resting view: boxes tilt by how far the aim has moved from it
+const MAX_HURTBOX_PITCH := 0.6
 const BallFraming := preload("res://scripts/ball_camera_framing.gd")
 var facing_arrow: MeshInstance3D
 var drills: Node3D
@@ -444,8 +448,8 @@ func _update_hurtbox_visual(dt: float) -> void:
 	if confirm_window > 0 or (block_state.active and hurtbox_action == 3):
 		if block_state.active: hurtbox_linger = 1
 		var definition := _hurtbox_definition(hurtbox_action)
-		hurtbox_root.rotation.y = _contact_yaw()
-		hurtbox_root.position = player.position + (definition.center as Vector3).rotated(Vector3.UP, _contact_yaw())
+		hurtbox_root.rotation = Vector3(hurtbox_pitch(), _contact_yaw(), 0.0)
+		hurtbox_root.position = player.position + hurtbox_center_local(definition.center as Vector3).rotated(Vector3.UP, _contact_yaw())
 	var age := block_state.confirmation_age if block_state.active and hurtbox_action == 3 else confirm_duration - maxf(confirm_window, 0)
 	sweet_visual_expired = age > Execution.sweet_end(hurtbox_action)
 	var phase := "sweet" if (age >= 0 and age < 0.5 if hurtbox_action == 3 else Execution.sweet_active(hurtbox_action, age)) else ("windup" if age < Execution.sweet_start(hurtbox_action) else "rescue")
@@ -460,13 +464,36 @@ func _update_hurtbox_visual(dt: float) -> void:
 		hurtbox_label.text = ACTIONS[hurtbox_action] + (" / WINDUP" if phase == "windup" else (" / SWEET ACTIVE" if phase == "sweet" else " / RESCUE"))
 		if block_state.active and hurtbox_action == 3: hurtbox_label.text = "BLOCK / PRESS %.0f%%" % (100*pow(clampf(1-age/0.5,0,1),3)) if age >= 0 and age < 0.5 else "BLOCK / PASSIVE"
 		if hurtbox_action == 2 and phase == "rescue" and age < Execution.SPIKE_RESCUE_SECONDS:
-			hurtbox_label.text = "ATTACK / FORGIVING SPIKE"
+			hurtbox_label.text = "ATTACK / ROLL SHOT" if age < Execution.SPIKE_POWER_START else "ATTACK / FORGIVING SPIKE"
 	if hurtbox_action == 0 and is_instance_valid(hurtbox_label):
 		hurtbox_label.text += " / " + animation.receive_posture.to_upper()
 	hurtbox_root.visible = debug_volumes_visible and hurtbox_linger > 0
 
+# The tilt of every hurtbox from its neutral orientation: how far the aim is raised (positive) or lowered from the neutral view.
+func hurtbox_pitch() -> float:
+	if not rotate_hurtboxes or camera_rig == null:
+		return 0.0
+	return clampf(camera_rig.view_pitch - NEUTRAL_VIEW_PITCH, -MAX_HURTBOX_PITCH, MAX_HURTBOX_PITCH)
+
+func hurtbox_pivot() -> Vector3:
+	var height: float = athlete.build.height
+	return Vector3(0.0, arms[1].position.y * (height / visual_rig_height) if arms.size() > 1 else height * 0.815, 0.0)
+
+# Where a hurtbox's centre is, relative to the athlete before the yaw: the shape's own centre, tilted about the shoulder.
+func hurtbox_center_local(center: Vector3) -> Vector3:
+	var pitch := hurtbox_pitch()
+	if pitch == 0.0:
+		return center
+	var pivot := hurtbox_pivot()
+	return pivot + (center - pivot).rotated(Vector3.RIGHT, pitch)
+
 func _local_contact_position() -> Vector3:
-	return (ball.position - player.position).rotated(Vector3.UP, -_contact_yaw())
+	var point := (ball.position - player.position).rotated(Vector3.UP, -_contact_yaw())
+	var pitch := hurtbox_pitch()
+	if pitch == 0.0:
+		return point
+	var pivot := hurtbox_pivot()
+	return pivot + (point - pivot).rotated(Vector3.RIGHT, -pitch)
 
 func _overlaps_contact(action: int) -> bool:
 	return Geometry.contains(_hurtbox_definition(action), _local_contact_position())

@@ -88,7 +88,7 @@ func run() -> void:
 			lab._update_hurtbox_visual(0)
 			check(lab.sweet_visual_expired == (age > Execution.sweet_end(action)), "Debug sweet state follows live window")
 			lab._contact()
-			check(lab.last_contact_result.rescue == (not Execution.sweet_active(action, age) and (action != 2 or age >= Execution.SPIKE_RESCUE_SECONDS)), "Actual contact records temporal rescue")
+			check(lab.last_contact_result.rescue == (not Execution.sweet_active(action, age) and (action != 2 or age >= Execution.SPIKE_RESCUE_SECONDS or age < Execution.SPIKE_POWER_START)), "Actual contact records temporal rescue")
 			if action == 0 and not Execution.sweet_active(0, age):
 				check(absf(lab.ball_velocity.x) < 0.001 and lab.ball_velocity.z < 0, "Actual rescue ignores off-axis intended target")
 	lab._reset()

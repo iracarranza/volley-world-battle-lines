@@ -6,7 +6,11 @@ const SWEET_DELAY := 0.20
 const SWEET_SECONDS := 0.18
 const SWEET_CENTER := 0.245
 const CONTACT_SECONDS := 0.55
-const SPIKE_RESCUE_SECONDS := 0.42
+# A spike is a power swing from SPIKE_POWER_START to SPIKE_RESCUE_SECONDS (centred on the sweet window; see swing_clock.gd). Earlier is a roll
+# shot, later is a reach/push. The window's half-width is provisional.
+const SPIKE_POWER_HALF := 0.14
+const SPIKE_POWER_START := SWEET_CENTER - SPIKE_POWER_HALF
+const SPIKE_RESCUE_SECONDS := SWEET_CENTER + SPIKE_POWER_HALF
 const RECEIVE_SWEET_SECONDS := 0.32
 const RECEIVE_SWEET_CENTER := 0.28
 
@@ -33,9 +37,12 @@ static func assess(spatial: Dictionary, age: float, remembered: bool = false, ac
 	result["confirmation_age"] = age
 	if action == 2 and live:
 		var very_far := float(result.get("reach_ratio", 0)) >= 1.80 or float(result.get("depth_ratio", 0)) >= 0.95
-		result["rescue"] = remembered or age >= SPIKE_RESCUE_SECONDS or very_far
+		var early := age < SPIKE_POWER_START
+		result["rescue"] = remembered or age >= SPIKE_RESCUE_SECONDS or very_far or early
+		result["spike_form"] = "roll" if early and not (remembered or very_far) else ("push" if result.rescue else "power")
 		result["forgiving_spike"] = not sweet and not result.rescue
-		result["spike_power_factor"] = lerpf(1.0, 0.78, smoothstep(sweet_end(action), SPIKE_RESCUE_SECONDS, age))
+		var off_center := smoothstep(sweet_end(action), SPIKE_RESCUE_SECONDS, age) if age > sweet_end(action) else smoothstep(sweet_start(action), SPIKE_POWER_START, age)
+		result["spike_power_factor"] = lerpf(1.0, 0.78, off_center)
 		if result.forgiving_spike:
 			if bool(result.get("rescue_only", false)):
 				var stretch := smoothstep(1.0, 1.80, float(result.get("reach_ratio", 1)))
@@ -58,6 +65,9 @@ static func velocity(action: int, outgoing: Vector3, incoming: Vector3, facing: 
 	var t := clampf(timing / 100.0, 0, 1)
 	var control := preload("res://scripts/stat_tuning.gd").pace(ball_control)
 	var flow_fraction := clampf(flow/100.0,0,1)
+	if bool(assessment.get("rescue", false)) and action == 2 and str(assessment.get("spike_form", "")) == "roll":
+		# Early swing: a controlled roll shot, still facing-only.
+		return (direction * 5.5 + Vector3.UP * 3.0)*available_output
 	if bool(assessment.get("rescue", false)) and action in [0, 2]:
 		# Facing-only push: no target selection or directional influence survives.
 		return (direction * (3.2 if action == 2 else 3.8) + Vector3.UP * (2.0 if action == 2 else 6.0))*available_output

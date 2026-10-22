@@ -9,6 +9,7 @@ extends RefCounted
 # Phase: -0.62 plant/takeoff, -0.40 takeoff ends, -0.22 cock, 0 contact, 0.45 follow-through ends,
 # 1.0 landing recovered. Contact is nominally at the top of the jump.
 const Library := preload("res://scripts/pose_library.gd")
+const Execution := preload("res://scripts/contact_execution.gd")
 const Attack := preload("res://vendor/vwm/construction/scripts/data/attack_action_biomechanics.gd")
 const Spike := preload("res://vendor/vwm/construction/scripts/data/spike_biomechanics.gd")
 const BASE_POSE := "ready_stance"
@@ -22,7 +23,7 @@ const CHEST_TURN_LIMIT := 24.0
 # the strike, which takes STRIKE_SECONDS to reach contact (phase 0) and waits there; follow-through starts when
 # the ball is struck (`hit_time`, in swing-clock seconds) or when the contact window closes without a hit.
 const LOADED := -0.30
-const STRIKE_SECONDS := 0.14
+const STRIKE_SECONDS := Execution.SWEET_CENTER # the arm reaches its extension at the centre of the sweet window (swing_clock.gd)
 const FOLLOW_SECONDS := 0.30
 # A ball struck before the strike has finished (a click right as the ball is in reach) used to snap the arm from the loaded pose to contact in
 # one frame. The arm now carries on through the rest of the strike in this long, and the follow-through starts from contact.

@@ -36,6 +36,7 @@ var help_panel: PanelContainer
 var moc_menu: RefCounted
 var moc_button: Button
 var debug_button: Button
+var rotate_button: Button
 
 func panel(pos: Vector2, size: Vector2) -> PanelContainer:
 	var p := PanelContainer.new()
@@ -209,6 +210,9 @@ func build() -> void:
 	toolbar.add_child(button("BOTS [F9]", toggle_bot_menu))
 	debug_button = button("BOXES: ON [K]", toggle_debug_volumes)
 	toolbar.add_child(debug_button)
+	rotate_button = button("TILT BOXES: ON", toggle_rotating_hurtboxes)
+	rotate_button.tooltip_text = "Hurtboxes tilt with the aimed angle. Off keeps them level."
+	toolbar.add_child(rotate_button)
 	moc_button = button("MoC: STEERING [O]", toggle_moc_mode)
 	moc_button.tooltip_text = "Cycle Current, Tuned, Off and Trajectory Steering; open MoC Settings to tune local slowdown."
 	toolbar.add_child(moc_button)
@@ -238,6 +242,11 @@ func toggle_moc_mode() -> void:
 	moc_button.text = ["MoC: CURRENT [O]", "MoC: TUNED [O]", "MoC: OFF [O]", "MoC: STEERING [O]"][lab.moc.mode]
 	moc_menu.sync_mode()
 	lab._message("MoC / " + lab.moc.mode_name())
+
+func toggle_rotating_hurtboxes() -> void:
+	lab.rotate_hurtboxes = not lab.rotate_hurtboxes
+	rotate_button.text = "TILT BOXES: %s" % ("ON" if lab.rotate_hurtboxes else "OFF")
+	lab._message("Hurtboxes %s with the aimed angle" % ("tilt" if lab.rotate_hurtboxes else "stay level"))
 
 func toggle_debug_volumes() -> void:
 	lab.debug_volumes_visible = not lab.debug_volumes_visible

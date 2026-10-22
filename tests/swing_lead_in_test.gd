@@ -45,7 +45,7 @@ func run() -> void:
 	check(monotonic, "The swing only ever moves forward")
 	check(Spike.phase_for(1.0, 1.0, 0.05, 0.0) > Spike.LOADED and Spike.phase_for(1.0, 1.0, 0.05, 0.0) < -0.05, "It is still part way to contact a few frames after the ball is struck")
 	check(is_equal_approx(Spike.phase_for(1.0, 1.0, 0.09, 0.0), 0.0), "It reaches contact after the catch-up")
-	var late: float = Spike.phase_for(1.0, 1.0, 0.14, 0.14)
+	var late: float = Spike.phase_for(1.0, 1.0, Spike.STRIKE_SECONDS, Spike.STRIKE_SECONDS)
 	check(is_equal_approx(late, 0.0), "A ball struck at the end of the strike behaves as before")
 	# The set gathers as the ball comes in
 	lab._reset()

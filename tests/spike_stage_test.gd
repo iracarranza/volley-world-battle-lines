@@ -13,7 +13,8 @@ func run() -> void:
 	check(Stage.phase_for(0.3, 0.5, Stage.STRIKE_SECONDS * 0.5) < -0.05 and Stage.phase_for(0.3, 0.5, Stage.STRIKE_SECONDS * 0.5) > loaded, "the arm is accelerating into the ball part way through the strike")
 	check(is_equal_approx(Stage.phase_for(0.3, 0.5, 0.6), 0.0), "it waits at contact for the ball")
 	check(is_equal_approx(Stage.phase_for(0.3, 0.5, 0.6 + Stage.FOLLOW_SECONDS, 0.6), 0.45) and Stage.phase_for(0.3, 0.5, 0.7, 0.6) > 0.0 and Stage.phase_for(0.3, 0.5, 0.7, 0.6) < 0.45, "follow-through runs from the hit")
-	check(is_equal_approx(Stage.phase_for(0.3, 0.5, 0.2, 0.2), 0.0), "a hit before the strike finishes puts the arm at contact at that moment")
+	check(is_equal_approx(Stage.phase_for(0.3, 0.5, Stage.STRIKE_SECONDS, Stage.STRIKE_SECONDS), 0.0), "a hit as the strike finishes puts the arm at contact at that moment")
+	check(is_equal_approx(Stage.STRIKE_SECONDS, preload("res://scripts/contact_execution.gd").SWEET_CENTER), "the arm reaches its extension at the centre of the sweet window")
 	# The staged timing VWM defines survives: legs before trunk before shoulder before elbow.
 	var cock := Stage.pose_for(-0.30, 1.0)
 	var contact := Stage.pose_for(0.0, 1.0)

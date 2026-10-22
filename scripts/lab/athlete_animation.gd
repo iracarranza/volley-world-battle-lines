@@ -211,7 +211,7 @@ func update() -> void:
 			aim_context["ball_local"] = lab.body.global_transform.affine_inverse()*spike_impact_world
 		elif lab.ball_active:
 			aim_context["ball_local"] = lab.body.global_transform.affine_inverse() * lab.ball.position
-		SpikeStage.apply(lab.body, SpikeStage.phase_for(spike_air_time, spike_flight_time, spike_swing_time, spike_hit_time), -1.0 if lab.dominant_hand == "Left" else 1.0, lab.locked_charge, "Power swing", aim_context)
+		SpikeStage.apply(lab.body, SpikeStage.phase_for(spike_air_time, spike_flight_time, spike_swing_time, spike_hit_time), -1.0 if lab.dominant_hand == "Left" else 1.0, lab.locked_charge, "Roll shot" if spike_contacted and str(lab.last_contact_result.get("spike_form", "")) == "roll" else "Power swing", aim_context)
 	if dive_recovery_time >= 0.0 and roll_lock <= 0.0:
 		apply_dive_recovery()
 	elif floor_recovery_time >= 0.0 and roll_lock <= 0.0:

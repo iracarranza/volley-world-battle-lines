@@ -12,6 +12,7 @@ func ready(lab: Node3D,action: int) -> void:
 	lab.locked_charge = 0.65
 	lab.armed = true
 	lab.ball_active = true
+	lab.rotate_hurtboxes = false # these cases place the ball in the level box; tilting is covered by hurtbox_tilt_test
 	lab.camera_rig.view_pitch = 0.27
 	lab.camera_rig.update_aim()
 	var shape: Dictionary = lab._raw_hurtbox_definition(action)
