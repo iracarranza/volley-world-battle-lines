@@ -214,11 +214,11 @@ func _begin_toss(up_speed: float) -> void:
 	lab.trail_points.clear()
 	lab.contact_memory.fill(0.0)
 	var sign := -1.0 if lab.dominant_hand == "Left" else 1.0
-	var shoulder: Vector3 = lab.arms[0 if sign < 0 else 1].position * (preload("res://scripts/voli_visual.gd").model_height(float(lab.athlete.build.height)) / lab.visual_rig_height)
+	var shoulder: Vector3 = lab.arms[0 if sign < 0 else 1].position * (float(lab.athlete.body_height()) / lab.visual_rig_height)
 	# The toss travels forward as well as up, and is released far enough behind the serving hurtbox's centre that the falling ball comes down
 	# through it.
 	var center: Vector3 = lab.hurtbox_center_local(serve_center(lab._raw_hurtbox_definition(2)))
-	var release_height: float = float(lab.athlete.build.height) * 0.68
+	var release_height: float = float(lab.athlete.body_height()) * 0.68
 	var gravity: float = lab.GRAVITY
 	var discriminant := up_speed * up_speed - 2.0 * gravity * (center.y - release_height)
 	var fall_time := (up_speed + sqrt(maxf(discriminant, 0.0))) / gravity if discriminant > 0.0 else up_speed / gravity
@@ -273,7 +273,7 @@ func tick(dt: float, previous_ball: Vector3) -> void:
 		held_time += dt
 		if held_time >= HOLD_THRESHOLD:
 			state = State.CHANNEL
-			lab.ball.position = lab.player.position + Vector3(0, float(lab.athlete.build.height) * 0.72, -0.45).rotated(Vector3.UP, lab.camera_rig.facing_yaw)
+			lab.ball.position = lab.player.position + Vector3(0, float(lab.athlete.body_height()) * 0.72, -0.45).rotated(Vector3.UP, lab.camera_rig.facing_yaw)
 			lab.ball_velocity = Vector3.ZERO
 			lab._message("STANDING SERVE / hold E / %d%%" % roundi(clampf(held_time / CHANNEL_SECONDS, 0, 1) * 100))
 			if held_time >= CHANNEL_SECONDS:
@@ -322,7 +322,7 @@ func strike(hand: Vector3, shape: Dictionary, local: Vector3, point: Vector3) ->
 	if horizontal.length_squared() < 0.001:
 		horizontal = Vector3.FORWARD.rotated(Vector3.UP, lab.camera_rig.facing_yaw)
 	var camera_pitch := atan2(camera_forward.y, Vector2(camera_forward.x, camera_forward.z).length())
-	var height_ratio: float = clampf((lab.ball.position.y - lab.player.position.y - float(lab.athlete.build.height) * 0.68) / 1.4, 0, 1)
+	var height_ratio: float = clampf((lab.ball.position.y - lab.player.position.y - float(lab.athlete.body_height()) * 0.68) / 1.4, 0, 1)
 	# At identical aim, a rising high toss leaves a higher trajectory than a falling one.
 	var angle := clampf(22.0 + rad_to_deg(camera_pitch) * 0.7 + (incoming.y - TYPICAL_FALL_SPEED) * 3.5 + height_ratio * 5.0, -12, 72)
 	var offset := local.distance_to(serve_center(shape))

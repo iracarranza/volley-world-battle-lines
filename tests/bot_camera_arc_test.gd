@@ -28,7 +28,7 @@ func run() -> void:
 			misses += 1
 	check(misses > 40, "Poor tracking causes real geometry misses")
 	var origin := Vector3(0, 2.1, 5)
-	for action in [0, 1]:
+	for action in [1]: # a receive is no longer lofted by the camera: its height is steered at contact
 		var rises: Array[float] = []
 		var ranges: Array[float] = []
 		for pitch in [-0.65, 0.27, 1.15]:

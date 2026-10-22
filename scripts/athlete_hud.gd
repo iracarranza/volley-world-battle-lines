@@ -160,7 +160,7 @@ func refresh_portrait() -> void:
 	portrait_actor = Visual.build(lab, portrait_world, lab.body_type, lab.appearance, lab.athlete.build).body
 	portrait_actor.rotation.y = PI + 0.10
 	var head_height: float = portrait_actor.get_node("Head").global_position.y
-	portrait_camera.size = 0.72 * float(lab.athlete.build.height) / 1.86
+	portrait_camera.size = 0.72 * float(lab.athlete.body_height()) / 1.86
 	portrait_camera.position = Vector3(0, head_height, 3)
 	portrait_camera.look_at(Vector3(0, head_height, 0))
 	portrait_revision += 1

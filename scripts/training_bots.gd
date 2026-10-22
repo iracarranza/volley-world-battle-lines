@@ -86,8 +86,8 @@ func setup(owner_lab: Node3D) -> void:
 		actors.append(actor)
 		var rig := Visual.build(lab, actor, "Feli", {"palette_index": 0, "marking": "none"}, physique.build)
 		rigs.append(rig)
-		var scale: float = Visual.model_height(physique.build.height) / rig.rig_height
-		var shape := Geometry.definition(action, physique.build.height, physique.reach(), false, 1.0, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
+		var scale: float = physique.body_height() / rig.rig_height
+		var shape := Geometry.definition(action, physique.body_height(), physique.reach(), false, 1.0, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
 		if action == 0:
 			shape["platform_quality"] = physique.trait_effect("platform_quality")
 		shapes.append(shape)
@@ -501,7 +501,7 @@ func _plan(action: int, point: Vector3, time: float, chosen_slot: int = -1) -> v
 		var heading := destination - point
 		aim_yaw = atan2(-heading.x, -heading.z)
 	if settings[slot].follows_ball:
-		var anchor := Vector3(Geometry.ReceivePlatform.definition(float(athlete_for(slot).build.height),true,0,athlete_for(slot).build).center).rotated(Vector3.UP,aim_yaw) if not dive.is_empty() else contact_anchor(slot).rotated(Vector3.UP, aim_yaw)
+		var anchor := Vector3(Geometry.ReceivePlatform.definition(float(athlete_for(slot).body_height()),true,0,athlete_for(slot).build).center).rotated(Vector3.UP,aim_yaw) if not dive.is_empty() else contact_anchor(slot).rotated(Vector3.UP, aim_yaw)
 		var error_radius: float = 2.5 * (1.0 - settings[slot].tracking_accuracy / 100.0)
 		var angle := random.randf_range(0, TAU)
 		var error := Vector3(cos(angle), 0, sin(angle)) * sqrt(random.randf()) * error_radius
@@ -893,7 +893,7 @@ func contact_shape(slot: int) -> Dictionary:
 	var base: Dictionary = shapes[slot]
 	if slot_action(slot) == 0:
 		var profile := athlete_for(slot)
-		base = Geometry.ReceivePlatform.definition(float(profile.build.height),dives.active(slot),0,profile.build)
+		base = Geometry.ReceivePlatform.definition(float(profile.body_height()),dives.active(slot),0,profile.build)
 	if not is_instance_valid(lab.contact_flow): return base
 	var effects: Dictionary = lab.contact_flow.shape_effects("training_bot_%d"%slot,slot_action(slot))
 	var control := athlete_for(slot).ball_control()
@@ -904,7 +904,7 @@ func contact_shape(slot: int) -> Dictionary:
 	if slot_action(slot) == 0: definition["platform_quality"] = effects.get("platform_quality",0)
 	if slot_action(slot) == 1:
 		definition["ball_control"] = control
-		definition["column_radius"] = lerpf(0.16,0.42,clampf(control/100.0,0,1))*float(athlete_for(slot).build.height)/1.86
+		definition["column_radius"] = lerpf(0.16,0.42,clampf(control/100.0,0,1))*float(athlete_for(slot).body_height())/1.86
 	var shape := Geometry.with_effects(definition,effects)
 	if slot < contact_boxes.size():
 		var drawing: Dictionary = shape.get("base_geometry",shape)

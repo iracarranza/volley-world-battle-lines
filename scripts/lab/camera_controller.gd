@@ -4,7 +4,7 @@ extends RefCounted
 ## Owns camera rig state. LabSession schedules updates and composes peers.
 const BallFraming := preload("res://scripts/ball_camera_framing.gd")
 enum ViewMode { ATHLETE, BALL }
-const REFERENCE_HEIGHT := 1.86
+const REFERENCE_HEIGHT := 1.86 - preload("res://scripts/voli_visual.gd").MODEL_HEIGHT_TRIM # the default athlete's body height
 
 var lab: LabSession
 var ball_frame_pivot := Vector3.ZERO
@@ -52,7 +52,7 @@ func set_mode(mode: int) -> void:
 	else:
 		ball_movement_yaw = view_yaw
 		ball_orbit = 0.0
-		ball_camera_offset = lab.camera.position - (lab.player.position + Vector3.UP * float(lab.athlete.build.height) * 0.55)
+		ball_camera_offset = lab.camera.position - (lab.player.position + Vector3.UP * float(lab.athlete.body_height()) * 0.55)
 		ball_camera_offset_ready = true
 		ball_view_entry_pitch = view_pitch
 	lab._message("ATHLETE VIEW / mouse controls facing" if camera_mode == ViewMode.ATHLETE else "BALL VIEW / camera tracks ball · mouse turns athlete / adjusts loft")
@@ -97,7 +97,7 @@ func update(dt: float) -> void:
 	if lab.is_benched():
 		lab.bench.update_camera(dt)
 		return
-	var stable_target := lab.player.position + Vector3.UP * float(lab.athlete.build.height) * 0.55
+	var stable_target := lab.player.position + Vector3.UP * float(lab.athlete.body_height()) * 0.55
 	if not camera_anchor_ready:
 		camera_anchor = stable_target
 		camera_anchor_ready = true
@@ -105,7 +105,7 @@ func update(dt: float) -> void:
 	camera_anchor = stable_target if camera_mode == ViewMode.BALL else camera_anchor.lerp(stable_target, 1.0 - exp(-dt * lab.camera_tuning.follow_response))
 	var anchor := camera_anchor
 	var forward := Vector3(-sin(view_yaw), 0, -cos(view_yaw))
-	var height_scale := float(lab.athlete.build.height) / REFERENCE_HEIGHT
+	var height_scale := float(lab.athlete.body_height()) / REFERENCE_HEIGHT
 	var orbit_pitch := view_pitch - 0.27
 	var floor_pitch := asin(clampf((anchor.y - lab.camera_tuning.floor_clearance) / (lab.camera_tuning.distance * height_scale), -0.99, 0.99))
 	var position_pitch := minf(orbit_pitch, floor_pitch)
@@ -119,9 +119,9 @@ func update(dt: float) -> void:
 			ball_camera_offset = desired_position - anchor
 			ball_camera_offset_ready = true
 			ball_view_entry_pitch = view_pitch
-		var feet := anchor - Vector3.UP * float(lab.athlete.build.height) * 0.55
-		var focus := lab.ball.position if lab.ball_active else feet + Vector3(-sin(ball_movement_yaw), 0, -cos(ball_movement_yaw)) * 8 + Vector3.UP * float(lab.athlete.build.height)
-		var frame := BallFraming.frame(feet, float(lab.athlete.build.height), focus, ball_camera_offset, lab.camera_tuning.distance, dt)
+		var feet := anchor - Vector3.UP * float(lab.athlete.body_height()) * 0.55
+		var focus := lab.ball.position if lab.ball_active else feet + Vector3(-sin(ball_movement_yaw), 0, -cos(ball_movement_yaw)) * 8 + Vector3.UP * float(lab.athlete.body_height())
+		var frame := BallFraming.frame(feet, float(lab.athlete.body_height()), focus, ball_camera_offset, lab.camera_tuning.distance, dt)
 		ball_camera_offset = frame.offset
 		ball_frame_pivot = frame.pivot
 		ball_frame_screen_y = frame.screen_y

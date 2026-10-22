@@ -205,8 +205,15 @@ func ball_control() -> float:
 func timing() -> float:
 	return Stats.anchor(stat("timing"))
 
+# The height the athlete's body actually has: the listed height less the model trim (see voli_visual.gd). Reach, hurtboxes, hands and the rig itself
+# all follow it; the listed height remains what the creator and the profile show.
+func body_height() -> float:
+	return preload("res://scripts/voli_visual.gd").model_height(float(build.height))
+
 func reach() -> float:
-	return 1.215 * float(build.height) + 0.32 * (float(build.span) - float(build.height))
+	var listed := float(build.height)
+	var body := body_height()
+	return 1.215 * body + 0.32 * (float(build.span) - listed) * body / maxf(listed, 0.1)
 
 func stride() -> float:
 	return clampf(0.43 * float(build.height), 0.55, 1.15)*Morphology.stride_ratio(build)

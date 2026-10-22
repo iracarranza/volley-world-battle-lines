@@ -69,7 +69,7 @@ static func resolve(request: RefCounted, assessment: Dictionary, controlled: Vec
 	var toward_surface := outgoing.dot(separating_normal)
 	if toward_surface < 0.025:
 		outgoing += separating_normal * (0.025 - toward_surface)
-	var guarded := separate_body(request.local_point, outgoing, float(request.athlete.build.height), request.gravity)
+	var guarded := separate_body(request.local_point, outgoing, float(request.athlete.body_height()), request.gravity)
 	outgoing = guarded.velocity
 	var at_floor: bool = request.origin.y + guarded.offset.y <= BALL_RADIUS + 0.06
 	var departure_normals: Array[Vector3] = [separating_normal]

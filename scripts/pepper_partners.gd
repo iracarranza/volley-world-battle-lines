@@ -147,8 +147,8 @@ func try_start(previous: Vector3) -> bool:
 func shape() -> Dictionary:
 	var rig := rigs[partner]
 	var physique = athlete_for(partner)
-	var scale: float = preload("res://scripts/voli_visual.gd").model_height(physique.build.height) / rig.rig_height
-	var definition := Geometry.definition(stage, physique.build.height, physique.reach(), false, 1, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
+	var scale: float = physique.body_height() / rig.rig_height
+	var definition := Geometry.definition(stage, physique.body_height(), physique.reach(), false, 1, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
 	if stage == 0:
 		definition["platform_quality"] = physique.trait_effect("platform_quality")
 	var effects: Dictionary = lab.contact_flow.shape_effects("pepper_%d"%partner,stage)
@@ -175,7 +175,7 @@ func plan() -> void:
 	if d < 0 and stage == 1:
 		# A low but valid set can use the shoulder/chin extension rather than
 		# silently converting every low receive into another receive.
-		height = ground.y + float(athlete_for(partner).build.height) * 0.80
+		height = ground.y + float(athlete_for(partner).body_height()) * 0.80
 		d = lab.ball_velocity.y * lab.ball_velocity.y + 2 * lab.GRAVITY * (lab.ball.position.y - height)
 	if d < 0:
 		if stage == 0:
@@ -242,7 +242,7 @@ func required_player_action() -> int:
 	# forced impossible set/spike. Good on-height deliveries keep their action.
 	if not npc_turn and player_action > 0 and lab.ball_velocity.y < 0:
 		var offset: Vector3 = lab.ball.position - lab.player.position
-		if Vector2(offset.x, offset.z).length() < 3.5 and offset.y < float(lab.athlete.build.height) * 0.9:
+		if Vector2(offset.x, offset.z).length() < 3.5 and offset.y < float(lab.athlete.body_height()) * 0.9:
 			player_action = 0
 			lab.selected = 0
 	return player_action

@@ -181,7 +181,7 @@ func refresh_ui() -> void:
 func apply_pose() -> void:
 	var body: Node3D = lab.body
 	Pose.base(body,0,0,0,false)
-	body.scale = Vector3.ONE * preload("res://scripts/voli_visual.gd").model_height(float(lab.athlete.build.height)) / lab.visual_rig_height
+	body.scale = Vector3.ONE * float(lab.athlete.body_height()) / lab.visual_rig_height
 	body.position = Vector3.ZERO
 	body.rotation = Vector3.ZERO
 	lab.animation.dive_applied_yaw = 0
@@ -203,7 +203,7 @@ func apply_pose() -> void:
 
 func update_camera(dt: float) -> void:
 	refresh_ui()
-	var target: Vector3 = lab.player.position + Vector3.UP * float(lab.athlete.build.height)*0.55
+	var target: Vector3 = lab.player.position + Vector3.UP * float(lab.athlete.body_height())*0.55
 	var offset := Vector3(4,2.6,-6)
 	if spectator >= 0:
 		var actor: Node3D = lab.training_bots.actors[spectator]

@@ -31,7 +31,7 @@ func contains(slot: int) -> bool:
 
 func net_clear(bots: Node3D) -> bool:
 	for slot in range(bots.settings.size()):
-		if bots.settings[slot].enabled and bots.lab.athlete_touches_net(bots.actors[slot].position,bots.actors[slot].position,bots.physique.build.height):
+		if bots.settings[slot].enabled and bots.lab.athlete_touches_net(bots.actors[slot].position,bots.actors[slot].position,bots.physique.body_height()):
 			return false
 	return true
 

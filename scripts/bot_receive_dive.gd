@@ -13,12 +13,12 @@ func active(slot: int) -> bool: return busy(slot) and not plans[slot].has("recov
 func offer(bots: Node3D,slot: int,point: Vector3,time: float,yaw: float) -> Dictionary:
 	if not bots.settings[slot].moves or not bots.settings[slot].follows_ball: return {}
 	var actor: Node3D = bots.actors[slot]
-	var standing := Platform.definition(float(bots.athlete_for(slot).build.height),false,0,bots.athlete_for(slot).build)
+	var standing := Platform.definition(float(bots.athlete_for(slot).body_height()),false,0,bots.athlete_for(slot).build)
 	var target := point-Vector3(standing.center).rotated(Vector3.UP,yaw)
 	var distance := Vector2(target.x-actor.position.x,target.z-actor.position.z).length()
 	var low := point.y < float(standing.center.y)-float(standing.size.y)*0.5+0.15
 	if distance <= bots.move_speed_for(slot)*time+0.15 and not low: return {}
-	var shape := Platform.definition(float(bots.athlete_for(slot).build.height),true,0,bots.athlete_for(slot).build)
+	var shape := Platform.definition(float(bots.athlete_for(slot).body_height()),true,0,bots.athlete_for(slot).build)
 	var later := Policy.contact_time(bots.lab.ball.position,bots.lab.ball_velocity,maxf(0.15,float(shape.center.y)),bots.lab.GRAVITY)
 	if later >= time and later <= time+0.6:
 		time = later

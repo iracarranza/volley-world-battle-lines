@@ -8,7 +8,7 @@ func request_at(point: Vector3,age: float = -1.0):
 	var request := Request.new()
 	request.athlete = Athlete.new()
 	request.action = 3
-	request.shape = Field.definition(1.86,request.athlete.reach())
+	request.shape = Field.definition(request.athlete.body_height(),request.athlete.reach())
 	request.local_point = point
 	request.incoming = Vector3(0,-6,20)
 	request.incoming_shot = {"kind":"attack","charge":0.4}
@@ -17,7 +17,7 @@ func request_at(point: Vector3,age: float = -1.0):
 	return request
 func _initialize() -> void: call_deferred("run")
 func run() -> void:
-	var shape := Field.definition(1.86,2.26)
+	var shape := Field.definition(Athlete.new().body_height(),Athlete.new().reach())
 	var palm := Vector3(shape.hand_x,shape.palm,shape.center.z)
 	var req = request_at(palm)
 	var passive := Resolver.assess(req)

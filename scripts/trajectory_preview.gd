@@ -23,7 +23,7 @@ static func predict(lab: Node3D) -> Dictionary:
 		return {}
 	var action: int = lab.locked_action if lab.armed else (lab.motion.airborne_action if lab.motion.jumped and lab.motion.airborne_action >= 0 else lab.selected)
 	var origin: Vector3 = lab.ball.position
-	var nearby: Vector3 = lab.player.position + Vector3.UP * float(lab.athlete.build.height) * 0.8
+	var nearby: Vector3 = lab.player.position + Vector3.UP * float(lab.athlete.body_height()) * 0.8
 	if origin.distance_to(nearby) > NEAR_METERS:
 		return {}
 	var yaw: float = lab._contact_yaw()

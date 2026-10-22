@@ -12,7 +12,8 @@ func run() -> void:
 	await physics_frame
 	check(lab.player != null and lab.camera != null, "Scene must contain a live athlete and camera")
 	var a = lab.athlete
-	check(absf(a.reach() - (1.215 * 1.86 + 0.32 * 0.04)) < 0.0001, "VWM reach formula must retain wingspan contribution")
+	var body_default: float = preload("res://scripts/voli_visual.gd").model_height(1.86)
+	check(absf(a.reach() - (1.215 * body_default + 0.32 * 0.04 * body_default / 1.86)) < 0.0001, "VWM reach formula must retain wingspan contribution, on the trimmed body height")
 	var balanced_reach: float = a.reach()
 	lab._cycle_build()
 	check(a.reach() > balanced_reach, "Middle build should have more reach")
@@ -191,7 +192,7 @@ func run() -> void:
 	check(lab.camera.position.y > airborne_camera_y and lab.camera.position.y < airborne_camera_y + 1.0, "Vertical follow must move smoothly toward rising athlete")
 	lab.player.position.y = 8.0
 	lab.camera_rig.update(2.0)
-	check(absf(lab.camera_rig.camera_anchor.y - (8.0 + float(a.build.height) * 0.55)) < 0.001, "Raised box landing must retain full world elevation in camera anchor")
+	check(absf(lab.camera_rig.camera_anchor.y - (8.0 + float(a.body_height()) * 0.55)) < 0.001, "Raised box landing must retain full world elevation in camera anchor")
 	var raised_camera_y: float = lab.camera.position.y
 	lab.camera_rig.update(2.0)
 	check(absf(lab.camera.position.y - raised_camera_y) < 0.001, "Camera must remain stable while standing on elevated platform")

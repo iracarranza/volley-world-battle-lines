@@ -138,7 +138,7 @@ func contact_time(index: int) -> float:
 # Where the ball is for this pad's action: the middle of the hurtbox, or its sweet region where one is defined.
 func sweet_local(index: int) -> Vector3:
 	var physique = lab.training_bots.physique
-	var shape: Dictionary = Geometry.definition(int(pads[index].action), float(physique.build.height), physique.reach(), false, 1.0)
+	var shape: Dictionary = Geometry.definition(int(pads[index].action), float(physique.body_height()), physique.reach(), false, 1.0)
 	var point: Vector3 = shape.center
 	match str(shape.get("shape", "")):
 		"sector":

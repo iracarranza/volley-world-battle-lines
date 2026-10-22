@@ -115,7 +115,7 @@ func update() -> void:
 	lab.body.rotation.y -= dive_applied_yaw
 	dive_applied_yaw = 0.0
 	lab.body.rotation.z = 0.0
-	lab.body.scale = Vector3.ONE * preload("res://scripts/voli_visual.gd").model_height(float(lab.athlete.build.height)) / lab.visual_rig_height
+	lab.body.scale = Vector3.ONE * float(lab.athlete.body_height()) / lab.visual_rig_height
 	var direction := lab.aim - lab.player.position
 	if direction.length_squared() > 0.1:
 		lab.body.rotation.y = lab.camera_rig.facing_yaw if lab.camera_rig.camera_mode == ViewMode.BALL and lab.ball_active else atan2(-direction.x, -direction.z)
