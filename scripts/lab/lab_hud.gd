@@ -37,6 +37,10 @@ var moc_menu: RefCounted
 var moc_button: Button
 var debug_button: Button
 var rotate_button: Button
+var auto_feed_button: Button
+var settings_menu: RefCounted
+var vision_menu: RefCounted
+var menus_button: Button
 
 func panel(pos: Vector2, size: Vector2) -> PanelContainer:
 	var p := PanelContainer.new()
@@ -119,15 +123,14 @@ func build() -> void:
 	title.add_child(label("RALLY LANES", 27, TEAL))
 	title.add_child(label("CONTACT LAB   /   C CREATE ATHLETE   /   M MAIN MENU", 12, Color("8faabb")))
 	build_button = button("", lab._cycle_build)
-	row.add_child(build_button)
-	row.add_child(button("TITLE  [M]", lab._return_to_title))
-	row.add_child(button("FEED BALL  [B]", lab._feed))
-	row.add_child(button("AUTO FEED: OFF", func():
+	var title_button := button("TITLE  [M]", lab._return_to_title)
+	var feed_button := button("FEED BALL  [B]", lab._feed)
+	auto_feed_button = button("AUTO FEED: OFF", func():
 		lab.auto_feed = not lab.auto_feed
-		(row.get_child(4) as Button).text = "AUTO FEED: " + ("ON" if lab.auto_feed else "OFF")
-	))
-	row.add_child(button("RESET  [T]", lab._reset))
-	row.add_child(button("CREATE  [C]", func(): lab.creator.open()))
+		auto_feed_button.text = "AUTO FEED: " + ("ON" if lab.auto_feed else "OFF")
+	)
+	var reset_button := button("RESET  [T]", lab._reset)
+	var create_button := button("CREATE  [C]", func(): lab.creator.open())
 	var left := panel(Vector2(24, 126), Vector2(295, 240))
 	var stats := VBoxContainer.new()
 	stats.add_theme_constant_override("separation", 10)
@@ -198,27 +201,49 @@ func build() -> void:
 	menu_panels.assign([top, left, station_panel, charge_label])
 	for menu in menu_panels:
 		menu.hide()
-	var toolbar := HBoxContainer.new()
-	toolbar.position = Vector2(24, 20)
-	ui.add_child(toolbar)
-	toolbar.add_child(button("MENUS", func():
+	# The ribbon is gone: its controls live in the Esc settings menu.
+	moc_menu = preload("res://scripts/lab/moc_menu.gd").new(self)
+	settings_menu = preload("res://scripts/lab/settings_menu.gd").new(self)
+	menus_button = button("INFO PANELS", func():
 		var show_menus := not top.visible
 		for menu in menu_panels:
 			menu.visible = show_menus
-		toolbar.position.y = 112 if show_menus else 20
-	))
-	toolbar.add_child(button("BOTS [F9]", toggle_bot_menu))
+	)
+	menus_button.tooltip_text = "Show or hide the title bar and the athlete, station and charge panels."
 	debug_button = button("BOXES: ON [K]", toggle_debug_volumes)
-	toolbar.add_child(debug_button)
 	rotate_button = button("TILT BOXES: ON", toggle_rotating_hurtboxes)
 	rotate_button.tooltip_text = "Hurtboxes tilt with the aimed angle. Off keeps them level."
-	toolbar.add_child(rotate_button)
 	moc_button = button("MoC: STEERING [O]", toggle_moc_mode)
-	moc_button.tooltip_text = "Cycle Current, Tuned, Off and Trajectory Steering; open MoC Settings to tune local slowdown."
-	toolbar.add_child(moc_button)
-	moc_menu = preload("res://scripts/lab/moc_menu.gd").new(self)
-	toolbar.add_child(button("CONTACT SETTINGS", moc_menu.toggle))
-	toolbar.add_child(button("HIDE HUD [F8]", func(): ui.visible = false))
+	moc_button.tooltip_text = "Cycle Current, Tuned, Off and Trajectory Steering; open Contact Settings to tune local slowdown."
+	var perf_button := button("PERFORMANCE [F3]", func(): lab.perf_meter.toggle())
+	settings_menu.section("ATHLETE & SESSION")
+	settings_menu.add_button(build_button)
+	settings_menu.add_button(create_button)
+	settings_menu.add_button(reset_button)
+	settings_menu.add_button(feed_button)
+	settings_menu.add_button(auto_feed_button)
+	settings_menu.add_button(title_button)
+	settings_menu.section("DISPLAY")
+	settings_menu.add_button(menus_button)
+	settings_menu.add_button(button("HIDE HUD [F8]", func():
+		ui.visible = false
+		settings_menu.set_open(false)
+	))
+	settings_menu.add_button(debug_button)
+	settings_menu.add_button(rotate_button)
+	settings_menu.add_button(perf_button)
+	settings_menu.section("PRACTICE")
+	settings_menu.add_button(button("BOTS [F9]", func():
+		settings_menu.set_open(false)
+		toggle_bot_menu()
+	))
+	settings_menu.section("CONTACT")
+	settings_menu.add_button(moc_button)
+	settings_menu.add_button(button("CONTACT SETTINGS", func():
+		settings_menu.set_open(false)
+		moc_menu.toggle()
+	))
+	vision_menu = preload("res://scripts/lab/vision_menu.gd").new(self)
 	facing_compass = preload("res://scripts/facing_indicator.gd").new()
 	facing_compass.lab = lab
 	ui.add_child(facing_compass)

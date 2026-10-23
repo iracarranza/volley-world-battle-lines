@@ -106,3 +106,17 @@ strongly each lean should read; the `response_seed` is still published in eviden
 4. Core Strength strain pipeline.
 5. END owns fatigue protection; SPD owns the Sprint enhancement.
 6. ACC awareness prototype and Ball Control preview.
+
+## ACC vision focus: prototype (Esc menu, off by default)
+
+`scripts/vision_focus.gd` with `resources/vision_focus.gdshader`; switches and numbers are in the Esc settings menu (VISION FOCUS), and a master switch
+leaves the rest of the game untouched.
+
+- **Focus beam:** on release, a directed triangular beam fans out from the athlete's head toward the ball like light through a prism, a post-process over
+  the 3D picture. Its far-end half-width follows the action's charge (a strong action narrows it); outside it the picture is blurred and darkened, and
+  its edges refract (red and blue are bent opposite ways).
+- **Clearing (ACC):** the sharp centre line widens to the whole beam over a time set by Accuracy (`Stats.pace`, so higher Accuracy is faster).
+- **Fatigue:** current Stamina sets the blur and darkness outside the beam; Endurance covers part of it.
+- **Trajectory preview:** Ball Control sets its length and opacity (a readable floor for everyone), and it can be limited to the Moment of Contact.
+- **Not prototyped yet:** momentum distortion of the preview (Stability) needs the same inputs as the real contact, so the preview does not drift from the
+  outcome; ghosted silhouettes for low-ACC awareness and the bots' awareness latency; the open clock questions above.

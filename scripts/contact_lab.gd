@@ -64,6 +64,7 @@ var rotate_hurtboxes := true
 # R toggles the modified action: Back Set (with the Back Set Trait) when setting, Float Serve (with the Float Serve Trait) when serving.
 var back_set := false
 var perf_meter: CanvasLayer # F3
+var vision: CanvasLayer # vision focus (a prototype; off unless switched on in the Esc menu)
 const BACK_SET_TRAIT := "accuracy_back_set"
 const FLOAT_SERVE_TRAIT := "acc_float_serve"
 const NEUTRAL_VIEW_PITCH := -0.12 # the resting view: boxes tilt by how far the aim has moved from it
@@ -97,6 +98,7 @@ var landing_marker: MeshInstance3D
 var aim_marker: MeshInstance3D
 var reach_ring: MeshInstance3D
 const TrajectoryPreview := preload("res://scripts/trajectory_preview.gd")
+const VisionFocus := preload("res://scripts/vision_focus.gd")
 var last_trajectory_preview: Dictionary = {}
 var block_state := preload("res://scripts/block_state.gd").new()
 var ground_balls := preload("res://scripts/ground_ball.gd").new()
@@ -553,7 +555,7 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and not event.pressed and event.keycode == KEY_E:
 		serve.release()
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
+		hud.settings_menu.toggle()
 		get_viewport().set_input_as_handled()
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not paused and not hud.help_panel.visible and not is_benched():
 		camera_rig.rotate_view(event.screen_relative)
@@ -564,6 +566,9 @@ func _return_to_title() -> void:
 	get_tree().change_scene_to_file("res://title.tscn")
 
 func _unhandled_input(event: InputEvent) -> void:
+	# With the Esc menu open the game takes no input (the menu's own controls handle clicks).
+	if hud.settings_menu != null and hud.settings_menu.is_open():
+		return
 	if is_benched():
 		if event is InputEventKey and event.pressed and not event.echo:
 			match event.keycode:
@@ -1317,6 +1322,7 @@ func _draw_line(instance: MeshInstance3D, points: Array[Vector3]) -> void:
 
 func _update_contact_preview() -> void:
 	last_trajectory_preview = TrajectoryPreview.predict(self)
+	last_trajectory_preview = VisionFocus.shape_preview(last_trajectory_preview, athlete.stat("ball_control"), moc.active or moc.steering_active())
 	preview.mesh = null if last_trajectory_preview.is_empty() else TrajectoryPreview.ribbon(last_trajectory_preview, camera.position, _preview_mesh)
 
 func _update_preview(draw_trajectory: bool = true) -> void:
@@ -1456,6 +1462,9 @@ func _build_ui() -> void:
 	hud.build()
 	perf_meter = preload("res://scripts/perf_meter.gd").new()
 	add_child(perf_meter)
+	vision = preload("res://scripts/vision_focus.gd").new()
+	add_child(vision)
+	vision.setup(self)
 
 
 func begin_passive_block() -> void:

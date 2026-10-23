@@ -124,7 +124,7 @@ static func ribbon(result: Dictionary, camera: Vector3, mesh: ImmediateMesh = nu
 		var end_progress := float(index+1)/(points.size()-1)
 		for glow in [true,false]:
 			var half_width := 0.11 if glow else 0.023
-			var alpha := (0.50 if glow else 1.0)*readiness
+			var alpha := (0.50 if glow else 1.0)*readiness*float(result.get("opacity",1.0))
 			var tint: Color = result.get("color",Color("59d8ff"))
 			var color := tint if glow else tint.lerp(Color.WHITE,0.18)
 			var fade_a := (1.0-smoothstep(0.80,1,progress))*alpha
