@@ -28,3 +28,19 @@ physics time, draw calls, objects, nodes and memory.
 - Each bot rig is about 78 meshes; the three Pepper partners (240 meshes) are always visible. Merging rig meshes, or hiding partners when unused,
   would cut draw work if the GPU becomes the limit.
 - The pose smoother and the pose-apply step are now the largest remaining bot costs.
+
+## Rig draw-call prototypes (2026-10-25)
+
+`VoliVisual.rig_mode` selects how an athlete's ~77 meshes are drawn:
+
+| Mode | Meshes | Draw calls | Frame time | Look |
+|---|---|---|---|---|
+| SEPARATE | 77 | baseline | baseline | baseline |
+| MERGED (default) | 53 | about 24% fewer | about 13% faster | matches separate |
+| SKELETON | 17 (19 bones) | about 60% fewer | about 8% slower | matches separate |
+
+- MERGED combines each limb joint's rigid parts into one solid and one outline mesh (`rig_merge.gd`); part colours are baked to vertex colours.
+- SKELETON (`rig_skeleton.gd`) skins the rigid parts to one Skeleton3D. Syncing bones costs about 0.1 ms/frame, and skipping it did not change the result, so the
+  extra cost is the engine's skinned-mesh path in the Compatibility renderer. Not the default here.
+- Torso, Singlet and Neck are still CPU-skinned by the spine rig, and face parts stay separate. Later ideas: GPU spine skinning, faces and hands.
+- `tests/render_rig_modes.gd` renders five poses in each mode (pixel differences at most about 0.0009); `tests/rig_modes_test.gd` checks counts, paths and bone poses.

@@ -45,7 +45,7 @@ static func ground_feet(root: Node3D) -> void:
 		var base_pitch: float = root.get_meta("shoe_base_pitch", 0.0)
 		shoe.basis = (Basis.from_euler(leg.rotation) * Basis.from_euler(knee.rotation)).inverse() * Basis.from_euler(Vector3(base_pitch, 0, 0))
 		var transform := root.global_transform.affine_inverse() * shoe.global_transform
-		var bounds := shoe.get_aabb()
+		var bounds: AABB = shoe.get_aabb() if shoe.mesh != null else shoe.get_meta("rig_bounds", AABB())
 		for corner in range(8):
 			lowest = minf(lowest, (transform * bounds.get_endpoint(corner)).y)
 	root.position.y = -lowest * root.scale.y

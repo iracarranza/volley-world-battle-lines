@@ -3,6 +3,11 @@ extends SceneTree
 func _initialize() -> void: call_deferred("run")
 func run() -> void:
 	root.size = Vector2i(1280, 720)
+	var arguments := OS.get_cmdline_user_args()
+	var mode := int(arguments[0]) if arguments.size() > 0 else 0
+	load("res://scripts/voli_visual.gd").rig_mode = mode # 0 separate meshes, 1 merged, 2 skeleton
+	if arguments.size() > 1 and arguments[1] == "nosync":
+		load("res://scripts/rig_skeleton.gd").sync_enabled = false
 	var lab = load("res://map_graybox.tscn").instantiate()
 	root.add_child(lab)
 	lab.inventory.enabled = false
@@ -29,6 +34,11 @@ func run() -> void:
 		var now := Time.get_ticks_usec()
 		times.append(float(now - last) / 1000.0)
 		last = now
+	var visible_meshes := 0
+	var all_nodes: Array = lab.find_children("*", "MeshInstance3D", true, false)
+	for node in all_nodes:
+		if (node as MeshInstance3D).is_visible_in_tree() and (node as MeshInstance3D).mesh != null: visible_meshes += 1
+	print("rig mode %d: visible meshes %d, skeleton sync %.2f ms per frame" % [mode, visible_meshes, float(load("res://scripts/rig_skeleton.gd").sync_microseconds) / 1000.0 / float(times.size())])
 	times.sort()
 	var total := 0.0
 	for t in times: total += t

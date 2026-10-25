@@ -20,7 +20,7 @@ const MESH_NECK := ["Neck"]
 # Tails grow from the pelvis: Avi's TailFeathers, and the Tail that Feli and Cani have.
 const ON_PELVIS := ["TailFeathers", "Tail"]
 const ON_THORAX := ["LeftArm", "RightArm", "Collar"]
-const NOT_SPINE := ["LeftLeg", "RightLeg"]
+const NOT_SPINE := ["LeftLeg", "RightLeg", "RigSkeleton"] # the skeleton rig mirrors the joints; it is not a rider
 # Fractions of the way up from the hips to the shoulders.
 const LUMBAR_AT := 0.30
 const THORACIC_AT := 0.72
