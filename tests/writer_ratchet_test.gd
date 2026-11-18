@@ -12,6 +12,7 @@ const PATTERNS := {
 	"ball_active": "\\bball_active\\s*=[^=]",
 	"side_contacts": "side_contacts(\\[[^\\]]*\\])?\\s*(=|\\+=|-=)[^=]|side_contacts\\.(fill|assign)\\(",
 	"contacts": "(?<![_\\w])contacts\\s*(=|\\+=|-=)[^=]",
+	"athlete_vitals": "\\.(stamina|hp)\\s*(=|\\+=|-=|\\*=)[^=]|\\bathlete\\.flow\\s*(=|\\+=|-=)[^=]",
 	"last_touch": "rally_rules\\.(touch|begin)\\(|\\blast_touch_side\\s*=[^=]",
 }
 ## The FC-05 file set for `ball_velocity` (study chapter 07, VAR-171): ten files, plus bot_pads.gd for its own pad ball.
@@ -19,7 +20,7 @@ const FC05_BALL_VELOCITY := ["balance_ball_setting.gd", "bot_pads.gd", "contact_
 
 ## Declared operation owners (blueprint MS-06..08): the files whose job is to perform these writes. They are the ledger, not a growth of the
 ## writer set, so they are not counted; every other file is ratcheted as before. A new entry is a decision (an ADR change).
-const OPERATION_OWNERS := ["rally_ledger.gd", "live_ball.gd"]
+const OPERATION_OWNERS := ["rally_ledger.gd", "live_ball.gd", "athlete.gd"]  # athlete.gd: the MS-09 mutators
 
 func _initialize() -> void: call_deferred("run")
 

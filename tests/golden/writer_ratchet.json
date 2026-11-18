@@ -1,4 +1,5 @@
 {
+	"athlete_vitals": {},
 	"ball_active": {
 		"contact_lab.gd": 1,
 		"interactive_serve.gd": 1

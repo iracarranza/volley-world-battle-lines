@@ -65,5 +65,18 @@ func run() -> void:
 			if code.begins_with("#"): continue
 			if pattern.search(code) != null: offenders.append("%s:%d" % [path, i + 1])
 	check(offenders.is_empty(), "No outside writer of .stamina or .hp (%s)" % [offenders])
+	# One Flow store, direction resolved (PRB-13): the player's amount is the athlete field; values["player"] is a write-only shadow kept for trace parity.
+	var lab = load("res://main.tscn").instantiate()
+	root.add_child(lab)
+	lab.set_process(false)
+	lab.set_physics_process(false)
+	await physics_frame
+	lab.athlete.set_flow(33.0)
+	lab.contact_flow.values["player"] = 5.0
+	check(lab.contact_flow.amount("player") == 33.0, "amount(player) reads the athlete field, not the store shadow")
+	lab.contact_flow.set_amount("player", 20.0)
+	check(lab.athlete.flow == 20.0 and lab.contact_flow.values["player"] == 20.0, "set_amount writes the field through the mutator and the shadow")
+	lab.queue_free()
+	await process_frame
 	print("ATHLETE MUTATORS: %d / %d passed" % [checks - failures, checks])
 	quit(1 if failures else 0)
