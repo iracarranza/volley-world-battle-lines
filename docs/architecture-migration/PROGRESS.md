@@ -33,3 +33,11 @@ Branch `migration/architecture-ms00-14`, stages MS-00..MS-04 (group 1). Behaviou
 - Not hooked: `map_drills.gd` `spike_rng` and `serve_receive_station.gd` `rng` (never call `randomize()`; Godot seeds a new generator randomly). `title_rally_backdrop.gd` already uses a fixed seed 7. Left alone to keep default behaviour byte-identical.
 - Tests: new `seed_hooks_test` 7/7 (default draws fresh seeds per session and logs them; same seed reproduces the three-contact bot rally ledger exactly; a different seed changes it; Pepper takes the hook). Existing `bot_aim`, `bot_generic_rally`, `bot_rally_motion`, `pepper_sequence`, `pepper_move_set`, `bot_interaction`, `drill_mechanics`, `drill_lab`, `map_drills`, `map_bot_rally`, `map_activities`, `serve_pepper` green.
 - Deviation: the ledger test lowers bot aiming accuracy to 20 so that RNG draws are visible (default accuracy shows no scatter in this rally).
+
+## MS-03 Settings instance, tuning index, ActionTable mirror, clock record
+
+### MS-03a Shared settings instance and tuning index (extract)
+- New `scripts/session_settings.gd`: one `shared` instance. `Execution.spike_windup_seconds/enabled` keep their names and now read and write through it (old reads and writes still resolve; the menu and tests are untouched). Process-wide semantics preserved (a static instance).
+- `docs/architecture-migration/tuning-index.md` lists the shared timing constants (owner, unit, status); `tests/tuning_index_test.gd` checks every row against the code (and that a write on the shared instance is seen by `Execution`).
+- Tests: `tuning_index_test`, `action_timeline`, `contact_execution`, `graduated_spike`, `spike_sweep_timing`, `spike_confirm`, `moc_spike_window`, `swing_lead_in`, `swing_clock`, `moc_menu`, `contact_zones`, `trajectory_preview` all green.
+- `SWEET_CENTER` coupling to `swing_clock.gd` `PEAK` is recorded in the index as a cross-action constant.
