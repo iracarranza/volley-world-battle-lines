@@ -26,12 +26,46 @@ func check_order(body: String, tokens: Array, label: String) -> void:
 		check(index > previous, "%s: '%s' keeps its documented place" % [label, String(token).replace("\n", " ")])
 		if index > previous: previous = index
 
+## The physics step region: the orchestrator and the numbered stage functions that follow it, up to the next unrelated function.
+func tick_region(source: String) -> String:
+	var start := source.find("func _physics_process(dt: float)")
+	return source.substr(start, source.find("func is_benched()", start) - start)
+
 func run() -> void:
 	var lab_source := FileAccess.get_file_as_string("res://scripts/contact_lab.gd")
-	check_order(body_of(lab_source, "func _physics_process(dt: float)"), TICK, "_physics_process")
+	var region := tick_region(lab_source)
+	check_order(region, TICK, "_physics_process")
+	# MS-11: the numbered list (scripts/tick_order.gd) equals the order the orchestrator calls its stages, and each stage's statements keep their order.
+	var order = load("res://scripts/tick_order.gd")
+	var orchestrator := body_of(lab_source, "func _physics_process(dt: float)")
+	check_order(orchestrator, order.calls().map(func(c): return c + "("), "orchestrator calls")
+	var numbers: Array = order.PHYSICS.map(func(stage): return stage.n)
+	var expected := range(1, order.PHYSICS.size() + 1)
+	check(numbers == expected, "The stages are numbered 1..%d without gaps" % order.PHYSICS.size())
+	var stage_text := ""
+	for stage in order.PHYSICS:
+		if stage.call == "inline":
+			var inline_ok := true
+			for token in stage.tokens: inline_ok = inline_ok and orchestrator.contains(token)
+			check(inline_ok, "Stage %d %s: the inline statements are in the orchestrator" % [stage.n, stage.name])
+			continue
+		var body := body_of(lab_source, "func %s(" % stage.call)
+		check(body != "", "Stage %d %s: %s exists" % [stage.n, stage.name, stage.call])
+		check_order(body, stage.tokens, "stage %d %s" % [stage.n, stage.name])
+		check(lab_source.find("func %s(" % stage.call) > lab_source.find("func _physics_process(dt: float)"), "Stage %d is laid out after the orchestrator" % stage.n)
+	var last := -1
+	for stage in order.PHYSICS:
+		if stage.call == "inline": continue
+		var at := lab_source.find("func %s(" % stage.call)
+		check(at > last, "Stage %d %s is laid out in numbered order" % [stage.n, stage.name])
+		last = at
+	check(orchestrator.count("\n") <= order.ORCHESTRATOR_BUDGET_LINES, "The orchestrator stays a list of calls (%d lines)" % orchestrator.count("\n"))
+	for path in order.LINE_BUDGETS:
+		var lines := FileAccess.get_file_as_string(path).count("\n")
+		check(lines <= order.LINE_BUDGETS[path], "%s stays within its line budget (%d of %d)" % [path.get_file(), lines, order.LINE_BUDGETS[path]])
 	check_order(body_of(lab_source, "func _tick_ball(dt: float)"), BALL, "_tick_ball")
 	# The ordinary player attempt is after _tick_ball; the swept Block is inside it, before net response and bots (FC-02).
-	var tick := body_of(lab_source, "func _physics_process(dt: float)")
+	var tick := region
 	check(tick.find("_tick_ball(world_dt)") < tick.find("and _can_contact():"), "The ordinary player contact attempt follows the ball step")
 	var ball := body_of(lab_source, "func _tick_ball(dt: float)")
 	check(ball.find("_try_swept_player_block") < ball.find("resolve_ball_net") and ball.find("pepper.tick(world_dt)") < ball.find("_try_swept_player_block"), "Pepper runs before the swept Block, which runs before net response")

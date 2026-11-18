@@ -704,15 +704,30 @@ func _unhandled_input(event: InputEvent) -> void:
 				finish_charge_preparation()
 				_message("AUTO ready. Click to confirm." if auto_preparation.active else "Power ready. Click again when the ball is in reach.")
 
+## MS-11: the physics step as a numbered order (scripts/tick_order.gd is the written list; scheduler_order_test pins this body against it).
 func _physics_process(dt: float) -> void:
-	if paused:
-		directional_input.clear()
-		hud.update()
-		return
+	if _tick_pause(): return
 	var world_dt := dt
 	var motion_scale: float = moc.clock_record().actor("player")
 	dt *= motion_scale
 	elapsed += world_dt
+	_tick_pre_motion(world_dt)
+	if _tick_bench_gate(world_dt): return
+	_tick_player(dt, motion_scale)
+	_tick_activities(world_dt, dt)
+	_tick_ball_or_feed(world_dt)
+	_tick_idle_actors(world_dt)
+	_tick_confirm_window(dt)
+	_tick_present()
+
+func _tick_pause() -> bool:
+	if paused:
+		directional_input.clear()
+		hud.update()
+		return true
+	return false
+
+func _tick_pre_motion(world_dt: float) -> void:
 	if auto_preparation.active and armed:
 		auto_preparation.tick(world_dt,athlete,ball_shot,ball_velocity)
 	contact_flow.tick(world_dt)
@@ -721,10 +736,15 @@ func _physics_process(dt: float) -> void:
 	if ball_active:
 		ball.show()
 		shadow.show()
+
+func _tick_bench_gate(world_dt: float) -> bool:
 	_check_bench()
 	if is_benched():
 		_tick_benched(world_dt)
-		return
+		return true
+	return false
+
+func _tick_player(dt: float, motion_scale: float) -> void:
 	var previous_player_position := player.position
 	block_state.tick(dt)
 	motion.tick(dt, motion_scale)
@@ -735,9 +755,13 @@ func _physics_process(dt: float) -> void:
 		_hold_midline_off_net(previous_player_position)
 	camera_rig.update_aim()
 	animation.update()
+
+func _tick_activities(world_dt: float, dt: float) -> void:
 	station.tick(world_dt)
 	drills.tick(world_dt)
 	_remember_contacts(dt)
+
+func _tick_ball_or_feed(world_dt: float) -> void:
 	if ball_active:
 		_tick_ball(world_dt)
 		_remember_contacts(0.0)
@@ -751,9 +775,13 @@ func _physics_process(dt: float) -> void:
 		feed_timer -= world_dt
 		if feed_timer <= 0:
 			_feed()
+
+func _tick_idle_actors(world_dt: float) -> void:
 	if not ball_active:
 		training_bots.tick_motion(world_dt)
 		pepper.tick(world_dt)
+
+func _tick_confirm_window(dt: float) -> void:
 	if block_state.active:
 		PlayerLifecycle.set_window(self, 0)
 	elif confirm_window > 0:
@@ -766,6 +794,8 @@ func _physics_process(dt: float) -> void:
 			auto_preparation.clear()
 			athlete.spend_resolved(float(athlete.stamina_quote("timing_miss").total))
 			_message("Missed timing / reach. Move under the ball and try again.")
+
+func _tick_present() -> void:
 	_check_bench()
 	if not is_benched():
 		_update_preview(false)
