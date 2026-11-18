@@ -31,6 +31,10 @@ static func launch(lab, position: Vector3, velocity: Vector3, shot: Dictionary) 
 	lab.ball_shot = shot
 	lab.ball_active = true
 
+## The ball is put back at a place (a parked ball is restored where it was left).
+static func place(lab, position: Vector3) -> void:
+	lab.ball.position = position
+
 ## The ball is out of play (a drill ended or stopped, a feed ran out, the ball was parked or caught).
 static func release(lab) -> void:
 	lab.ball_active = false
