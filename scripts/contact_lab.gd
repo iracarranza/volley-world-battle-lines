@@ -1307,7 +1307,7 @@ func _finish(message: String,point_result: Dictionary = {}) -> void:
 	serve.clear()
 	pepper.stop()
 	moc.clear()
-	ball_active = false
+	LiveBall.release(self)
 	training_bots.on_rally_end()
 	feed_timer = 3.0
 	_message(message)
@@ -1420,7 +1420,7 @@ func _reset() -> void:
 	camera_rig.view_pitch = -0.12
 	camera_rig.ball_orbit = 0.0
 	ball.position = Vector3(0, 0.105, -6)
-	ball_active = false
+	LiveBall.release(self)
 	ball_shot = {}
 	last_receive_match = {}
 	charging = false

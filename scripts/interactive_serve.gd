@@ -1,6 +1,7 @@
 extends Node3D
 
 enum State { IDLE, TOSS, SWING, FLIGHT, CHANNEL, TOSS_CHARGE }
+const LiveBall := preload("res://scripts/live_ball.gd")
 const ContactCommit := preload("res://scripts/contact_commit.gd")
 const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const HOLD_THRESHOLD := 0.18
@@ -134,7 +135,7 @@ func release() -> void:
 	input_held = false
 	if state == State.CHANNEL:
 		clear()
-		lab.ball_active = false
+		LiveBall.release(lab)
 		lab._message("Serve channel cancelled / hold E to complete, or tap E to toss")
 
 func channeling() -> bool:
@@ -266,7 +267,7 @@ func contacts_allowed() -> bool:
 func tick(dt: float, previous_ball: Vector3) -> void:
 	if tossing() and (lab.athlete.exhausted or lab.is_benched()):
 		clear()
-		lab.ball_active = false
+		LiveBall.release(lab)
 		lab._message("Serve cancelled / Exhausted or Benched")
 		return
 	follow_time = maxf(0, follow_time - dt*lab.athlete.transition_rate())

@@ -1,4 +1,5 @@
 extends Node3D
+const LiveBall := preload("res://scripts/live_ball.gd")
 const Pose := preload("res://scripts/athlete_pose.gd")
 const DURATION := 5.0
 const RETURN_SECONDS := 1.0
@@ -102,7 +103,7 @@ func enter() -> void:
 	lab.moc.clear()
 	if lab.pepper.active():
 		lab.pepper.stop()
-		lab.ball_active = false
+		LiveBall.release(lab)
 	lab.camera_rig.camera_anchor_ready = false
 	lab._message("BENCHED / Exhausted in live play / returning to Home Base")
 	refresh_ui()
