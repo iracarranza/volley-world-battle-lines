@@ -108,3 +108,31 @@ Commits: MS-05a `60a79de` (catalogue, recorder, comparator, goldens, tools), MS-
 - D-09 (tertiary set size in `docs/laning-and-objectives.md`) skipped: depends on how "Tertiary unchanged" is read.
 - D-17 / MS-21 (Serve Receive Stamina cap) and all CHANGE stages MS-16..MS-21 untouched.
 - `docs/fatigue-status.md:5` and `docs/net-response.md` constants (MS-00 step 5) not edited: not in the D list.
+
+## MS-06 Rally ledger and court context (extract)
+
+Commits: MS-06a `6f65888` (ledger module; player path, net crossing, publish renewal, rally begin), MS-06b `12d8992` (bots), MS-06c `4707467` (Pepper, serve, station, drills, Setup, Transition, lab resets; ratchet tightened).
+- New `scripts/rally_ledger.gd` (static operations over the lab: `count_player_touch`, `player_fault`, `record_player_touch`, `bot_at_limit`, `count_bot_touch`, `clear_personal`, `renew_opponent`, `reset_on_crossing`, `clear_all`, `begin_rally`). State stays on the lab and `rally_rules`; values and order unchanged. `rally_rules.gd` untouched.
+- Ratchet: `contacts` and `side_contacts` writers are now none outside the ledger (declared operation owner, `OPERATION_OWNERS` in `writer_ratchet_test`); `last_touch` only `rally_rules.gd` itself. Test `rally_ledger_test` (16 checks): sequence table (block, receive, set, attack, fourth-touch fault, opponent renewal, crossing), reset scope per caller.
+- `event_contract_test` source-order token updated to the renamed publish step (same position).
+- Evidence: dual run after each commit 0 differences (28 scenarios), catalogue shards, `rally_rules`, `block_*`, `bot_*`, `net_response`, `map_court_play`, `pepper_*`, drill and station suites green.
+
+## MS-07 ContactCommit and LiveBall operations (extract)
+
+Commits: MS-07a `0261b0d` (LiveBall, ContactCommit, player), 07b `845bda1` (bots), 07c `d4751a8` (Pepper), 07d `ba5707a` (Serve, partial; commit test), 07e `b7be710` (steering, integrate, net step; ratchet tightened).
+- `scripts/contact_commit.gd`: `outgoing_shot` (shot build, Flow decoration, attack consumption; the shot is written once) and `run(lab, policy, steps)` with sequence [spend if before_publish] prepare, publish, present [spend if after_publish], counter reset, settle. Policies hold TODAY'S values: PLAYER and SERVE `before_publish`, BOT and PEPPER `after_publish`; counter reset NONE / NONE / PERSONAL / BOTH. Two policy fields (cap five, tested). G-01 stays CURRENT: MS-16 flips `spend_position` for bots and Pepper in one commit.
+- `scripts/live_ball.gd` (distinct from `contact/ball_state.gd`): `commit_contact`, `commit_shot`, `integrate`, `commit_step`, `steer` (MoC trajectory steering stays driven from the render-rate path, the declared real-time exception).
+- Order notes (no behaviour change): the bot and Pepper counter reset now runs right after the spend instead of after the bookkeeping lines that follow it (total_contacts, trail clear, `last_delivery`); none of those read the counters. The player's cost computation moved inside the spend step but still runs first. `attack_charge` still reads the incoming `ball_shot` because the shot is written after it is built.
+- Tests: `contact_commit_test` (15: order per policy, cap, reset scope, every caller routes through `run`), plus prototype, contact_flow, moc_*, block_contact_regression, impact_visual, exploration_rally, serve_modes_moc, bot_* and pepper_* suites; scheduler-order and event-contract tokens updated to the renamed calls.
+- Evidence: dual run 0 differences after each sub-step (28 scenarios, goldens untouched).
+- Deviations: (1) cutover by dual run against the pre-stage commit instead of an in-process test-only flag (the flag would need both paths alive in one build; the dual run compares builds directly, and every sub-step was a separate commit that can be reverted per caller). (2) Only `spend_position` and `counter_reset` are policy fields; contact-memory reset style (cosmetic) stays in the callers. (3) Callers pass steps as callables (lambdas capture locals by value in GDScript, so nothing captured is reassigned after creation).
+
+## MS-08 Lease, hook contract, custody (extract)
+
+Commits: MS-08a `8506283` (S-21 scenario and golden, recorded before routing), 08b+c `81beb76` (lease; Transition Set), 08d `046c377` (Balance Ball), 08e `269f0c5` (Spike Trainer), 08f `2931269` (Serve Machine), 08g `8ff79d9` (serve/Bench/lab releases), custody and docs in the closing commit.
+- `ball_lease.gd` (holder from the activities' own hooks, ledger-access term replacing the repeated three-way guard in `contact_lab.gd`), hook contract constants, `ball_custody.gd` (read-only census, three registered leaks reproduced), paper trace in `ball-lease.md` (written first).
+- New scenario S-21 `s21_activity_feeds` (balance ball, transition set, spike load, serve machine toss and strike from dirty counters); the golden was recorded from the pre-routing head and the dual run stayed at 0 differences through every routing commit (29 scenarios from this point).
+- Tests: `ball_lease_test` (14), `ball_custody_test` (7); drill_lab, drill_mechanics, map_drills, spike_trainer, box_jump_routes, setup_distributor, ball_inventory, station_approach, serve_receive_*, map_activities green.
+- Ratchet now: `ball_active` contact_lab 1, interactive_serve 1; `ball_velocity` bot_pads 3, contact_lab 3, interactive_serve 4, map_bot_roster 1, pepper 4, training_bots 4; `ball_shot` contact_lab 2, interactive_serve 5; `ball_position` ball_carts, bot_pads, contact_lab 6, interactive_serve 3, pepper 1, setup_rack, training_bots 1.
+- Residual writers outside the new operations (declared, listed in `ball-lease.md`): Serve's own toss and strike (SADR-16), lab debug feed and landing and swept contact placement, player/bot/Pepper pre-resolver velocity shaping (SADR-03), bot-setter delivery velocity, pad ball, cart and rack meshes. The exit criterion "every activity ball write maps to commit, integrate, steer or lease" holds for the four activities and the Bench; Serve and the debug feed remain exceptions.
+- Not done here (not authorized): eviction refund, cart-empty threat, cap fix, G-15 economy changes.
