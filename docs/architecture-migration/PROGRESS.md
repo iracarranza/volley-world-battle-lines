@@ -67,6 +67,40 @@ Branch `migration/architecture-ms00-14`, stages MS-00..MS-04 (group 1). Behaviou
 - Existing `contact_flow`, `moc`, `receive_response`, `impact_visual`, `cleanup_contracts`, `directional_influence` green. No production code touched.
 - Deviation: animation vs Flow order is pinned by the source-order check only (no observable hook between them).
 
+## MS-05 Characterization harness (tests and tools only; no production file changed)
+
+Commits: MS-05a `60a79de` (catalogue, recorder, comparator, goldens, tools), MS-05b `a09dd69` (pins, shards, coverage lint, register), MS-05c `f90b9d6` (writer ratchet, scheduler order trace). `git diff 61deabe HEAD -- scripts project.godot` is empty.
+
+- **Scenario catalogue** (`tests/support/scenarios.gd`): 28 scenarios covering S-01..S-20 (S-01 for player, bot, Pepper, Serve each with a depleting and a control contact; S-02 as six variants incl. both repeat gates; S-03 as a seven-case ledger table; S-04 for four callers). Each builds a fresh session, injects the MoC clock, seeds bots and Pepper (`reseed(1234)`, rally seed 7), and returns a consequence-ledger trace plus named facts.
+- **Consequence ledger** (`recorder.gd`, `characterization.gd`): ordered snapshots of ball position/velocity, shot metadata, Stamina, HP, Flow (field and store), fatigue epoch, rally counters, last touch, locks, endlag and MoC scale, plus the published event log. Read-only.
+- **Dual-run comparator**: inside each shard (two fresh runs must agree, then the first must equal the golden, 1e-9) and `tools/dual_run.py BASE [CHANGED|WORKTREE]` (two builds, same harness overlaid, traces diffed). Evidence: `dual_run.py 61deabe WORKTREE` = 28 scenarios, 0 differences (traces produced in separate processes also equal the goldens, so the traces are process-stable).
+- **Goldens**: `tests/golden/*.json` (28 + `writer_ratchet.json`, about 0.7 MB), recorded from the unmodified MS-04 head. Regeneration only through `tools/regen_golden.py` per `tests/golden/README.md` (refactor stages must not regenerate).
+- **BDR pins**: `tests/support/bdr_pins.gd`, one function per scenario, run by `characterization_catalogue_{a,b,c}_test` (sharded to stay under the 120 s per-suite timeout; about 40 s each). `characterization_coverage_test` lints that all 20 BDR entries have pin functions and that the register rows name them (placeholders removed). Also pinned: INV-02 preview non-consumption (S-17), INV-15 Bench in the confirm window (S-18), seed reproducibility (S-20, plus dual-run itself).
+- **Writer ratchet** (`writer_ratchet_test`): write-line patterns for `ball_velocity`, `ball.position`, `ball_shot`, `ball_active`, `side_contacts`, `contacts`, last touch, per file with counts, baseline `tests/golden/writer_ratchet.json`. Fails when a new file appears or a count grows (verified with a temporary extra writer file), notes shrinkage so the baseline can be tightened. Baseline `ball_velocity` equals the FC-05 file set exactly (10 files plus `bot_pads.gd`; 28 + 3 lines); `ball_active` is the study's 7 files.
+- **Scheduler one-tick trace** (`scheduler_order_test`, 39 checks): first-token order of `_physics_process` and `_tick_ball` and the `map_lab`/`drill_lab` re-entry of `super._physics_process`. Runtime order evidence is S-02.
+- **Flakiness**: the six new suites run three times: normalized output byte-identical in all three (RNG seed log lines of unseeded sessions excluded; they are the MS-02 log, not trace data).
+
+- **Full suite** (`python3 tools/test.py --logs <scratch>/logs-ms05` at `f90b9d6`): **167/167 passed** (161 + 6 new: three catalogue shards, coverage lint, writer ratchet, scheduler order). No suite deleted or loosened.
+
+### Observations from pinning (CURRENT behaviour, nothing changed)
+- BDR-01 now VER for all four callers: player and Serve show post-depletion state to listeners; bots and Pepper show pre-depletion state (and bots end Winded, Flow 0, `pending_attacks` cleared).
+- FC-05 undercounts `side_contacts` writers: `lab.side_contacts.assign([0, 0])` (not caught by the study's `=`/`+=`/`-=`/`fill` pattern) is also written by `balance_ball_setting.gd`, `map_drills.gd`, `transition_set_drill.gd`. The ratchet baseline has 8 files for `side_contacts`, not the study's 5. For the designer's information only; MS-06 will route all of them.
+- Receive DI input is zero in `contact_request` for action 0, and `ReceiveOutcome.assess` reads that same input, so the `shrug` outcome (corrective back input) cannot occur in the lab: the 0.25 s shrug budget versus the 0.7 s animation (BDR-20) is pinned through a synthetic event to the animation only. A designer-visible side of FC-28.
+- Pepper's and bots' receive outputs in the fixture are low-charge (bot prepared charge is accumulated by the bot, not forced); the pins use each caller against its own control, as probe A did.
+- S-04 serve and Pepper: Pepper slowdown is now VER (the study had it SRC only): scale 0.05 after 50 ms, not steerable.
+
+### Not pinnable headlessly, or pinned only in part
+- BDR-02 tunnelling at play speeds (30/60/120 Hz sweep): not pinned (study: INCONCLUSIVE); only order and gate asymmetry are. Needs a frame-rate sweep with realistic ball speeds, a design decision about what counts as a defect.
+- BDR-09 Pepper's per-call re-measure of the Attack volume and the player/bot/Pepper shoulder disagreement: the player-versus-bot difference is pinned (values differ, bot cached); Pepper's rig is a separate rig and its value is in the golden only.
+- BDR-10 recovery velocity is pinned for `blown_away` only; the other recoveries (knee, fall_roll, fall_slide, knocked_away, collapse) are covered by `floor_recovery_*` suites already in the baseline.
+- BDR-14 under real-time frame variation is not pinned (the MoC clock is injected, per the declared real-time exception).
+- BDR-16 `team_empty`, 3-ball eviction and the 100 cap are pinned; "Bench keeps inventory" is pinned through `bench.enter` with a held ball.
+- Animation-versus-Flow order inside `_publish_impact` (MS-04 deviation) is still a source-order check; the scheduler trace is source-order plus runtime S-02.
+
+### Deviations
+- Pin functions live in one support file run by the catalogue shards instead of one test file per BDR entry, to keep the sessions count inside the suite timeout; the register names the function and shard for every entry.
+- The ratchet allows shrinkage silently (a printed note) rather than failing on it, so a routing stage can land before the baseline is tightened in the same commit; tightening is `tools/regen_golden.py --ratchet-only`.
+
 ## Final full suite (MS-00..MS-04, branch head)
 `python3 tools/test.py --logs <scratch>/logs-ms04`: **161/161 passed** (155 baseline + 6 new: governance_docs, seed_hooks, tuning_index, action_table, step_clock, event_contract). Matches the MS-00 baseline plus the new suites; no suite deleted or loosened.
 
