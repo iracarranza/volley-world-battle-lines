@@ -40,7 +40,7 @@ Ratios 0.8–1.2 are read through `morphology_runtime.gd`. Each +0.04 adds 1 to 
 
 ## Regeneration and clocks
 
-Moving or newly stationary: 2/s. After three consecutive grounded stationary seconds: 6/s. Leaving that state resets the stationary timer. Upper-body contact preparation alone does not reset it. Airborne/jump-charging actors do not qualify as resting. Recovery traits multiply the rates. Winded halves them for 10.5 s. Exhaustion prevents regeneration for 7 s, then returns to Winded. Entering Winded immediately restores 50% of maximum Stamina, including the return from Exhaustion. Second Wind adds its authored flat Stamina value (currently 23), capped at capacity, with its existing 30 s cooldown. It no longer scales with capacity.
+Moving or newly stationary: 2/s. After three consecutive grounded stationary seconds: 6/s. Leaving that state resets the stationary timer. Upper-body contact preparation alone does not reset it. Airborne/jump-charging actors do not qualify as resting. Recovery traits multiply the rates. Winded halves them for 10.5 s. Exhaustion prevents regeneration for 7 s, then returns to Winded. Entering Winded immediately restores 50% of maximum Stamina, including the return from Exhaustion. Second Wind adds its authored flat Stamina value (currently 10, `data/trait_tree.json`), capped at capacity, with its existing 30 s cooldown. It no longer scales with capacity.
 
 Regeneration splits timesteps at rest-delay, fatigue and cooldown boundaries. Actor-local time drives player, court-bot and Pepper spending/recovery under MoC. Movement drain follows actual ground travel, rather than held inputs or a bot merely having a plan. New rallies refresh bots; debug reset also refreshes Pepper profiles.
 

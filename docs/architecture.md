@@ -94,8 +94,8 @@ ownership: those traits retain their own effects and capacity. `carried` adds th
 successor's authored contributions from its consumed source history.
 
 Current rules allow free starting choices within capacity, exclusive forks,
-6 capacity points (8 with Deep Bag), and one current Flow trait (two with Open
-Mind). Node weights determine capacity use. These are editable rules in
+6 capacity points (8 with Deep Bag), and one current Flow trait (three with Open
+Mind: 1 + 2, `trait_book.gd:48,736-737`). Node weights determine capacity use. These are editable rules in
 `data/trait_tree.json`; the older [trait master list](trait-master-list.md) retains
 superseded inheritance rules and counts as design history. Authored descriptions
 and numeric fields can include planned mechanics: runtime effects are limited to
@@ -114,6 +114,8 @@ updates camera/VFX and the preview. Pose evaluation remains available in both
 paths because confirmation geometry/recovery and immediate facing depend on it;
 removing it solely to lower a call count risks changing visible contact timing.
 Pose smoothing advances at most once per rendered frame.
+
+Decision G-09 (2026-11-16, provisional, designer-delegated) supersedes the ownership statement in the paragraph below: locks and recovery movement are to become gameplay data owned by the actor motion record, with animation reflecting the locked time. The decision is made; the code has not moved yet (migration stage MS-12).
 
 The motor schedules `animation.tick_action_clocks(dt)` once per physics step,
 with actor-local time. Animation owns receive, roll, dive, spike and set clocks.
@@ -139,7 +141,7 @@ materials, invalidated when the athlete is rebuilt. The net's 39 static strings
 share one MultiMesh. Portrait rendering is on demand; XP arcs redraw on value or
 layout changes. Hidden HUD and invisible Flow auras skip unnecessary updates.
 Bot pose work already skips disabled idle helpers; active/recovering actors keep
-updating even if visibility changes.
+updating even if visibility changes. Skipping must never change lock or recovery state.
 
 ## Changing a mechanic
 

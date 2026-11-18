@@ -89,6 +89,8 @@ entering a rally/Pepper while Exhausted benches them for 5 s. Flow rewards conta
 quality, clears on fatigue, holds for 14 s after contact, then decays exponentially.
 See [attribute runtime](docs/attribute-runtime.md) for implemented stat/trait effects. [Auto preparation](docs/auto-charge.md) describes Reaction Speed, tapped matching at contact, and the standard 61% tapped set.
 
+The default MoC mode is **Trajectory Steering** (steer the ball after contact; ball and athlete ease to 5% speed over 60 ms, window 50-400 ms of real time by charge; see [MoC steering](docs/moc-steering.md)). Current (60%) and Tuned (10%) are alternatives selectable in **MoC SETTINGS**.
+
 MoC uses local slowdown (**Current: 60%; Tuned: 10%**), never a pause: only the ball and contacting athlete
 slow down. Sets cancel existing MoC and launch at full speed. Off retains impact
 visuals. **MoC SETTINGS** exposes mode, Tuned speed/duration, and independent

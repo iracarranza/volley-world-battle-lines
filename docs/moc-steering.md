@@ -26,6 +26,8 @@ of the window yet. Engine time scale, camera, world and other human athletes sta
 and Pepper bots follow the ball clock for motion, charging and contact timing;
 acting-bot slowdown also applies when the ball toggle is off.
 
+Decision G-04 (2026-11-16, provisional, designer-delegated): the ball should slow only for the player's own contacts. This describes the current behaviour; it changes only when that decision is implemented.
+
 During the window, the preview remains visible even though preparation has ended.
 It projects the current ball velocity at normal flight speed and updates as DI
 changes. Its lane and the HP bar glow blue at neutral and progressively red with
