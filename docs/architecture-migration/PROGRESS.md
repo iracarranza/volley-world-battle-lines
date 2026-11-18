@@ -136,3 +136,6 @@ Commits: MS-08a `8506283` (S-21 scenario and golden, recorded before routing), 0
 - Ratchet now: `ball_active` contact_lab 1, interactive_serve 1; `ball_velocity` bot_pads 3, contact_lab 3, interactive_serve 4, map_bot_roster 1, pepper 4, training_bots 4; `ball_shot` contact_lab 2, interactive_serve 5; `ball_position` ball_carts, bot_pads, contact_lab 6, interactive_serve 3, pepper 1, setup_rack, training_bots 1.
 - Residual writers outside the new operations (declared, listed in `ball-lease.md`): Serve's own toss and strike (SADR-16), lab debug feed and landing and swept contact placement, player/bot/Pepper pre-resolver velocity shaping (SADR-03), bot-setter delivery velocity, pad ball, cart and rack meshes. The exit criterion "every activity ball write maps to commit, integrate, steer or lease" holds for the four activities and the Bench; Serve and the debug feed remain exceptions.
 - Not done here (not authorized): eviction refund, cart-empty threat, cap fix, G-15 economy changes.
+
+## Final full suite (MS-06..MS-08, head 370e212)
+`python3 tools/test.py --logs <scratch>/logs-ms08`: **171/171 passed** (167 + rally_ledger, contact_commit, ball_lease, ball_custody). `tools/dual_run.py d6d2373 WORKTREE` (MS-05 head vs head): 29 scenarios, 0 differences. No stage stopped.
