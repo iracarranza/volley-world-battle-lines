@@ -49,3 +49,35 @@ static func disarm(lab) -> void:
 
 static func set_window(lab, seconds) -> void:
 	lab.confirm_window = seconds
+
+## The cancel set (PRB-15): every field the Bench entry used to reset by hand, in the same order. Bench is the widest exit path; rally end, the
+## right-click cancel and the station resets clear subsets of it (docs/architecture-migration/player-lifecycle.md lists which). The two lifecycle
+## fields go through the operations above.
+static func cancel(lab) -> void:
+	disarm(lab)
+	lab.charging = false
+	set_window(lab, 0)
+	lab.confirm_duration = 0
+	lab.committed_intent = {}
+	lab.contact_memory.fill(0.0)
+	lab.directional_input.clear()
+	lab.motion.jump_charge = -1
+	lab.motion.jumped = false
+	lab.motion.airborne_action = -1
+	lab.motion.generic_jump = false
+	lab.motion.approach_bound = false
+	lab.motion.approach_release_pending = false
+	lab.motion.quick_step_time = 0
+	lab.animation.roll_lock = 0
+	lab.animation.dive_recovery_time = -1
+	lab.animation.dive_launched = false
+	lab.animation.receive_pose_remaining = 0
+	lab.rescue_swing_remaining = 0
+	lab.hurtbox_linger = 0
+	lab.hurtbox_root.hide()
+	lab.preview.mesh = null
+	lab.landing_marker.hide()
+	lab.aim_marker.hide()
+	lab.reach_ring.hide()
+	lab.serve.clear()
+	lab.moc.clear()
