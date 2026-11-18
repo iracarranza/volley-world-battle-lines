@@ -2,6 +2,7 @@ class_name AthleteMotor
 extends RefCounted
 
 ## Owns motion state. LabSession schedules updates and composes peers.
+const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
 const Approach = preload("res://scripts/approach_run.gd")
 const Flight = preload("res://vendor/vwm/ball_flight_model.gd")
 const GRAVITY = Flight.DEFAULT_GRAVITY_MPS2
@@ -215,7 +216,7 @@ func begin_jump() -> void:
 		lab.locked_action = lab.selected
 		lab.finish_charge_preparation()
 		lab.charging = false
-		lab.armed = true
+		PlayerLifecycle.arm(lab)
 	if lab.armed or lab.ball_active or lab.station.running() or lab.drills.running():
 		begin_approach()
 	else:
@@ -241,7 +242,7 @@ func travel_takeoff() -> void:
 	airborne_action = -1
 	airborne_aim = Vector3(-sin(lab.camera_rig.facing_yaw), 0, -cos(lab.camera_rig.facing_yaw))
 	jumped = true
-	lab.armed = false
+	PlayerLifecycle.disarm(lab)
 	lab.charging = false
 	lab.contact_flow.consume_jump("player")
 	lab.athlete.spend_resolved(float(lab.athlete.stamina_quote("travel_jump").total))
@@ -327,7 +328,7 @@ func takeoff() -> void:
 		lab.player.velocity.z = dive_direction.z * dive_speed
 		if not lab.armed:
 			lab.begin_auto_preparation(0)
-		lab.armed = true
+		PlayerLifecycle.arm(lab)
 		lab.locked_action = 0
 		lab._message("DIVE / " + ("TIMED FIRST STEP" if quality > 0.7 else "EARLY / LATE RELEASE"))
 	elif airborne_action == 2:

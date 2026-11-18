@@ -4,6 +4,7 @@ extends Node3D
 @export var camera_tuning: LabCameraTuning = preload("res://resources/lab_camera.tres")
 
 signal receive_resolved(event: Dictionary)
+const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
 const ContactEvent := preload("res://scripts/contact/contact_event.gd")
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
@@ -442,7 +443,7 @@ func _confirm_action(window: float = -1.0) -> void:
 		animation.spike_swing_time = 0.0
 	_capture_contact_intent()
 	confirmed_geometry = {}
-	confirm_window = minf(window, Execution.contact_seconds(locked_action)) if window > 0 else Execution.contact_seconds(locked_action)
+	PlayerLifecycle.set_window(self, minf(window, Execution.contact_seconds(locked_action)) if window > 0 else Execution.contact_seconds(locked_action))
 	confirm_duration = confirm_window
 	hud.athlete_hud.timeline.begin(locked_action)
 	sweet_visual_expired = false
@@ -677,10 +678,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed and player.is_on_floor():
 			hud.athlete_hud.timeline.clear()
 			charging = false
-			armed = false
+			PlayerLifecycle.disarm(self)
 			auto_preparation.clear()
 			committed_intent = {}
-			confirm_window = 0.0
+			PlayerLifecycle.set_window(self, 0.0)
 			if motion.jump_charge >= 0.0:
 				motion.jump_charge = -1.0
 				motion.approach_action = -1
@@ -697,7 +698,7 @@ func _unhandled_input(event: InputEvent) -> void:
 					charge = 0.0
 			elif charging:
 				charging = false
-				armed = true
+				PlayerLifecycle.arm(self)
 				locked_action = selected if player.is_on_floor() else motion.airborne_action
 				finish_charge_preparation()
 				_message("AUTO ready. Click to confirm." if auto_preparation.active else "Power ready. Click again when the ball is in reach.")
@@ -753,14 +754,14 @@ func _physics_process(dt: float) -> void:
 		training_bots.tick_motion(world_dt)
 		pepper.tick(world_dt)
 	if block_state.active:
-		confirm_window = 0
+		PlayerLifecycle.set_window(self, 0)
 	elif confirm_window > 0:
-		confirm_window = maxf(0, confirm_window - dt)
+		PlayerLifecycle.set_window(self, maxf(0, confirm_window - dt))
 		if confirm_window > 0 and ball_active and elapsed - last_contact > 0.22/athlete.transition_rate() and _can_contact():
 			_contact()
 		elif confirm_window <= 0:
 			committed_intent = {}
-			armed = false
+			PlayerLifecycle.disarm(self)
 			auto_preparation.clear()
 			athlete.spend_resolved(float(athlete.stamina_quote("timing_miss").total))
 			_message("Missed timing / reach. Move under the ball and try again.")
@@ -1137,10 +1138,10 @@ func _contact() -> void:
 			if locked_action == 3 and block_state.active:
 				block_state.latched = true
 			else:
-				armed = false
+				PlayerLifecycle.disarm(self)
 				auto_preparation.clear()
 			_update_hurtbox_visual(0.0)
-			confirm_window = 0
+			PlayerLifecycle.set_window(self, 0)
 			trail_points.clear()
 			if pepper.active():
 				pepper.on_player_contact(locked_action, quality)
@@ -1178,13 +1179,13 @@ func _try_swept_player_block(previous: Vector3, dt: float) -> bool:
 		var local := (point-player.position).rotated(Vector3.UP,-_contact_yaw())
 		if Geometry.contains(shape,local) and Geometry.block_approaching(shape,local,ball_velocity.rotated(Vector3.UP,-_contact_yaw())):
 			ball.position = point
-			confirm_window = initial_window - dt * fraction
+			PlayerLifecycle.set_window(self, initial_window - dt * fraction)
 			var event_before := _contact_event_serial
 			_contact()
 			if _contact_event_serial > event_before:
 				return true
 	ball.position = endpoint
-	confirm_window = initial_window
+	PlayerLifecycle.set_window(self, initial_window)
 	return false
 
 func _tick_ball(dt: float) -> void:
@@ -1300,9 +1301,9 @@ func _finish(message: String,point_result: Dictionary = {}) -> void:
 	clear_net_responses()
 	net_bounce_pending = false
 	action_endlag = 0.0
-	confirm_window = 0.0
+	PlayerLifecycle.set_window(self, 0.0)
 	committed_intent = {}
-	armed = false
+	PlayerLifecycle.disarm(self)
 	auto_preparation.clear()
 	serve.clear()
 	pepper.stop()
@@ -1423,7 +1424,7 @@ func _reset() -> void:
 	ball_shot = {}
 	last_receive_match = {}
 	charging = false
-	armed = false
+	PlayerLifecycle.disarm(self)
 	auto_preparation.clear()
 	motion.jumped = false
 	motion.jump_charge = -1
@@ -1440,7 +1441,7 @@ func _reset() -> void:
 	confirm_duration = 0.0
 	confirmed_geometry = {}
 	hurtbox_root.hide()
-	confirm_window = 0
+	PlayerLifecycle.set_window(self, 0)
 	contact_memory = [0.0, 0.0, 0.0, 0.0]
 	feed_timer = 2.0
 	attempts = 0
@@ -1480,7 +1481,7 @@ func _build_ui() -> void:
 func begin_passive_block() -> void:
 	block_state.start()
 	locked_action = 3
-	armed = true
+	PlayerLifecycle.arm(self)
 	hurtbox_action = 3
 	confirmed_geometry = {}
 	var presentation := hurtbox_view.present(_raw_hurtbox_definition(3),3)
@@ -1492,9 +1493,9 @@ func begin_passive_block() -> void:
 func end_passive_block() -> void:
 	if not block_state.active: return
 	block_state.land()
-	armed = false
+	PlayerLifecycle.disarm(self)
 	charging = false
 	auto_preparation.clear()
-	confirm_window = 0
+	PlayerLifecycle.set_window(self, 0)
 	confirmed_geometry = {}
 	hurtbox_linger = 0
