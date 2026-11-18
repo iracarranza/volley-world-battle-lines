@@ -300,7 +300,7 @@ func _build_activities() -> void:
 	drills.setup(self)
 
 func _process(dt: float) -> void:
-	animation.pose_frame_dt = dt * moc.actor_scale("player")
+	animation.pose_frame_dt = dt * moc.clock_record().actor("player")
 	var now := Time.get_ticks_usec()
 	var real_dt := minf(float(now - camera_rig._camera_frame_usec) / 1000000.0, 0.1) if camera_rig._camera_frame_usec > 0 else dt
 	camera_rig._camera_frame_usec = now
@@ -704,7 +704,7 @@ func _physics_process(dt: float) -> void:
 		hud.update()
 		return
 	var world_dt := dt
-	var motion_scale: float = moc.actor_scale("player")
+	var motion_scale: float = moc.clock_record().actor("player")
 	dt *= motion_scale
 	elapsed += world_dt
 	if auto_preparation.active and armed:
@@ -1196,7 +1196,7 @@ func _try_swept_player_block(previous: Vector3, dt: float) -> bool:
 
 func _tick_ball(dt: float) -> void:
 	var world_dt := dt
-	dt *= moc.simulation_scale()
+	dt *= moc.clock_record().ball()
 	if drills.holding_ball():
 		return
 	var previous := ball.position
