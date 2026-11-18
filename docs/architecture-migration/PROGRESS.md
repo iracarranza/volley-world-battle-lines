@@ -18,3 +18,10 @@ Branch `migration/architecture-ms00-14`, stages MS-00..MS-04 (group 1). Behaviou
 - **Baseline for later stages: 155/155 (plus the new suites each stage adds).** Every suite may gate.
 - Weak assertions to treat as not-a-pin (study): `spike_stage_test.gd:31`, `trait_book_test.gd:59`, `ball_inventory_test`.
 - Doc reconciliations (blueprint MS-00 step 5): README MoC default, Second Wind and set-target figures done under D-01..D-16; `docs/fatigue-status.md:5` and `docs/net-response.md` constants not in the D list and left for the designer.
+
+## MS-01 Governance documents (extract/doc only)
+
+- Added `behavioural-divergence-register.md` (20 BDR entries, 20 defined FC facts, each entry with citation, status, pin placeholder and gate or none), `event-field-registry.md` (both senses of `event.charge`, no rename), `unenforced-state-register.md` (`action_endlag`, `preview_velocity`, `team_empty`, Winded-bar model), `vocabulary.md` (BallState vs LiveBall etc.).
+- Lint: `tests/governance_docs_test.gd` 150/150 (every cited FC id defined, every entry has citation/status/pin/gate-or-none).
+- Behaviour evidence: no code touched. Citations use file and symbol, not line numbers (lines drift).
+- Deviation: BDR-19 (left-handed bots) cites no FC id (single-source item of the study's section 4).

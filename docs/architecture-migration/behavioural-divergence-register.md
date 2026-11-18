@@ -1,0 +1,66 @@
+# Behavioural Divergence Register (BDR)
+
+Migration stage MS-01. The register lists behaviour that the code shows today and that nobody has judged. It changes no behaviour. Rule for every migration stage: **reproduce, do not fix**. A refactor that makes any entry differ is a gameplay change (constitution class X5), not a refactor, and stops.
+
+Each entry has a citation (file and symbol in this repository; line numbers drift, so symbols are the anchor), the actors affected, a status, a pin test, and a gate. Status values: `CURRENT-reproduced`, `GATED`, `DESIGNER-APPROVED-AS-IS`. Gates G-nn are decided provisionally (designer-delegated, revocable, see the study's `gate-decisions-provisional.md`). An entry does not decide its gate. Pin tests are placeholders until the characterization harness (MS-05) exists; an entry may be backed by an existing suite where one is named.
+
+Evidence tags: SRC (read in source), VER (executed by the study probes on 2026-11-16, `16-probe-and-baseline-results.md`), INF (inferred).
+
+## Divergence facts (FC ids)
+
+Every FC id used below is defined here. The document lint (`tests/governance_docs_test.gd`) fails if an entry cites an FC id missing from this table.
+
+| FC | Fact | Evidence |
+|---|---|---|
+| FC-01 | Player and Serve spend Stamina before publishing the contact event; court bots and Pepper publish first, then spend. | SRC, VER (player, bot) |
+| FC-02 | Same-step order: ordinary player contact runs after bots; the swept player Block runs before net response and bots; the repeat gate exists for player contacts and Block, not for `training_bots` contacts. | SRC, VER |
+| FC-03 | A Block is not a team touch but updates last touch and renews the opponent's allowance. | SRC |
+| FC-04 | Counting and the fault check run before assessment; the swept Block calls `_contact` without `_can_contact`. | SRC |
+| FC-06 | Lock state and recovery velocity are written by animation code, for the player only. | SRC |
+| FC-07 | Entering Winded clears Flow, including the return from Exhausted. | SRC |
+| FC-08 | The ball slows to the steering speed on any physical hit (bot, Pepper, player Serve) while only the player can steer. | SRC, VER |
+| FC-10 | Contact-time directional influence is zero for every action in the default Trajectory Steering mode. | SRC |
+| FC-11 | Receive pass distance follows the player's net law; court bots solve toward a setter; Pepper partners have no distance law. | SRC |
+| FC-13 | The 0.85 s plant is the pose and hurtbox timeline; the movement lock lasts at most the contact window. | SRC |
+| FC-14 | A grounded Attack is a legal contact by age. | SRC, VER |
+| FC-16 | Receive lean translates the platform centre; extents are unchanged. | SRC |
+| FC-17 | Auto charge must match every charged incoming shot; manual only serve and attack. | SRC |
+| FC-18 | The Attack hurtbox follows the live rig pose; player, court bots and Pepper measure the shoulder differently. | SRC, VER (player) |
+| FC-19 | `action_endlag` is written and never read by gameplay. | SRC (absence) |
+| FC-20 | The timer fatigue model is implemented; the designer's Winded-bar model is not. | SRC |
+| FC-22 | `event.charge` is input effort for the player and delivered pressure for bots, Pepper and Serve. | SRC |
+| FC-25 | Ball custody leaks: 3-ball eviction without cart return, `team_empty` unused, Bench keeps inventory, Serve Receive reward caps Stamina at a literal 100. | SRC |
+| FC-28 | Shrug: 0.25 s input lock versus 0.7 s authored animation. | SRC |
+| FC-29 | Auto preparation ticks on world time; manual charge on actor time. | SRC, VER |
+| FC-30 | Pepper contacts skip the rally ledger and reset their own counters. | SRC |
+
+## Entries
+
+| BDR | FC | Description | Citation | Actors | Status | Pin test (placeholder until MS-05) | Gate |
+|---|---|---|---|---|---|---|---|
+| BDR-01 | FC-01 | Spend-before-publish for player and Serve; publish-before-spend for bots and Pepper. Listener-visible state and `ContactFlow.record` deltas differ transiently; end state equal. | `contact_lab.gd` `_contact` (`spend_resolved` before `_emit_contact_impact`); `training_bots.gd` (`_emit_external_impact` then `spend_stamina`); `pepper_partners.gd` (same); `interactive_serve.gd` (spend then `_emit_external_impact`) | player, Serve, bot, Pepper | CURRENT-reproduced | S-01 depleted sweet contact (probe A is its seed) | G-01 (decided CHANGE, stage MS-16) |
+| BDR-02 | FC-02 | Same-step priority: ordinary player contact after bots; swept Block first; repeat-gate asymmetry; endpoint test for the player versus swept points for bots. | `contact_lab.gd` `_physics_process`, `_tick_ball`, `_try_swept_player_block`; `training_bots.gd` `tick_contact` | player, bot, Pepper | CURRENT-reproduced | S-02 same-step crossing | G-02 (decided: keep) |
+| BDR-03 | FC-08 | Any physical hit starts the MoC effect for its actor; the ball-wide scale slows while `steering_active()` is false for non-player hits. | `moment_of_contact.gd` (`begin`, `acting_actor`, `_effect_scale`, `simulation_scale`, `steering_active`) | bot, Pepper, player Serve | CURRENT-reproduced | S-04 bot contact slowdown | G-04 (decided CHANGE, stage MS-17) |
+| BDR-04 | FC-10 | Contact-time DI is ZERO for all actions in the default mode; live for Set and Attack only when MoC is not in steering mode or is off. | `contact_lab.gd` (DI selection beside `moc.mode == TRAJECTORY_STEERING`) | all | CURRENT-reproduced | S-05 DI zeroing by mode | G-03 (decided: keep) |
+| BDR-05 | FC-11 | Receive pass distance: player net law; bots solve toward a setter; Pepper partner aims at the player. Charge does not set distance. | `contact_lab.gd` `_loft_velocity`, `receive_net_distance`; `training_bots.gd` `_launch`; `pepper_partners.gd` | player, bot, Pepper | CURRENT-reproduced | S-06 receive delivery by actor | G-05 (decided: keep, document both) |
+| BDR-06 | FC-13 | Plant is two things: 0.85 s pose, hurtbox offset and aim lock versus a movement lock of at most the contact window. | `receive_plant.gd` `DURATION`; `contact_lab.gd` `receive_planted` | player | CURRENT-reproduced | S-07 plant timeline vs lock | G-06 (decided: movement lock governs; stage MS-12) |
+| BDR-07 | FC-16 | Lean translates the platform centre and leaves extents unchanged. | `receive_plant.gd` `offset`; `contact_lab.gd` hurtbox offset use | player | CURRENT-reproduced | S-07 | G-06 (decided: lean keeps current behaviour) |
+| BDR-08 | FC-14 | A grounded Attack is a legal rescue spike (age-based legality, no jump condition). | `contact_lab.gd` `_can_contact` (action 2); `contact_geometry.gd` `spike_active` | player | CURRENT-reproduced | S-08 grounded Attack | G-07 (decided: stays legal) |
+| BDR-09 | FC-18 | Attack hurtbox follows the live rig pose (measured once for court bots, per call for Pepper, evaluated and frozen at confirmation for the player). | `contact_lab.gd` `_raw_hurtbox_definition`; `training_bots.gd` (construction); `pepper_partners.gd` (per call); `contact_geometry.gd` `definition` | player, bot, Pepper | CURRENT-reproduced | S-10 pose-dependent Attack volume | G-08 (decided CHANGE, probe first; stage MS-19) |
+| BDR-10 | FC-06 | Roll, dive and floor-recovery locks and the recovery velocity are written by animation code, for the player only. | `lab/athlete_animation.gd` (`roll_lock`, `dive_input_locked`, `floor_input_locked`, `on_receive_resolved`); `lab/athlete_motor.gd` | player | CURRENT-reproduced | S-13 recovery application | G-09 (decided: move to actor motion; stage MS-12) |
+| BDR-11 | FC-19 | `action_endlag` is written, decays, and gates nothing. | `contact_lab.gd` `action_endlag`; `lab/athlete_motor.gd`; reader: `tests/stat_tuning_test.gd` only | player | CURRENT-reproduced | S-11 endlag unenforced | G-10 (decided: enforce at defaults, stage MS-12) |
+| BDR-12 | FC-07, FC-20 | Entering Winded clears Flow and bumps the fatigue epoch, including Exhausted expiry. Second Wind is +10 in data. | `athlete.gd` `_enter_winded`, `spend_resolved`, `recover`; `data/trait_tree.json` | player, bot | CURRENT-reproduced | S-14 Exhausted expiry clears Flow | G-11 (decided: timer model governs) |
+| BDR-13 | FC-17 | Auto receives must match every charged shot; manual only serve and attack. | `receive_charge.gd` `required`; `contact_resolver.gd` | player Auto vs manual | CURRENT-reproduced | S-09 Auto vs manual match scope | G-20 (decided: kept) |
+| BDR-14 | FC-29 | Auto preparation ticks on world dt, manual charge on actor dt (differs only under MoC slowdown). | `contact_lab.gd` `auto_preparation.tick(world_dt, ...)`; `lab/athlete_motor.gd` charge tick | player | CURRENT-reproduced | S-16 Auto clock under MoC | G-17 (decided CHANGE, slow-motion only; stage MS-18) |
+| BDR-15 | FC-22 | `event.charge` is input effort for the player and delivered pressure otherwise. | `contact_lab.gd` `_emit_contact_impact` (`event.charge = locked_charge`), `_impact_event` | player vs bot, Pepper, Serve | CURRENT-reproduced | S-12 `event.charge` senses | none |
+| BDR-16 | FC-25 | Custody leaks and the literal 100 Stamina cap on the Serve Receive reward. | `ground_ball.gd`; `ball_carts.gd` `team_empty`; `bench_status.gd`; `serve_receive_station.gd` (reward lines) | Setup, Serve Receive, Bench | CURRENT-reproduced | S-15 custody leaks and the 100 cap | G-15 (decided: economy unchanged; cap bug fix is stage MS-21) |
+| BDR-17 | FC-03, FC-04 | Block is not a team touch but renews the opponent's allowance and sets last touch; counting and the fault check precede assessment; the swept Block bypasses `_can_contact`; bots check `side_contacts >= 3` before incrementing. | `contact_lab.gd` `_contact`, `_publish_impact`; `training_bots.gd` contact count | player, bot | CURRENT-reproduced | S-03 block-then-receive table | none |
+| BDR-18 | FC-30 | Pepper contacts skip the rally ledger and reset `contacts` and `side_contacts` themselves; no Block stage. | `contact_lab.gd` `_publish_impact` (ledger guard); `pepper_partners.gd` | Pepper | CURRENT-reproduced | S-03 | none |
+| BDR-19 | - | Left-handed athletes mirror geometry; bots and Pepper use `dominant_sign = 1`. Bot and Pepper RNG are unseeded until the seed hooks (MS-02). | `training_bots.gd` (`Geometry.definition(..., 1.0, ...)`); `pepper_partners.gd` | bot, Pepper | CURRENT-reproduced | S-19 left-handed bot, S-20 seed reproducibility | G-19 (decided: unsupported, default unseeded) |
+| BDR-20 | FC-28 | Shrug: the 0.25 s budget is the input lock while the animation runs its authored 0.7 s. | `receive_outcome.gd` `DURATIONS`; `lab/athlete_animation.gd` | player | CURRENT-reproduced | S-13 | G-20 (decided: lock governs; stage MS-12) |
+
+## Maintenance rules
+
+1. An entry needs a citation and a pin test (a placeholder names its MS-05 scenario). No entry without both.
+2. An entry may be closed only by a gate answer, a behaviour-change decision record and a status change, never as a side effect of a stage.
+3. Entries do not decide gates. `DESIGNER-APPROVED-AS-IS` is a designer act.
