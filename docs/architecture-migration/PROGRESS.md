@@ -165,3 +165,12 @@ Commits: MS-11a `03d8839` (`scripts/tick_order.gd`), 11b `970d3ab` (stages), 11c
 
 ## Final full suite (MS-09..MS-11)
 `python3 tools/test.py`: **174/174 passed** (171 + athlete_mutator, player_lifecycle, layering). `tools/dual_run.py b327fe7 WORKTREE`: 29 scenarios, 0 differences. Goldens and BDR pins unchanged; the writer ratchet only gained zero-baseline categories (`athlete_vitals`, `lifecycle_fields`). MS-16..MS-21 untouched; no constant or ordering changed.
+
+## MS-12 Locks as data, MS-13 Repository, MS-14 Trait registry (extract)
+
+Commits: MS-12a `c48ee4b`, MS-12b `559d8cf`, MS-13 `2efbf91`, MS-14 `7d1f5c1`.
+- MS-12 (G-09): `scripts/lock_data.gd` holds roll time, release speed-up, dive and floor lock seconds (shrug budget governs, G-20) and the pure `dive_locked` / `floor_locked` predicates; animation and `PlayerLocks` read them. Decision record `decisions/ms-12-locks.md`; `docs/architecture.md` updated. Values unchanged.
+- MS-13: `save_roster` returns `{ok, error}`; temp-write, verify, `.bak` of the last good file, schema number (`SCHEMA` 1, legacy files load), corrupt file kept as `.corrupt`, newer schema never overwritten; the menu says "Not saved" on failure. `repository_test` (unwritable, corrupt, newer, round trip, .bak).
+- MS-14: `TraitBook.GAMEPLAY_KEYS` is now the registry's `EFFECT_KEYS` (one list); `READER_SITES` declares the eight keys with no quoted reader; `scripts/technique_unlocks.gd` table for back set, float serve, rolling receive, quick step, read by the lab and motor; `technique_unlocks_test`. Duplicate rule ids were already rejected.
+- Deviations: (1) `action_endlag` data/enforcement (G-10) NOT done: scenario S-11 records the endlag lines' source text, so routing them is a recorded difference; stopped, needs its own decision. (2) The lock countdown clocks and `floor_recovery_lock` stay on the animation controller (traces and the BDR-10 pin read them there); only durations and predicates moved. (3) MS-13 steps 4-5 only partly: schema number plus tolerant load, no migration table beyond the existing `migrate`; authoring writes to `res://` untouched. (4) MS-14 step 4 ordering display not done (no evidence of a conflict case); key metadata has unit, stage, actions already, reader site added only for exceptions.
+- Evidence: dual run vs f40a488, 29 scenarios, 0 differences (after each sub-step; MS-12a first attempt showed 3 S-11 source-text differences and was reduced). Full suite 176/176 (174 + repository, technique_unlocks). Goldens, BDR pins and writer ratchet untouched. MS-16..MS-21 untouched.
