@@ -262,10 +262,10 @@ func on_player_contact(action: int, quality: float) -> void:
 
 func tick(dt: float) -> bool:
 	for index in range(athletes.size()):
-		if not (active() and index == partner): athletes[index].recover(dt*lab.moc.bot_scale("pepper_%d"%index),actors[index].position.y <= spots[index].y+0.01)
+		if not (active() and index == partner): athletes[index].recover(dt*lab.moc.clock_record().bot("pepper_%d"%index),actors[index].position.y <= spots[index].y+0.01)
 	for index in range(3):
-		preparation.tick(index,dt*lab.moc.bot_scale("pepper_%d"%index))
-	dt *= lab.moc.bot_scale("pepper_%d" % partner)
+		preparation.tick(index,dt*lab.moc.clock_record().bot("pepper_%d"%index))
+	dt *= lab.moc.clock_record().bot("pepper_%d" % partner)
 	if not active():
 		return false
 	var actor := actors[partner]

@@ -36,5 +36,19 @@ func run() -> void:
 			now += 2000000
 			moc.clear()
 			check(record.ball() == ball and record.bot("training_bot_2") == bot, "A record does not change after MoC moves on (%s)" % label)
+	check(scale_readers("res://scripts") == 0, "No script outside MoC reads actor_scale, simulation_scale or bot_scale directly")
 	print("STEP CLOCK: %d / %d" % [checks - failures, checks])
 	quit(1 if failures else 0)
+
+## Counts direct scale reads outside the MoC itself; the migration drove this to zero.
+func scale_readers(path: String) -> int:
+	var count := 0
+	for file in DirAccess.get_files_at(path):
+		if file.get_extension() != "gd" or file == "moment_of_contact.gd":
+			continue
+		var text := FileAccess.get_file_as_string(path + "/" + file)
+		for name in ["actor_scale(", "simulation_scale(", "bot_scale("]:
+			count += text.count(name)
+	for directory in DirAccess.get_directories_at(path):
+		count += scale_readers(path + "/" + directory)
+	return count
