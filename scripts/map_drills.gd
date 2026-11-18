@@ -1,6 +1,7 @@
 extends Node3D
 
 # Provisional, world-space drills using the same movement and action contacts.
+const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
 const LiveBall := preload("res://scripts/live_ball.gd")
 const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const Footprints := preload("res://scripts/drill_layout.gd")
@@ -279,9 +280,9 @@ func interact() -> void:
 func clear_preparation() -> void:
 	LiveBall.release(lab)
 	lab.training_bots.active_action = -1
-	lab.armed = false
+	PlayerLifecycle.disarm(lab)
 	lab.charging = false
-	lab.confirm_window = 0
+	PlayerLifecycle.set_window(lab, 0)
 	lab.motion.jump_charge = -1
 	lab.motion.approach_bound = false
 	lab.motion.approach_release_pending = false
@@ -320,9 +321,9 @@ func load_spike(preserve_preparation: bool = false) -> void:
 	timer = 20.0
 	lab.selected = 2
 	if not preserve_preparation:
-		lab.armed = false
+		PlayerLifecycle.disarm(lab)
 		lab.charging = false
-		lab.confirm_window = 0
+		PlayerLifecycle.set_window(lab, 0)
 	RallyLedger.clear_all(lab)
 	lab.contact_memory.assign([0.0, 0.0, 0.0, 0.0])
 	LiveBall.launch(lab, spike_to_world(Vector3(-16 + [0.0, -0.6, 0.6][spike_progress % 3], lab.athlete.reach() + SPIKE_HEIGHT_OFFSET, SPIKE_BALL_Z)), Vector3.ZERO, {})

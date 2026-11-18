@@ -1,6 +1,7 @@
 extends Node3D
 
 enum State { IDLE, TOSS, SWING, FLIGHT, CHANNEL, TOSS_CHARGE }
+const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
 const LiveBall := preload("res://scripts/live_ball.gd")
 const ContactCommit := preload("res://scripts/contact_commit.gd")
 const RallyLedger := preload("res://scripts/rally_ledger.gd")
@@ -206,7 +207,7 @@ func _begin_toss(up_speed: float) -> void:
 	toss_time = 0
 	evidence = {}
 	main_court = absf(lab.player.position.x-lab.court_center.x) <= lab.court_half_width+1.5 and absf(lab.player.position.z) > 0.35 and absf(lab.player.position.z) <= lab.court_half_depth+6
-	lab.armed = false
+	PlayerLifecycle.disarm(lab)
 	lab.auto_preparation.clear()
 	lab.charging = false
 	RallyLedger.clear_all(lab)

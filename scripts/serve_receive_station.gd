@@ -1,5 +1,6 @@
 extends Node3D
 
+const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
 const LiveBall := preload("res://scripts/live_ball.gd")
 const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const CENTER := Vector3(16, 0, 6.5)
@@ -204,10 +205,10 @@ func start() -> void:
 	timer = 1.5
 	LiveBall.release(lab)
 	lab.training_bots.active_action = -1
-	lab.armed = false
+	PlayerLifecycle.disarm(lab)
 	lab.charging = false
 	lab.selected = 0
-	lab.confirm_window = 0
+	PlayerLifecycle.set_window(lab, 0)
 	detail = "Get ready / receive into the scoring half / reach 8 points. Move + Space to dive."
 	lab._message(detail)
 
