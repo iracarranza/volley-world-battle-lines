@@ -41,3 +41,7 @@ Branch `migration/architecture-ms00-14`, stages MS-00..MS-04 (group 1). Behaviou
 - `docs/architecture-migration/tuning-index.md` lists the shared timing constants (owner, unit, status); `tests/tuning_index_test.gd` checks every row against the code (and that a write on the shared instance is seen by `Execution`).
 - Tests: `tuning_index_test`, `action_timeline`, `contact_execution`, `graduated_spike`, `spike_sweep_timing`, `spike_confirm`, `moc_spike_window`, `swing_lead_in`, `swing_clock`, `moc_menu`, `contact_zones`, `trajectory_preview` all green.
 - `SWEET_CENTER` coupling to `swing_clock.gd` `PEAK` is recorded in the index as a cross-action constant.
+
+### MS-03b ActionTable mirror and contract test (additive, before any consumer)
+- New `scripts/action_table.gd`: read-only rows for Receive, Set, Attack, Block, read live (windup is a session setting). The Block row is a press pulse (`BlockResponse.PRESS_SECONDS`) with no age window, so its sweet fields are -1 (FC-12: a table built from `Execution` would invent one).
+- `tests/action_table_test.gd` (28/28) samples `ContactResolver.assess` across confirmation ages 0-0.62 s for each action at windup 0.25 and 0.4, and checks that the resolver's live and sweet windows equal the row; Block: sweet at pulse 0, not at `PRESS_SECONDS`, never rescue. Observed windows: Receive 0.12-0.44 sweet, Set 0.155-0.335 sweet, Attack windup 0.25 + sweep 0.20.
