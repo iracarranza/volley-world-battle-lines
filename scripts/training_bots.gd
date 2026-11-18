@@ -4,6 +4,7 @@ extends Node3D
 
 # Dependencies and fixed configuration.
 const AttackTarget := preload("res://scripts/bot_attack_target.gd")
+const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const RngSeed := preload("res://scripts/rng_seed.gd")
 const BotSettings := preload("res://scripts/bot_settings.gd")
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
@@ -719,7 +720,7 @@ func tick_contact(dt: float) -> bool:
 	active_slot = -1
 	var side: int = int(slot_away(bot_slot))
 	var slot := bot_slot
-	if action != 3 and lab.side_contacts[side] >= 3:
+	if action != 3 and RallyLedger.bot_at_limit(lab,side):
 		lab._finish_fault("Four-contact fault / Bot #%d" % (slot+1),int(slot_away(slot)))
 		return true
 	if action != 3 and not responsible_for(slot,lab.side_contacts[side]+1,action):
@@ -728,7 +729,7 @@ func tick_contact(dt: float) -> bool:
 	if lab.block_serve_fault(action,lab.ball_shot,"Bot #%d" % (slot+1),int(slot_away(slot))): return true
 	lab.ball.position = intercept
 	if action != 3:
-		lab.side_contacts[side] += 1
+		RallyLedger.count_bot_touch(lab,side)
 	last_was_block = action == 3
 	incoming_action = action
 	var incoming: Vector3 = lab.ball_velocity
@@ -798,7 +799,7 @@ func tick_contact(dt: float) -> bool:
 	total_contacts += 1
 	last_action = action
 	lab.trail_points.clear()
-	lab.contacts = 0
+	RallyLedger.clear_personal(lab)
 	for memory_slot in range(4):
 		lab.contact_memory[memory_slot] = 0.0
 	lab.outgoing = false
