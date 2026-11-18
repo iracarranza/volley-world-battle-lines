@@ -1,6 +1,7 @@
 extends Node3D
 
 # Provisional, world-space drills using the same movement and action contacts.
+const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const Footprints := preload("res://scripts/drill_layout.gd")
 const BOX_START := Vector3(-36, 0, 13)
 # The ball hangs half a metre from the Net on the home side, in line with the approach; the runway ends beneath it.
@@ -321,8 +322,7 @@ func load_spike(preserve_preparation: bool = false) -> void:
 		lab.armed = false
 		lab.charging = false
 		lab.confirm_window = 0
-	lab.contacts = 0
-	lab.side_contacts.assign([0, 0])
+	RallyLedger.clear_all(lab)
 	lab.contact_memory.assign([0.0, 0.0, 0.0, 0.0])
 	lab.ball.position = spike_to_world(Vector3(-16 + [0.0, -0.6, 0.6][spike_progress % 3], lab.athlete.reach() + SPIKE_HEIGHT_OFFSET, SPIKE_BALL_Z))
 	move_bonus_circle()

@@ -118,8 +118,7 @@ func feed() -> void:
 	lab.ball_shot = preload("res://scripts/receive_charge.gd").shot("receive",0.35,"transition_partner")
 	lab.ball_active = true
 	lab.outgoing = false
-	lab.contacts = 0
-	lab.side_contacts.assign([0,0])
+	RallyLedger.clear_all(lab)
 	lab.trail_points.clear()
 	lab.selected = 1
 	timer = 10

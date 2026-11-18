@@ -1,5 +1,6 @@
 extends Node3D
 
+const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const CENTER := Vector3(16, 0, 6.5)
 const SERVE_BASELINE_Z := -10.0
 const SERVE_CONTACT_HEIGHT := 3.60
@@ -385,9 +386,7 @@ func strike_feed() -> void:
 	lab.ball_active = true
 	lab._emit_external_impact("drill_serve", 4, incoming, {"hit": true, "sweet": false})
 	lab.outgoing = false
-	lab.contacts = 0
-	lab.side_contacts[0] = 0
-	lab.side_contacts[1] = 0
+	RallyLedger.clear_all(lab)
 	for action in range(4):
 		lab.contact_memory[action] = 0.0
 	lab.trail_points.clear()

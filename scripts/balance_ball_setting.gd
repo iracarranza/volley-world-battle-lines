@@ -106,8 +106,7 @@ func feed() -> void:
 	lab.ball_shot = preload("res://scripts/receive_charge.gd").shot("receive", 0.35, "balance_wall")
 	lab.ball_active = true
 	lab.outgoing = false
-	lab.contacts = 0
-	lab.side_contacts.assign([0, 0])
+	RallyLedger.clear_all(lab)
 	lab.trail_points.clear()
 	timer = 10.0
 	detail = "Set the wall target / WASD to counterbalance / lean %.0f%%" % (100 * lean.length() / MAX_LEAN)

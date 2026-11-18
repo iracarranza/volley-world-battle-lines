@@ -44,28 +44,9 @@
 		"training_bots.gd": 5,
 		"transition_set_drill.gd": 2
 	},
-	"contacts": {
-		"balance_ball_setting.gd": 1,
-		"contact_lab.gd": 5,
-		"interactive_serve.gd": 1,
-		"map_drills.gd": 1,
-		"pepper_partners.gd": 2,
-		"serve_receive_station.gd": 1,
-		"training_bots.gd": 1,
-		"transition_set_drill.gd": 1
-	},
+	"contacts": {},
 	"last_touch": {
-		"contact_lab.gd": 4,
 		"rally_rules.gd": 2
 	},
-	"side_contacts": {
-		"balance_ball_setting.gd": 1,
-		"contact_lab.gd": 5,
-		"interactive_serve.gd": 1,
-		"map_drills.gd": 1,
-		"pepper_partners.gd": 2,
-		"serve_receive_station.gd": 2,
-		"training_bots.gd": 1,
-		"transition_set_drill.gd": 1
-	}
+	"side_contacts": {}
 }

@@ -1,6 +1,7 @@
 extends Node3D
 
 enum State { IDLE, TOSS, SWING, FLIGHT, CHANNEL, TOSS_CHARGE }
+const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const HOLD_THRESHOLD := 0.18
 const CHANNEL_SECONDS := 1.0
 var input_held := false
@@ -206,8 +207,7 @@ func _begin_toss(up_speed: float) -> void:
 	lab.armed = false
 	lab.auto_preparation.clear()
 	lab.charging = false
-	lab.contacts = 0
-	lab.side_contacts.fill(0)
+	RallyLedger.clear_all(lab)
 	lab.training_bots.active_action = -1
 	lab.training_bots.incoming_action = -1
 	lab.training_bots.last_was_block = false

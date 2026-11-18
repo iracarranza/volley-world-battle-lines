@@ -1,6 +1,7 @@
 extends Node3D
 
 # Dependencies and fixed configuration.
+const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const Settings := preload("res://scripts/bot_settings.gd")
 const RngSeed := preload("res://scripts/rng_seed.gd")
 const Vitals := preload("res://scripts/bot_vitals.gd")
@@ -142,8 +143,7 @@ func try_start(previous: Vector3) -> bool:
 			exchanges = 0
 			npc_turn = true
 			lab.training_bots.active_action = -1
-			lab.contacts = 0
-			lab.side_contacts.fill(0)
+			RallyLedger.clear_all(lab)
 			lab.selected = 0
 			plan()
 			lab._message(LABELS[index] + " / PEPPER START / receive, set, attack back to your partner")
@@ -397,8 +397,7 @@ func tick(dt: float) -> bool:
 	last_delivery.make_read_only()
 	preparation.finish(partner)
 	lab.trail_points.clear()
-	lab.contacts = 0
-	lab.side_contacts.fill(0)
+	RallyLedger.clear_all(lab)
 	lab.contact_memory.fill(0.0)
 	exchanges += 1
 	npc_turn = false
