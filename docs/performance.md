@@ -29,6 +29,26 @@ physics time, draw calls, objects, nodes and memory.
   would cut draw work if the GPU becomes the limit.
 - The pose smoother and the pose-apply step are now the largest remaining bot costs.
 
+## Action/UI cleanup pass (2026-10-23)
+
+- Pose smoothing computes the quintic transition weights once per update, and skips offset
+  calculations after the blend ends. A 72-channel, 10,000-update headless comparison against
+  the previous implementation measured 80.56 → 51.87 µs/update for steady poses and
+  91.16 → 67.40 µs/update while switching sources. A 1,000-frame equivalence check had
+  zero numerical difference for the sampled poses. These are component measurements, not FPS gains.
+- Receive planting reuses a per-action working pose instead of deep-copying the authored pose
+  and allocating side-channel dictionaries every frame. Each new action reloads the cached
+  authored baseline, so pose-editor changes are picked up on the next confirmation.
+- Timeline regions rebuild only when the action or spike windup changes. Parked/held timelines
+  redraw only when their displayed state changes; fading uses canvas modulation.
+- Trajectory previews now use the same tilt/lean-relative contact coordinates as live contacts.
+- The same 900-frame rally profile produced eight bot contacts before and after. Physics script
+  cost was essentially unchanged (3.012 → 3.014 ms/frame); render-side script work was
+  0.387 → 0.378 ms/frame. This pass reduces local work without claiming a large overall FPS gain.
+
+Validation: pose smoother/blender, movement animation, receive planting, action timeline,
+trajectory preview, bot rally, and spike sweep suites passed. Profiles were run headlessly.
+
 ## Rig draw-call prototypes (2026-10-25)
 
 `VoliVisual.rig_mode` selects how an athlete's ~77 meshes are drawn:

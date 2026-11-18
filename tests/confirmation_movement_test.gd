@@ -20,7 +20,7 @@ func run() -> void:
 		lab.player.velocity = Vector3.DOWN * 2
 		lab.player.move_and_slide()
 		await physics_frame
-	lab.locked_action = 0
+	lab.locked_action = 1
 	lab.armed = true
 	lab.player.velocity.x = 5
 	lab._confirm_action()
@@ -37,7 +37,7 @@ func run() -> void:
 	lab.motion.jump_charge = -1
 	lab.motion.approach_bound = false
 	lab.ball_active = true
-	lab.ball.position = lab.player.position + lab._raw_hurtbox_definition(0).center
+	lab.ball.position = lab.player.position + lab._raw_hurtbox_definition(1).center
 	lab.ball_velocity = Vector3(0, -1, 2)
 	lab._contact()
 	check(lab.confirm_window == 0, "Contact ends confirmation")

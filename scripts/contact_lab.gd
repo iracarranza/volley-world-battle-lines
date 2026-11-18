@@ -122,6 +122,7 @@ var hurtbox_view: LabHurtboxView
 var hurtbox_root: Node3D
 var hurtbox_mesh: MeshInstance3D
 var hurtbox_label: Label3D
+var receive_plant := preload("res://scripts/receive_plant.gd").new()
 var confirmed_geometry: Dictionary = {}
 var hurtbox_action := -1
 var hurtbox_linger := 0.0
@@ -407,6 +408,7 @@ func _raw_hurtbox_definition(action: int) -> Dictionary:
 	return shape
 
 func _contact_yaw() -> float:
+	if receive_plant.active() and locked_action == 0: return receive_plant.yaw
 	var facing := motion.airborne_aim if motion.jumped else Vector3(-sin(camera_rig.facing_yaw), 0, -cos(camera_rig.facing_yaw))
 	return atan2(-facing.x, -facing.z)
 
@@ -416,12 +418,21 @@ func _build_hurtbox() -> void:
 	hurtbox_root.hide()
 	hurtbox_view = LabHurtboxView.new(hurtbox_root, world_builder)
 
+func receive_planted() -> bool:
+	return receive_plant.active() and not receive_plant.contacted and locked_action == 0 and confirm_window > 0 and player.is_on_floor() and not motion.jumped
+
 func _confirm_action(window: float = -1.0) -> void:
 	if block_state.active and locked_action == 3 and not block_state.confirm(): return
 	if _check_bench():
 		return
+	receive_plant.clear()
 	if locked_action == 0:
 		motion.cancel_receive_preparation()
+		receive_plant.begin(_contact_yaw(), hurtbox_pitch())
+		if player.is_on_floor() and not motion.jumped:
+			player.velocity.x = 0
+			player.velocity.z = 0
+			motion.quick_step_time = 0
 	# The click is what starts the strike. Until then the spiker only loads.
 	if motion.jumped and motion.airborne_action == 2 and locked_action == 2 and animation.spike_swing_time < 0.0:
 		animation.spike_swing_time = 0.0
@@ -429,6 +440,7 @@ func _confirm_action(window: float = -1.0) -> void:
 	confirmed_geometry = {}
 	confirm_window = minf(window, Execution.contact_seconds(locked_action)) if window > 0 else Execution.contact_seconds(locked_action)
 	confirm_duration = confirm_window
+	hud.athlete_hud.timeline.begin(locked_action)
 	sweet_visual_expired = false
 	sweet_visual_phase = ""
 	hurtbox_action = locked_action
@@ -476,6 +488,7 @@ func _update_hurtbox_visual(dt: float) -> void:
 
 # The tilt of every hurtbox from its neutral orientation: how far the aim is raised (positive) or lowered from the neutral view.
 func hurtbox_pitch() -> float:
+	if receive_plant.active() and locked_action == 0: return receive_plant.pitch
 	if not rotate_hurtboxes or camera_rig == null:
 		return 0.0
 	return clampf(camera_rig.view_pitch - NEUTRAL_VIEW_PITCH, -MAX_HURTBOX_PITCH, MAX_HURTBOX_PITCH)
@@ -486,6 +499,7 @@ func hurtbox_pivot() -> Vector3:
 
 # Where a hurtbox's centre is, relative to the athlete before the yaw: the shape's own centre, tilted about the shoulder.
 func hurtbox_center_local(center: Vector3) -> Vector3:
+	if receive_plant.active() and locked_action == 0: center += receive_plant.offset()
 	var pitch := hurtbox_pitch()
 	if pitch == 0.0:
 		return center
@@ -499,10 +513,11 @@ func _local_contact_position() -> Vector3:
 func local_contact_position_at(world_point: Vector3) -> Vector3:
 	var point := (world_point - player.position).rotated(Vector3.UP, -_contact_yaw())
 	var pitch := hurtbox_pitch()
-	if pitch == 0.0:
-		return point
-	var pivot := hurtbox_pivot()
-	return pivot + (point - pivot).rotated(Vector3.RIGHT, -pitch)
+	if pitch != 0.0:
+		var pivot := hurtbox_pivot()
+		point = pivot + (point - pivot).rotated(Vector3.RIGHT, -pitch)
+	if receive_plant.active() and locked_action == 0: point -= receive_plant.offset()
+	return point
 
 func _overlaps_contact(action: int) -> bool:
 	return Geometry.contains(_hurtbox_definition(action), _local_contact_position())
@@ -528,7 +543,7 @@ func contact_request(action: int) -> ContactRequest:
 	request.remembered = not Geometry.contains(request.shape, request.local_point) and contact_memory[action] > 0
 	request.facing = Vector3.FORWARD.rotated(Vector3.UP, _contact_yaw())
 	request.intent_direction = _intent_direction(action, committed_intent.get("direction", request.facing))
-	request.directional_input = Vector3.ZERO if moc.enabled and moc.steering_duration > 0 and moc.mode == moc.Mode.TRAJECTORY_STEERING else directional_input.value()
+	request.directional_input = Vector3.ZERO if action == 0 or moc.enabled and moc.steering_duration > 0 and moc.mode == moc.Mode.TRAJECTORY_STEERING else directional_input.value()
 	request.movement_speed = Vector2(player.velocity.x, player.velocity.z).length()
 	request.flow = athlete.flow
 	request.gravity = GRAVITY
@@ -656,6 +671,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			cursor_release_click = false
 			return
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed and player.is_on_floor():
+			hud.athlete_hud.timeline.clear()
 			charging = false
 			armed = false
 			auto_preparation.clear()
@@ -835,6 +851,8 @@ func _can_contact() -> bool:
 		return false
 	if pepper.active() and (pepper.npc_turn or locked_action != pepper.required_player_action()):
 		return false
+	if locked_action == 0 and receive_plant.active():
+		return _overlaps_contact(0)
 	if locked_action == 0 and _local_contact_position().z > 0:
 		return false
 	if locked_action == 2:
@@ -895,7 +913,8 @@ func _loft_velocity(origin: Vector3, action: int, power: float, direction: Vecto
 		if not motion.jumped:
 			distance *= GROUND_SET_RANGE_FACTOR
 			peak = origin.y + (peak - origin.y) * GROUND_SET_RISE_FACTOR
-	peak = origin.y + (peak - origin.y) * _contact_loft_factor(action == 1 and back_set)
+	if action != 0:
+		peak = origin.y + (peak - origin.y) * _contact_loft_factor(action == 1 and back_set)
 	var upward := sqrt(2.0 * GRAVITY * maxf(peak - origin.y, 0.1))
 	var duration := (upward + sqrt(upward * upward + 2.0 * GRAVITY * maxf(origin.y - 0.105, 0.0))) / GRAVITY
 	return direction * distance / maxf(duration, 0.01) + Vector3.UP * upward
@@ -967,6 +986,7 @@ func _impact_event(actor_id: String, action: int, incoming: Vector3, assessment:
 	return event
 
 func _publish_impact(event: Dictionary) -> void:
+	hud.athlete_hud.timeline.contact(event)
 	if not station.running() and not drills.running() and not pepper.active():
 		var touching_side := int(event.team)
 		# An opponent's touch renews the team's allowance even when a block
@@ -979,6 +999,7 @@ func _publish_impact(event: Dictionary) -> void:
 	net_bounce_pending = false
 	net_response.clear_side = signf(ball.position.z)
 	if event.action == Action.RECEIVE:
+		if event.actor == "player": receive_plant.contacted = true
 		receive_resolved.emit(event)
 	animation.on_contact(event)
 	contact_flow.record(event)
@@ -1375,6 +1396,7 @@ func _reset() -> void:
 		pepper.refresh_for_rally()
 	camera_rig.ball_camera_offset_ready = false
 	camera_rig.ball_movement_yaw = 0.0
+	receive_plant.clear()
 	animation.receive_posture = "planted"
 	animation.receive_pose_remaining = 0
 	animation.carry.reset()
@@ -1426,6 +1448,7 @@ func _reset() -> void:
 	hurtbox_linger = 0
 	rescue_swing_remaining = 0
 	hurtbox_action = -1
+	hud.athlete_hud.timeline.clear()
 	confirm_duration = 0.0
 	confirmed_geometry = {}
 	hurtbox_root.hide()

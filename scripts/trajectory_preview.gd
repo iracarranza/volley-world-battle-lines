@@ -26,8 +26,7 @@ static func predict(lab: Node3D) -> Dictionary:
 	var nearby: Vector3 = lab.player.position + Vector3.UP * float(lab.athlete.body_height()) * 0.8
 	if origin.distance_to(nearby) > NEAR_METERS:
 		return {}
-	var yaw: float = lab._contact_yaw()
-	var local: Vector3 = (origin-lab.player.position).rotated(Vector3.UP,-yaw)
+	var local: Vector3 = lab.local_contact_position_at(origin)
 	if action == 0 and local.z > 0:
 		return {} # A receiving platform cannot reach behind the athlete.
 	var shape: Dictionary = lab._hurtbox_definition(action)

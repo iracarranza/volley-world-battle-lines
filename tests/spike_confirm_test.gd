@@ -49,12 +49,12 @@ func run() -> void:
 	contact = contact - 360.0 if contact > 0.0 else contact
 	var at_contact := Stage.pose_for(0.0, 1.0, 0.7)
 	check(half > contact and half < float(loaded["shoulder_pitch:Right"]) + 1.0 and absf(contact - float(at_contact["shoulder_pitch:Right"])) < 12.0, "after the click the arm comes through to contact (%.0f -> %.0f -> %.0f)" % [float(loaded["shoulder_pitch:Right"]), half, contact])
-	# The swing holds at contact until the ball is struck, then follows through.
+	# The active sweep continues forward after peak extension, even without a ball.
 	lab.animation.spike_swing_time = 0.5
 	lab.animation.update()
 	var waiting: float = strike_shoulder.call()
 	waiting = waiting - 360.0 if waiting > 0.0 else waiting
-	check(absf(waiting - contact) < 1.0, "it waits at contact for the ball")
+	check(waiting < contact - 10.0, "the swing continues through the forward rescue section without a ball")
 	lab.animation.spike_hit_time = 0.5
 	lab.animation.spike_swing_time = 0.5 + Stage.FOLLOW_SECONDS
 	lab.animation.update()

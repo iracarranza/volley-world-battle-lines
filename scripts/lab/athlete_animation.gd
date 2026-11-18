@@ -95,7 +95,7 @@ func tick_action_clocks(dt: float) -> void:
 	spike_air_time = spike_air_time + dt if lab.motion.jumped and lab.motion.airborne_action == 2 else 0.0
 	if lab.motion.jumped and lab.motion.airborne_action == 2 and spike_swing_time >= 0.0:
 		spike_swing_time += dt*(lab.athlete.transition_rate() if spike_hit_time >= 0 else 1.0)
-		# The swing waits at contact for the ball; if the window closes without a hit it carries on regardless.
+		# Complete recovery after an empty sweep once the contact window closes.
 		if spike_hit_time < 0.0 and spike_swing_time > SpikeStage.STRIKE_SECONDS and lab.confirm_window <= 0.0:
 			spike_hit_time = spike_swing_time
 	set_air_time = set_air_time + dt if lab.motion.jumped and lab.motion.airborne_action == 1 else 0.0
@@ -119,6 +119,8 @@ func update() -> void:
 	var direction := lab.aim - lab.player.position
 	if direction.length_squared() > 0.1:
 		lab.body.rotation.y = lab.camera_rig.facing_yaw if lab.camera_rig.camera_mode == ViewMode.BALL and lab.ball_active else atan2(-direction.x, -direction.z)
+	if lab.receive_plant.active() and lab.locked_action == 0:
+		lab.body.rotation.y = lab.receive_plant.yaw
 	dive_base_yaw = lab.body.rotation.y
 	dive_applied_yaw = dive_turn_offset()
 	lab.body.rotation.y += dive_applied_yaw
@@ -171,6 +173,8 @@ func update() -> void:
 	if loco_on and loco_weight > 0.001:
 		apply_locomotion_spine(locomotion_state)
 	_apply_contact_response(diving_now, preparing_dive)
+	if lab.receive_plant.active() and not lab.receive_plant.contacted and not lab.motion.jumped and floor_recovery_time < 0 and dive_recovery_time < 0:
+		lab.receive_plant.pose(lab.body)
 	smooth_pose(pose_source(diving_now, preparing_dive, receive_ready or follow_receive))
 	_finish_pose(diving_now, preparing_dive)
 
@@ -361,6 +365,9 @@ func _apply_contact_response(diving_now: bool, preparing_dive: bool) -> void:
 
 
 func _finish_pose(diving_now: bool, preparing_dive: bool) -> void:
+	if lab.receive_plant.active() and not lab.motion.jumped and floor_recovery_time < 0 and dive_recovery_time < 0:
+		var shift := Vector3(lab.receive_plant.lean.x * 0.18, 0, 0).rotated(Vector3.UP, lab.receive_plant.yaw)
+		lab.body.position += shift * (1.0 - smoothstep(0.55, lab.receive_plant.DURATION, lab.receive_plant.age))
 	var wing_pose := "tucked"
 	var wing_weight := 0.0
 	if diving_now or preparing_dive:

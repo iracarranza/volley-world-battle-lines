@@ -20,8 +20,8 @@ const CHEST_TURN_LIMIT := 24.0
 
 # The swing has two clocks. Until the click the body only loads: from takeoff to the cocked position (the
 # striking arm back behind the head, the other arm pointing at the ball) and it holds there. The click starts
-# the strike, which takes STRIKE_SECONDS to reach contact (phase 0) and waits there; follow-through starts when
-# the ball is struck (`hit_time`, in swing-clock seconds) or when the contact window closes without a hit.
+# the strike, which takes STRIKE_SECONDS to reach peak extension (phase 0). The active sweep
+# continues through the forward rescue region; a hit starts the contact follow-through.
 const LOADED := -0.30
 static var STRIKE_SECONDS: float:
 	get: return Execution.SPIKE_PEAK
