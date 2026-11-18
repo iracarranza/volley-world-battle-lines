@@ -8,7 +8,7 @@ The code form is `scripts/player_lifecycle.gd` (`TABLE`, `legal`, `phase`) and i
 | CONFIRMED | `confirm_window > 0` | PREPARED (confirm click), IDLE (swept Block bypasses `_can_contact`, FC-04) | CONTACTED, MISSED, IDLE (cancel) |
 | PREPARED | `armed` | CHARGING (release), IDLE (dive, passive Block, jump with a charge), RECOVERY | CONFIRMED, IDLE, RECOVERY |
 | CHARGING | `charging` | IDLE (press), RECOVERY | PREPARED, IDLE |
-| RECOVERY | `action_endlag > 0` or a roll/dive/floor recovery | CONTACTED, MISSED, locks | IDLE, CHARGING, PREPARED |
+| RECOVERY | a roll, dive or floor recovery (`PlayerLocks.recovering`; the end lag is not read, it gates nothing, S-11) | CONTACTED, MISSED, locks | IDLE, CHARGING, PREPARED |
 | IDLE | none of the above | any cancel | CHARGING, PREPARED, CONFIRMED |
 | CONTACTED, MISSED | transient inside the confirm step (`_contact`, the miss branch of the window decay); never observed between ticks | CONFIRMED | IDLE, RECOVERY |
 

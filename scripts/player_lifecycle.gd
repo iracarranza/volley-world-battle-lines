@@ -37,7 +37,7 @@ static func phase(lab) -> String:
 	if lab.confirm_window > 0.0: return CONFIRMED
 	if lab.armed: return PREPARED
 	if lab.charging: return CHARGING
-	if lab.action_endlag > 0.0 or PlayerLocks.recovering(lab): return RECOVERY
+	if PlayerLocks.recovering(lab): return RECOVERY
 	return IDLE
 
 # --- Operations: the only writers of `armed` and `confirm_window` ----------------------------------------------------------------------------------
