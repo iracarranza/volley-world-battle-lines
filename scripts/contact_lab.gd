@@ -1192,9 +1192,7 @@ func _tick_ball(dt: float) -> void:
 	if drills.holding_ball():
 		return
 	var previous := ball.position
-	ball.position += ball_velocity * dt + Vector3.DOWN * (GRAVITY * dt * dt * 0.5)
-	ball_velocity.y -= GRAVITY * dt
-	ball.rotate_x(dt * 4)
+	LiveBall.integrate(self, dt)
 	serve.tick(dt, previous)
 	if not serve.tossing() and not inventory.free_ball and not station.running() and not drills.running():
 		pepper.try_start(previous)
@@ -1211,8 +1209,7 @@ func _tick_ball(dt: float) -> void:
 	elif net_bounce_pending and not bool(net_result.pocket):
 		net_bounce_pending = false
 		training_bots.replan_after_net()
-	ball.position = net_result.position
-	ball_velocity = net_result.velocity
+	LiveBall.commit_net(self, net_result)
 	if previous.z*ball.position.z < 0 and not bool(net_result.pocket) and net_result.contact == "":
 		var crossing := previous.lerp(ball.position,previous.z/(previous.z-ball.position.z))
 		if not station.running() and not drills.running() and not pepper.active() and (serve.state != serve.State.FLIGHT or serve.main_court) and absf(crossing.x-court_center.x)+Geometry.VISUAL_BALL_RADIUS > net_response.web_half_width:

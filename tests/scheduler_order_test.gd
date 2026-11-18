@@ -8,7 +8,7 @@ const TICK := ["auto_preparation.tick(world_dt", "contact_flow.tick(world_dt)", 
 	"station.tick(world_dt)", "drills.tick(world_dt)", "_remember_contacts(dt)", "_tick_ball(world_dt)", "training_bots.tick_motion(world_dt)",
 	"confirm_window = maxf(0, confirm_window - dt)", "and _can_contact():\n\t\t\t_contact()", "_update_preview(false)", "hud.update()"]
 ## Ball integration step: statement order inside _tick_ball.
-const BALL := ["dt *= moc.clock_record().ball()", "ball.position += ball_velocity * dt", "serve.tick(dt, previous)", "pepper.try_start(previous)", "pepper.tick(world_dt)",
+const BALL := ["dt *= moc.clock_record().ball()", "LiveBall.integrate(self, dt)", "serve.tick(dt, previous)", "pepper.try_start(previous)", "pepper.tick(world_dt)",
 	"drills.sweep_ball(previous,dt)", "_try_swept_player_block(previous, dt)", "resolve_ball_net(previous,dt)", "OUTSIDE-ANTENNA FAULT", "UNDER-NET FAULT",
 	"contact_flow.net_cross()", "training_bots.tick(world_dt)", "intersect_ray(query)", "if ball.position.y <= 0.105:"]
 

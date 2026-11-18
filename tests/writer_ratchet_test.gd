@@ -19,7 +19,7 @@ const FC05_BALL_VELOCITY := ["balance_ball_setting.gd", "bot_pads.gd", "contact_
 
 ## Declared operation owners (blueprint MS-06..08): the files whose job is to perform these writes. They are the ledger, not a growth of the
 ## writer set, so they are not counted; every other file is ratcheted as before. A new entry is a decision (an ADR change).
-const OPERATION_OWNERS := ["rally_ledger.gd"]
+const OPERATION_OWNERS := ["rally_ledger.gd", "live_ball.gd"]
 
 func _initialize() -> void: call_deferred("run")
 

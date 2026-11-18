@@ -5,6 +5,7 @@ signal impact_ended
 
 # Contact-triggered local simulation clocks; preparation always runs at full speed.
 enum Mode { CURRENT_SLOWDOWN, TUNED_SLOWDOWN, NONE, TRAJECTORY_STEERING }
+const LiveBall := preload("res://scripts/live_ball.gd")
 const Steering := preload("res://scripts/moc_steering.gd")
 const StepClock := preload("res://scripts/step_clock.gd")
 var steering := Steering.new()
@@ -222,4 +223,4 @@ func steer(dt: float, input: Vector3) -> void:
 	steering_feedback = steering.step(input,dt,steering_rate,steering_hp_cost*hp_multiplier*maxf(0,1.0-athlete.trait_effect("di_cost_reduction")/100.0),athlete.hp)
 	athlete.spend(0,float(steering_feedback.cost)/hp_multiplier)
 	# Preserve gravity/physics accumulated since the preceding real-time update.
-	owner_lab.ball_velocity += steering.velocity-before
+	LiveBall.steer(owner_lab, steering.velocity-before)
