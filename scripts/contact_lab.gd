@@ -11,6 +11,7 @@ const Action := preload("res://scripts/contact/action.gd").Type
 
 
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
+const RallyLedger := preload("res://scripts/rally_ledger.gd")
 var ball_shot: Dictionary = {}
 var last_receive_match: Dictionary = {}
 const ReceivePlatform := preload("res://scripts/receive_platform.gd")
@@ -829,12 +830,11 @@ func _feed() -> void:
 	ball.position = Vector3(court_center.x+(target.x-court_center.x)*0.6,3.6,-7.5)
 	var duration := 2.0
 	ball_velocity = (target - ball.position) / duration + Vector3.UP * (GRAVITY * duration * 0.5)
-	rally_rules.begin(1)
+	RallyLedger.begin_rally(self, 1)
 	ball_shot = ReceiveCharge.shot("serve", 0.60, "debug_feed")
 	ball_active = true
 	outgoing = false
-	contacts = 0
-	side_contacts = [0, 0]
+	RallyLedger.clear_all(self)
 	training_bots.last_was_block = false
 	training_bots.incoming_action = -1
 	contact_memory = [0.0, 0.0, 0.0, 0.0]
@@ -988,13 +988,9 @@ func _impact_event(actor_id: String, action: int, incoming: Vector3, assessment:
 func _publish_impact(event: Dictionary) -> void:
 	hud.athlete_hud.timeline.contact(event)
 	if not station.running() and not drills.running() and not pepper.active():
-		var touching_side := int(event.team)
 		# An opponent's touch renews the team's allowance even when a block
 		# reverses the ball before it fully clears the net's crossing plane.
-		side_contacts[1 - touching_side] = 0
-		if touching_side != side_index(player.position.z):
-			contacts = 0
-		rally_rules.touch(touching_side)
+		RallyLedger.renew_opponent(self, int(event.team))
 	clear_net_responses()
 	net_bounce_pending = false
 	net_response.clear_side = signf(ball.position.z)
@@ -1025,7 +1021,7 @@ func _emit_external_impact(actor_id: String, action: int, incoming: Vector3, ass
 		event.team = int(training_bots.slot_away(slot))
 	if actor_id == "player_serve":
 		event.team = side_index(player.position.z)
-		rally_rules.begin(event.team)
+		RallyLedger.begin_rally(self, event.team)
 		action_endlag = 0.22
 	_publish_impact(event.publish())
 
@@ -1083,16 +1079,12 @@ func _contact() -> void:
 		animation.spike_hit_time = animation.spike_swing_time
 		animation.spike_contacted = true
 	var is_block := locked_action == 3
-	if not is_block:
-		contacts += 1
+	RallyLedger.count_player_touch(self, is_block)
 	var side := side_index(player.position.z)
-	if not is_block and (pepper.player_contacts >= 3 if pepper.active() else (contacts > 3 or side_contacts[side] >= 3)):
+	if RallyLedger.player_fault(self, is_block, side):
 		_finish_fault("Three-contact fault. Return the ball across the Net earlier.",side)
 		return
-	if pepper.active():
-		pepper.player_contacts += 1
-	elif not is_block:
-		side_contacts[side] += 1
+	RallyLedger.record_player_touch(self, is_block, side)
 	training_bots.last_was_block = locked_action == 3
 	training_bots.incoming_action = locked_action
 	var request := contact_request(locked_action)
@@ -1234,8 +1226,7 @@ func _tick_ball(dt: float) -> void:
 		training_bots.net_rebound = false
 	if net_result.crossed and absf(ball.position.x-court_center.x) <= net_response.web_half_width+0.1:
 		if not pepper.active():
-			side_contacts[side_index(ball.position.z)] = 0
-			contacts = 0
+			RallyLedger.reset_on_crossing(self)
 		if training_bots.active_action < 0:
 			training_bots.replan()
 
@@ -1376,7 +1367,7 @@ func _update_preview(draw_trajectory: bool = true) -> void:
 
 func _reset() -> void:
 	back_set = false
-	rally_rules.begin()
+	RallyLedger.begin_rally(self)
 	block_state.land()
 	ground_balls.clear()
 	if is_instance_valid(ball): ball.show()
@@ -1457,8 +1448,7 @@ func _reset() -> void:
 	feed_timer = 2.0
 	attempts = 0
 	returns = 0
-	contacts = 0
-	side_contacts = [0, 0]
+	RallyLedger.clear_all(self)
 	last_quality = "—"
 	action_endlag = 0.0
 	last_contact = -10.0

@@ -17,6 +17,10 @@ const PATTERNS := {
 ## The FC-05 file set for `ball_velocity` (study chapter 07, VAR-171): ten files, plus bot_pads.gd for its own pad ball.
 const FC05_BALL_VELOCITY := ["balance_ball_setting.gd", "bot_pads.gd", "contact_lab.gd", "interactive_serve.gd", "map_bot_roster.gd", "map_drills.gd", "moment_of_contact.gd", "pepper_partners.gd", "serve_receive_station.gd", "training_bots.gd", "transition_set_drill.gd"]
 
+## Declared operation owners (blueprint MS-06..08): the files whose job is to perform these writes. They are the ledger, not a growth of the
+## writer set, so they are not counted; every other file is ratcheted as before. A new entry is a decision (an ADR change).
+const OPERATION_OWNERS := ["rally_ledger.gd"]
+
 func _initialize() -> void: call_deferred("run")
 
 static func scripts(dir: String) -> Array:
@@ -43,6 +47,7 @@ static func measure() -> Dictionary:
 			for category in PATTERNS:
 				if expressions[category].search(code) != null:
 					var name: String = path.trim_prefix("res://scripts/")
+					if name in OPERATION_OWNERS: continue
 					found[category][name] = int(found[category].get(name, 0)) + 1
 	return found
 
