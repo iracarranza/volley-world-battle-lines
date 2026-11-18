@@ -6,6 +6,7 @@ signal impact_ended
 # Contact-triggered local simulation clocks; preparation always runs at full speed.
 enum Mode { CURRENT_SLOWDOWN, TUNED_SLOWDOWN, NONE, TRAJECTORY_STEERING }
 const Steering := preload("res://scripts/moc_steering.gd")
+const StepClock := preload("res://scripts/step_clock.gd")
 var steering := Steering.new()
 var steering_speed := 0.05
 var steering_duration := 0.40
@@ -84,18 +85,21 @@ func _effect_scale() -> float:
 		return lerpf(1.0,steering_speed,smoothstep(0,maxf(ramp,0.0001),age))
 	return (tuned_speed if mode == Mode.TUNED_SLOWDOWN else SLOW_SCALE) if active else 1.0
 
-func simulation_scale() -> float:
+# The one place a scale is read. Consumers ask for a record where they used to ask for a scale.
+func clock_record() -> StepClock:
 	var scale := _effect_scale()
-	return scale if affect_ball else 1.0
+	return StepClock.new(scale if affect_ball else 1.0, acting_actor, scale if affect_actor else 1.0, float(_now()) / 1000000.0)
+
+func simulation_scale() -> float:
+	return clock_record().ball()
 
 func actor_scale(actor_id: String) -> float:
-	var scale := _effect_scale()
-	return scale if affect_actor and actor_id == acting_actor else 1.0
+	return clock_record().actor(actor_id)
 
 # Helpers plan in ball-flight seconds, so they share its slowdown. A separately
 # slowed acting bot still respects its own clock when ball slowdown is disabled.
 func bot_scale(actor_id: String) -> float:
-	return minf(simulation_scale(),actor_scale(actor_id))
+	return clock_record().bot(actor_id)
 
 func charge_duration(event: Dictionary) -> float:
 	var action := int(event.get("action",-1))
