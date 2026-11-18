@@ -9,6 +9,7 @@ const SpikeDirection := preload("res://scripts/spike_direction.gd")
 const Geometry = preload("res://scripts/contact_geometry.gd")
 const Pose := preload("res://scripts/athlete_pose.gd")
 const DiveStage := preload("res://scripts/dive_stage.gd")
+const LockData := preload("res://scripts/lock_data.gd")
 const DiveRecovery := preload("res://scripts/dive_recovery.gd")
 const FloorRecovery := preload("res://scripts/floor_recovery.gd")
 const PoseLibrary := preload("res://scripts/pose_library.gd")
@@ -20,7 +21,7 @@ const Locomotion := preload("res://scripts/lab/athlete_locomotion.gd")
 const SpineRig := preload("res://scripts/spine_rig.gd")
 const Approach = preload("res://scripts/approach_run.gd")
 const ViewMode = LabCamera.ViewMode
-const ROLL_TIME := 0.9
+const ROLL_TIME := LockData.ROLL_TIME
 
 var lab: LabSession
 var contact_age := -1.0
@@ -483,7 +484,7 @@ func smooth_pose(source: String) -> void:
 	PoseLibrary.apply(lab.body, PoseLibrary.from_flat(shown, false), 1.0)
 
 func dive_input_locked() -> bool:
-	return dive_recovery_time >= 0.0 and dive_recovery_time < DiveRecovery.lock_seconds(dive_quality_value)
+	return dive_recovery_time >= 0.0 and dive_recovery_time < LockData.dive_lock_seconds(dive_quality_value)
 
 # How far the hips have turned toward a backward dive at this moment, in radians. The upper body turns ahead of
 # them (dive_turn_spine, dive_turn_neck in degrees), so the torso leads and the hips and feet follow.
@@ -567,7 +568,7 @@ func tick_dive_recovery(dt: float) -> void:
 		return
 	var step := dt
 	if not dive_input_locked() and (Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_D)):
-		step *= 1.6
+		step *= LockData.RELEASE_SPEEDUP
 	dive_recovery_time += step
 	if dive_recovery_time >= DiveRecovery.duration(dive_quality_value):
 		end_dive_recovery()
@@ -602,7 +603,7 @@ func on_receive_resolved(event: Dictionary) -> void:
 	floor_recovery_time = 0.0
 	var total := floor_recovery_total()
 	# Input comes back at the rise (the penalty budget for a shrug, whose gameplay budget is shorter than its animation).
-	floor_recovery_lock = float(event.get("recovery_penalty_seconds", total)) if recovery == "shrug" else FloorRecovery.lock_seconds(recovery) * floor_recovery_scale
+	floor_recovery_lock = LockData.floor_lock_seconds(recovery, floor_recovery_scale, event, total)
 	var plan := FloorRecovery.plan(recovery)
 	var forward := Vector3(-sin(lab.camera_rig.facing_yaw), 0, -cos(lab.camera_rig.facing_yaw))
 	var right := Vector3(cos(lab.camera_rig.facing_yaw), 0, -sin(lab.camera_rig.facing_yaw))
@@ -634,7 +635,7 @@ func tick_floor_recovery(dt: float) -> void:
 		return
 	var step := dt
 	if not floor_input_locked() and (Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_D)):
-		step *= 1.6
+		step *= LockData.RELEASE_SPEEDUP
 	floor_recovery_time += step
 	if floor_recovery_time >= floor_recovery_total():
 		floor_recovery_time = -1.0

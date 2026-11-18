@@ -5,6 +5,7 @@ extends Node3D
 
 signal receive_resolved(event: Dictionary)
 const PlayerLocks := preload("res://scripts/player_locks.gd")
+const LockData := preload("res://scripts/lock_data.gd")
 const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
 const ContactEvent := preload("res://scripts/contact/contact_event.gd")
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
@@ -168,7 +169,7 @@ var trail_points: Array[Vector3] = []
 const ViewMode = LabCamera.ViewMode
 var cursor_release_click := false
 var action_endlag := 0.0
-const ROLL_TIME := 0.9
+const ROLL_TIME := LockData.ROLL_TIME
 var contact_memory: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var body_collision_view: MeshInstance3D
 var arms: Array[Node3D] = []

@@ -8,7 +8,7 @@ const L3 := 3  # orchestration
 const L4 := 4  # presentation
 const LAYERS := {
 	"contact_execution": L1, "contact_geometry": L1, "contact/contact_resolver": L1, "receive_charge": L1, "directional_influence": L1, "approach_run": L1,
-	"dive_recovery": L1, "floor_recovery": L1, "net_response": L1, "rally_rules": L1, "contact/ball_state": L1, "gameplay_rules": L1, "contact_intent": L1, "auto_charge": L1,
+	"dive_recovery": L1, "floor_recovery": L1, "lock_data": L1, "net_response": L1, "rally_rules": L1, "contact/ball_state": L1, "gameplay_rules": L1, "contact_intent": L1, "auto_charge": L1,
 	"athlete": L2, "live_ball": L2, "rally_ledger": L2, "ball_lease": L2, "ball_custody": L2, "player_lifecycle": L2, "player_locks": L2, "block_state": L2,
 	"receive_plant": L2, "gameplay_modifiers": L2, "action_timeline": L2,
 	"contact_lab": L3, "map_lab": L3, "drill_lab": L3, "contact_commit": L3, "training_bots": L3, "pepper_partners": L3, "interactive_serve": L3, "map_activities": L3,
