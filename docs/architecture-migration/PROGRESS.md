@@ -66,3 +66,11 @@ Branch `migration/architecture-ms00-14`, stages MS-00..MS-04 (group 1). Behaviou
 - `tests/event_contract_test.gd` 28/28: documented fields exist (no more, no fewer) for player, bot, Pepper and Serve events; `receive_resolved` fires before the Flow record, Flow before MoC begin; the written order of `_publish_impact` equals the documented list; a duplicate event is idempotent.
 - Existing `contact_flow`, `moc`, `receive_response`, `impact_visual`, `cleanup_contracts`, `directional_influence` green. No production code touched.
 - Deviation: animation vs Flow order is pinned by the source-order check only (no observable hook between them).
+
+## Final full suite (MS-00..MS-04, branch head)
+`python3 tools/test.py --logs <scratch>/logs-ms04`: **161/161 passed** (155 baseline + 6 new: governance_docs, seed_hooks, tuning_index, action_table, step_clock, event_contract). Matches the MS-00 baseline plus the new suites; no suite deleted or loosened.
+
+## For the designer
+- D-09 (tertiary set size in `docs/laning-and-objectives.md`) skipped: depends on how "Tertiary unchanged" is read.
+- D-17 / MS-21 (Serve Receive Stamina cap) and all CHANGE stages MS-16..MS-21 untouched.
+- `docs/fatigue-status.md:5` and `docs/net-response.md` constants (MS-00 step 5) not edited: not in the D list.
