@@ -1,8 +1,9 @@
 extends RefCounted
-## MS-10 read-only locks facade (T-LK, interim: G-09 relocation is MS-12). Lock state still lives in the animation controller; readers ask here, so the
-## move later changes one file. Nothing here writes.
+const LockData := preload("res://scripts/lock_data.gd")
+## Locks facade (T-LK). MS-12: durations and predicates are `lock_data.gd` (tunable data); the countdown clocks stay with the pose clocks in the animation
+## controller (tests and traces read them there). Readers ask here. Nothing here writes.
 static func input_locked(lab) -> bool:
-	return lab.animation.roll_lock > 0.0 or lab.animation.dive_input_locked() or lab.animation.floor_input_locked()
+	return lab.animation.roll_lock > 0.0 or LockData.dive_locked(lab.animation.dive_recovery_time, lab.animation.dive_quality_value) or LockData.floor_locked(lab.animation.floor_recovery_time, lab.animation.floor_recovery_lock)
 
 static func recovering(lab) -> bool:
 	return lab.animation.roll_lock > 0.0 or lab.animation.dive_recovery_time >= 0.0 or lab.animation.floor_recovery_time >= 0.0

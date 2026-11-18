@@ -20,3 +20,10 @@ static func floor_lock_seconds(recovery: String, scale: float, event: Dictionary
 	if recovery == "shrug":
 		return float(event.get("recovery_penalty_seconds", total))
 	return FloorRecovery.lock_seconds(recovery) * scale
+
+## The lock predicates (pure): input is locked from the start of a recovery until its lock second. Animation and PlayerLocks both ask here.
+static func dive_locked(recovery_time: float, quality: float) -> bool:
+	return recovery_time >= 0.0 and recovery_time < dive_lock_seconds(quality)
+
+static func floor_locked(recovery_time: float, lock: float) -> bool:
+	return recovery_time >= 0.0 and recovery_time < lock

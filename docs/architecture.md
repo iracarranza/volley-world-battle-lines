@@ -115,7 +115,7 @@ paths because confirmation geometry/recovery and immediate facing depend on it;
 removing it solely to lower a call count risks changing visible contact timing.
 Pose smoothing advances at most once per rendered frame.
 
-Decision G-09 (2026-11-16, provisional, designer-delegated) supersedes the ownership statement in the paragraph below: locks and recovery movement are to become gameplay data owned by the actor motion record, with animation reflecting the locked time. The decision is made; the code has not moved yet (migration stage MS-12).
+Decision G-09 (2026-11-16, provisional, designer-delegated) supersedes the ownership statement in the paragraph below: locks and recovery movement are to become gameplay data owned by the actor motion record, with animation reflecting the locked time. Migration stage MS-12 (as built): durations and the lock predicates are tunable data in `scripts/lock_data.gd` (roll time, dive and floor lock seconds, release speed-up), read by animation and `PlayerLocks`; the countdown clocks stay with the pose clocks in the animation controller. The `action_endlag` literals have not moved (scenario S-11 records their source text); see `docs/architecture-migration/decisions/ms-12-locks.md`.
 
 The motor schedules `animation.tick_action_clocks(dt)` once per physics step,
 with actor-local time. Animation owns receive, roll, dive, spike and set clocks.

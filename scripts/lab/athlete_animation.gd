@@ -484,7 +484,7 @@ func smooth_pose(source: String) -> void:
 	PoseLibrary.apply(lab.body, PoseLibrary.from_flat(shown, false), 1.0)
 
 func dive_input_locked() -> bool:
-	return dive_recovery_time >= 0.0 and dive_recovery_time < LockData.dive_lock_seconds(dive_quality_value)
+	return LockData.dive_locked(dive_recovery_time, dive_quality_value)
 
 # How far the hips have turned toward a backward dive at this moment, in radians. The upper body turns ahead of
 # them (dive_turn_spine, dive_turn_neck in degrees), so the torso leads and the hips and feet follow.
@@ -627,7 +627,7 @@ func floor_recovery_total() -> float:
 	return FloorRecovery.duration(floor_recovery_name) * floor_recovery_scale
 
 func floor_input_locked() -> bool:
-	return floor_recovery_time >= 0.0 and floor_recovery_time < floor_recovery_lock
+	return LockData.floor_locked(floor_recovery_time, floor_recovery_lock)
 
 func tick_floor_recovery(dt: float) -> void:
 	dt *= lab.athlete.transition_rate()*lab.athlete.recovery_rate()
