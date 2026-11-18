@@ -18,7 +18,7 @@ const CATALOGUE := {
 	"s09_match_scope": "s09_match_scope", "s10_attack_volume": "s10_attack_volume", "s11_endlag": "s11_endlag",
 	"s12_charge_senses": "s12_charge_senses", "s13_recovery": "s13_recovery", "s14_exhausted_expiry": "s14_exhausted_expiry",
 	"s15_custody": "s15_custody", "s16_auto_clock": "s16_auto_clock", "s17_preview": "s17_preview", "s18_bench_window": "s18_bench_window",
-	"s19_left_handed_bot": "s19_left_handed_bot", "s20_seeded_rally": "s20_seeded_rally",
+	"s19_left_handed_bot": "s19_left_handed_bot", "s20_seeded_rally": "s20_seeded_rally", "s21_activity_feeds": "s21_activity_feeds",
 }
 
 static func run(tree: SceneTree, name: String) -> Dictionary:
@@ -925,5 +925,53 @@ static func s20_seeded_rally(tree: SceneTree, seed_value: int = 7) -> Dictionary
 			rec.step("bot contact %d" % previous)
 			if ledger.size() == 3: break
 	var facts := {"ledger": ledger, "contacts": ledger.size()}
+	await C.free_lab(tree, lab)
+	return {"trace": rec.trace, "facts": C.norm(facts)}
+
+## S-21 (MS-08): what an activity does to the live ball and the rally ledger when it feeds. Each feed starts from dirty counters and a held
+## ball; the trace is the ball (position, velocity, shot, active), the counters and the held-ball flag after the feed.
+static func s21_activity_feeds(tree: SceneTree) -> Dictionary:
+	var lab: Node = await C.new_lab(tree, "res://drill_lab.tscn")
+	lab.auto_feed = false
+	lab.moc.enabled = false
+	var rec := Recorder.new(lab)
+	var facts := {}
+	var row = lab.activities
+	for key in ["balance_ball_setting", "transition_set"]:
+		var drill = row.by_name[key]
+		lab._reset()
+		lab.inventory.give()
+		lab.player.position = drill.anchor + Vector3(0, 0.03, 0)
+		lab.drills = drill
+		drill.interact()
+		lab.contacts = 3
+		lab.side_contacts.assign([2, 1])
+		lab.ball_active = false
+		drill.feed()
+		facts[key + "_active"] = lab.ball_active
+		facts[key + "_counters"] = [lab.contacts, lab.side_contacts[0], lab.side_contacts[1]]
+		rec.step(key + " feed")
+		drill.reset()
+		rec.step(key + " reset")
+	var spike = row.by_name["spike_trainer"]
+	lab._reset()
+	lab.drills = spike
+	lab.contacts = 3
+	lab.side_contacts.assign([2, 1])
+	spike.load_spike()
+	facts["spike_load_active"] = lab.ball_active
+	rec.step("spike load")
+	var station = lab.station
+	lab._reset()
+	station.rng.seed = 7
+	lab.inventory.enabled = false # the machine serves without the ball economy
+	lab.contacts = 3
+	lab.side_contacts.assign([2, 1])
+	station.serve()
+	facts["station_toss_active"] = lab.ball_active
+	rec.step("station toss")
+	station.strike_feed()
+	facts["station_strike_counters"] = [lab.contacts, lab.side_contacts[0], lab.side_contacts[1]]
+	rec.step("station strike")
 	await C.free_lab(tree, lab)
 	return {"trace": rec.trace, "facts": C.norm(facts)}
