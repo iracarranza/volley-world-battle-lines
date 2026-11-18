@@ -3,6 +3,7 @@ extends RefCounted
 
 ## Owns motion state. LabSession schedules updates and composes peers.
 const PlayerLocks := preload("res://scripts/player_locks.gd")
+const TechniqueUnlocks := preload("res://scripts/technique_unlocks.gd")
 const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
 const Approach = preload("res://scripts/approach_run.gd")
 const Flight = preload("res://vendor/vwm/ball_flight_model.gd")
@@ -189,7 +190,7 @@ func note_direction_tap(event: InputEventKey) -> void:
 		tap_times[code] = now
 
 func quick_step(tapped: Vector3 = Vector3(0, 0, -1)) -> void:
-	if lab.receive_planted() or lab.paused or not lab.athlete.has_trait("speed_quick_step") or not (lab.armed or lab.charging) or jumped or jump_charge >= 0.0 or not lab.player.is_on_floor() or lab.animation.roll_lock > 0.0:
+	if lab.receive_planted() or lab.paused or not lab.athlete.has_trait(TechniqueUnlocks.TABLE.quick_step.trait) or not (lab.armed or lab.charging) or jumped or jump_charge >= 0.0 or not lab.player.is_on_floor() or lab.animation.roll_lock > 0.0:
 		return
 	if quick_step_cooldown > 0.0:
 		lab._message("Quick Step ready in %.1fs" % quick_step_cooldown)

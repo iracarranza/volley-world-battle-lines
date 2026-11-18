@@ -72,8 +72,9 @@ var rotate_hurtboxes := true
 var back_set := false
 var perf_meter: CanvasLayer # F3
 var vision: CanvasLayer # vision focus (a prototype; off unless switched on in the Esc menu)
-const BACK_SET_TRAIT := "accuracy_back_set"
-const FLOAT_SERVE_TRAIT := "acc_float_serve"
+const TechniqueUnlocks := preload("res://scripts/technique_unlocks.gd")
+const BACK_SET_TRAIT := TechniqueUnlocks.TABLE.back_set.trait
+const FLOAT_SERVE_TRAIT := TechniqueUnlocks.TABLE.float_serve.trait
 const NEUTRAL_VIEW_PITCH := -0.12 # the resting view: boxes tilt by how far the aim has moved from it
 const MAX_HURTBOX_PITCH := 0.6
 const BallFraming := preload("res://scripts/ball_camera_framing.gd")
@@ -1133,7 +1134,7 @@ func _contact() -> void:
 			animation.receive_pose_remaining = 0.42
 	var quality: float = assessment.quality if assessment.hit else 0.35
 	last_quality = assessment.zone if assessment.hit or assessment.get("rescue", false) else "STRETCHED"
-	var rolled: bool = locked_action == 0 and athlete.has_trait("endurance_rolling_receive") and assessment.hit and assessment.get("edge", false) and not assessment.get("rescue", false) and assessment.get("charge_match", {}).get("matched", true)
+	var rolled: bool = locked_action == 0 and athlete.has_trait(TechniqueUnlocks.TABLE.rolling_receive.trait) and assessment.hit and assessment.get("edge", false) and not assessment.get("rescue", false) and assessment.get("charge_match", {}).get("matched", true)
 	if committed_intent.is_empty() or int(committed_intent.action) != locked_action or (not auto_preparation.active and not is_equal_approx(float(committed_intent.charge), locked_charge)):
 		_capture_contact_intent()
 	ball_velocity = _shot_velocity(ball.position, locked_action, request.charge, committed_intent.target, assessment)
