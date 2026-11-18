@@ -1,6 +1,8 @@
 extends Node3D
 
 # Dependencies and fixed configuration.
+const LiveBall := preload("res://scripts/live_ball.gd")
+const ContactCommit := preload("res://scripts/contact_commit.gd")
 const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const Settings := preload("res://scripts/bot_settings.gd")
 const RngSeed := preload("res://scripts/rng_seed.gd")
@@ -374,31 +376,29 @@ func tick(dt: float) -> bool:
 		lab.ball_velocity = Influence.constrain_attack(lab.ball_velocity, actor.rotation.y,athlete_for(partner).trait_effect("court_vision"))
 	request.base_velocity = lab.ball_velocity
 	var result := ContactResolver.resolve(request, assessment)
-	lab.ball_velocity = result.velocity
-	lab.ball.position += result.separation_offset
+	LiveBall.commit_contact(lab, result)
 	assessment = result.assessment
 	last_aim = result.aiming
-	lab.ball_shot = ReceiveCharge.shot(["receive", "set", "attack"][stage], lab.contact_flow.attack_charge(float(prepared.locked_charge),"pepper_%d"%partner,lab.ball.position,assessment) if stage == 2 else float(prepared.locked_charge), "pepper_%d" % partner)
-	if not result.outgoing_shot.is_empty():
-		lab.ball_shot = result.outgoing_shot
-	lab.ball_shot = lab.contact_flow.decorate_shot(lab.ball_shot,request.incoming_shot,"pepper_%d"%partner,stage,assessment)
-	if stage == 2 and assessment.hit:
-		lab.contact_flow.consume_attack("pepper_%d"%partner)
-	lab._emit_external_impact("pepper_%d" % partner, stage, incoming, assessment,incoming_shot)
-	var local_contact: Vector3 = (lab.ball.position - actor.position).rotated(Vector3.UP, -actor.rotation.y)
-	var posture := Geometry.ReceivePlatform.posture(definition, local_contact, MOVE_SPEED if travelled > 0.001 else 0.0) if stage == 0 else "planted"
-	var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actor.rotation.y, -PI, PI) if stage == 2 else 0.0
-	animation.contact(rig, stage, local_contact, posture, swing_yaw, assessment.get("rescue", false), assessment)
-	_animate(0, 0)
-	var contact_cost: float = request.athlete.contact_cost(stage,1,assessment,incoming_shot).x
-	athlete_for(partner).last_stamina_cost = request.athlete.last_stamina_cost
-	spend_stamina(contact_cost,true)
-	last_delivery = {"action": stage, "quality": assessment.quality, "required_action": player_action, "target": target, "origin": origin, "velocity": lab.ball_velocity, "duration": duration, "aim": last_aim, "preparation": preparation.evidence(partner), "incoming_shot": incoming_shot, "charge_match": assessment.get("charge_match", {}), "receive_outcome":assessment.get("receive_outcome",{})}
-	last_delivery.make_read_only()
-	preparation.finish(partner)
-	lab.trail_points.clear()
-	RallyLedger.clear_all(lab)
-	lab.contact_memory.fill(0.0)
+	ContactCommit.outgoing_shot(lab, request, result, "pepper_%d" % partner, stage, float(prepared.locked_charge))
+	ContactCommit.run(lab, ContactCommit.PEPPER, {
+		"publish": func() -> void: lab._emit_external_impact("pepper_%d" % partner, stage, incoming, assessment,incoming_shot),
+		"present": func() -> void:
+			var local_contact: Vector3 = (lab.ball.position - actor.position).rotated(Vector3.UP, -actor.rotation.y)
+			var posture := Geometry.ReceivePlatform.posture(definition, local_contact, MOVE_SPEED if travelled > 0.001 else 0.0) if stage == 0 else "planted"
+			var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actor.rotation.y, -PI, PI) if stage == 2 else 0.0
+			animation.contact(rig, stage, local_contact, posture, swing_yaw, assessment.get("rescue", false), assessment)
+			_animate(0, 0),
+		"spend": func() -> void:
+			var contact_cost: float = request.athlete.contact_cost(stage,1,assessment,incoming_shot).x
+			athlete_for(partner).last_stamina_cost = request.athlete.last_stamina_cost
+			spend_stamina(contact_cost,true),
+		"settle": func() -> void:
+			last_delivery = {"action": stage, "quality": assessment.quality, "required_action": player_action, "target": target, "origin": origin, "velocity": lab.ball_velocity, "duration": duration, "aim": last_aim, "preparation": preparation.evidence(partner), "incoming_shot": incoming_shot, "charge_match": assessment.get("charge_match", {}), "receive_outcome":assessment.get("receive_outcome",{})}
+			last_delivery.make_read_only()
+			preparation.finish(partner)
+			lab.trail_points.clear()
+			lab.contact_memory.fill(0.0),
+	})
 	exchanges += 1
 	npc_turn = false
 	planned = false
