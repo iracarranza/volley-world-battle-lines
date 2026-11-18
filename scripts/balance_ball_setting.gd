@@ -101,10 +101,7 @@ func feed() -> void:
 	lab.motion.airborne_action = 1
 	var destination: Vector3 = lab.player.position + Vector3.UP * lab.athlete.reach()
 	var flight := 1.25
-	lab.ball.position = wall_target
-	lab.ball_velocity = (destination - wall_target) / flight + Vector3.UP * lab.GRAVITY * flight * 0.5
-	lab.ball_shot = preload("res://scripts/receive_charge.gd").shot("receive", 0.35, "balance_wall")
-	lab.ball_active = true
+	LiveBall.launch(lab, wall_target, (destination - wall_target) / flight + Vector3.UP * lab.GRAVITY * flight * 0.5, preload("res://scripts/receive_charge.gd").shot("receive", 0.35, "balance_wall"))
 	lab.outgoing = false
 	RallyLedger.clear_all(lab)
 	lab.trail_points.clear()
