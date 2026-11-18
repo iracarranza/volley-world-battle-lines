@@ -60,3 +60,9 @@ Branch `migration/architecture-ms00-14`, stages MS-00..MS-04 (group 1). Behaviou
 - contact_lab (3 readers), court bots + bot_return + map_bot_roster, Pepper + ground_ball now call `moc.clock_record()`. Direct readers of `actor_scale(`/`simulation_scale(`/`bot_scale(` outside `moment_of_contact.gd`: 14 before, 0 now (pinned by `step_clock_test`).
 - Per-module tests green: auto_charge, moc_* (bot_clock, slowdown, steering, modes, charge_ground), confirmation_movement, block_contact_regression, bot_* rally/return/move suites, map_bot_*, pepper_*, serve_pepper, ball_inventory, drill_mechanics.
 - MS-03 exit: mirror contract test green for all four actions; one settings instance; clock readers migrated; windup edit seen by collision, animation, preview, bots, timeline (`action_timeline_test`, `tuning_index_test`, `action_table_test`). No behaviour diff beyond the full-suite result recorded at the end.
+
+## MS-04 Event/evidence contract and consumer order (docs and tests only)
+- `event-schema.md`: 32-field schema per actor kind, the seven-step consumer order, order-sensitive pairs, idempotence by id, `event.charge` reader audit (one reader: the MoC `charge_duration` fallback; no rename made).
+- `tests/event_contract_test.gd` 28/28: documented fields exist (no more, no fewer) for player, bot, Pepper and Serve events; `receive_resolved` fires before the Flow record, Flow before MoC begin; the written order of `_publish_impact` equals the documented list; a duplicate event is idempotent.
+- Existing `contact_flow`, `moc`, `receive_response`, `impact_visual`, `cleanup_contracts`, `directional_influence` green. No production code touched.
+- Deviation: animation vs Flow order is pinned by the source-order check only (no observable hook between them).
