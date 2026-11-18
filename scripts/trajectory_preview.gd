@@ -2,7 +2,7 @@ extends RefCounted
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
 const ReceiveOutcome := preload("res://scripts/receive_outcome.gd")
 const Geometry := preload("res://scripts/contact_geometry.gd")
-const Execution := preload("res://scripts/contact_execution.gd")
+const Table := preload("res://scripts/action_table.gd")
 const Influence := preload("res://scripts/directional_influence.gd")
 const Spike := preload("res://scripts/spike_direction.gd")
 const NEAR_METERS := 3.5
@@ -37,7 +37,7 @@ static func predict(lab: Node3D) -> Dictionary:
 		return {}
 	var request = lab.contact_request(action)
 	request.local_point = sample
-	request.confirmation_age = Execution.ideal_age(action)
+	request.confirmation_age = Table.row(action).ideal
 	request.remembered = false
 	request.ideal_charge_match = true
 	request.apply_set_spread = false

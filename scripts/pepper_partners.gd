@@ -12,6 +12,7 @@ const Visual := preload("res://scripts/voli_visual.gd")
 const BotAnimation :=  preload("res://scripts/bot_animation.gd")
 const Pose := preload("res://scripts/athlete_pose.gd")
 const Execution := preload("res://scripts/contact_execution.gd")
+const Table := preload("res://scripts/action_table.gd")
 const Influence := preload("res://scripts/directional_influence.gd")
 const Geometry := preload("res://scripts/contact_geometry.gd")
 const SPOTS := [Vector3(-29, 3.5, 3), Vector3(8, 0, 5), Vector3(0, 0, 27)]
@@ -305,13 +306,13 @@ func tick(dt: float) -> bool:
 
 	if remaining > 0:
 		return false
-	if remaining < -Execution.contact_seconds(stage):
+	if remaining < -Table.row(stage).live_end:
 		planned = false
 		return false
 	var prepared := preparation.state_for(partner)
 	if prepared.phase != "confirmed":
 		return false
-	if float(prepared.confirmation_age) > Execution.contact_seconds(stage):
+	if float(prepared.confirmation_age) > Table.row(stage).live_end:
 		planned = false
 		preparation.finish(partner)
 		return false
@@ -325,7 +326,7 @@ func tick(dt: float) -> bool:
 			hit = true
 			break
 	if not hit:
-		if remaining < -Execution.contact_seconds(stage):
+		if remaining < -Table.row(stage).live_end:
 			planned = false
 		return false
 	player_contacts = 0

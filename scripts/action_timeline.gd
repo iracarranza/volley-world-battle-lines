@@ -1,7 +1,6 @@
 extends Control
 ## Presentation only: the tick reads the live contact clock; it never advances gameplay.
-const Execution := preload("res://scripts/contact_execution.gd")
-const Block := preload("res://scripts/contact/block_response.gd")
+const Table := preload("res://scripts/action_table.gd")
 const NAMES := ["RECEIVE", "SET", "SPIKE", "BLOCK"]
 const GRAY := Color("647b8b")
 const YELLOW := Color("e7c15a")
@@ -29,24 +28,26 @@ var _regions_dirty := true
 
 static func regions(which: int) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
+	var row := Table.row(which)
 	if which == 3:
 		# Display bands of the existing cubic press pulse: >50%, >5%, then weak.
-		var strong := Block.PRESS_SECONDS * (1.0 - pow(0.5, 1.0/3.0))
-		var weak := Block.PRESS_SECONDS * (1.0 - pow(0.05, 1.0/3.0))
+		var press: float = row.pulse_seconds
+		var strong := press * (1.0 - pow(0.5, 1.0/3.0))
+		var weak := press * (1.0 - pow(0.05, 1.0/3.0))
 		result.assign([
 			{"end":strong,"color":GREEN,"label":"STRONG PRESS"},
 			{"end":weak,"color":YELLOW,"label":"WEAKENING PRESS"},
-			{"end":Block.PRESS_SECONDS,"color":GRAY,"label":"FADING PRESS"}])
+			{"end":press,"color":GRAY,"label":"FADING PRESS"}])
 	else:
-		if which == 2 and Execution.SPIKE_WINDUP > 0:
-			result.append({"end":Execution.SPIKE_WINDUP,"color":GRAY,"label":"WINDUP"})
+		if which == 2 and row.windup > 0:
+			result.append({"end":row.windup,"color":GRAY,"label":"WINDUP"})
 		if which == 2:
-			result.append({"end":Execution.SPIKE_POWER_START,"color":YELLOW,"label":"EARLY ROLL"})
-		result.append({"end":Execution.sweet_start(which),"color":YELLOW,"label":"EARLY POWER" if which == 2 else "PLATFORM READY" if which == 0 else "EARLY CONTACT"})
-		result.append({"end":Execution.sweet_end(which),"color":GREEN,"label":"SWEET TIMING"})
+			result.append({"end":row.power_start,"color":YELLOW,"label":"EARLY ROLL"})
+		result.append({"end":row.sweet_start,"color":YELLOW,"label":"EARLY POWER" if which == 2 else "PLATFORM READY" if which == 0 else "EARLY CONTACT"})
+		result.append({"end":row.sweet_end,"color":GREEN,"label":"SWEET TIMING"})
 		if which == 2:
-			result.append({"end":Execution.SPIKE_RESCUE_SECONDS,"color":YELLOW,"label":"LATE POWER"})
-		result.append({"end":Execution.contact_seconds(which),"color":RED,"label":"RESCUE PUSH" if which == 2 else "LATE CONTACT"})
+			result.append({"end":row.rescue_start,"color":YELLOW,"label":"LATE POWER"})
+		result.append({"end":row.live_end,"color":RED,"label":"RESCUE PUSH" if which == 2 else "LATE CONTACT"})
 	return result
 
 func _ready() -> void:
@@ -69,7 +70,7 @@ func clear() -> void:
 
 func configure(which: int) -> void:
 	action = which
-	var windup := Execution.SPIKE_WINDUP if which == 2 else 0.0
+	var windup: float = Table.row(which).windup
 	if which != _region_action or windup != _region_windup:
 		segments = regions(which)
 		_region_action = which

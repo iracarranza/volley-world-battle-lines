@@ -11,6 +11,7 @@ const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
 const Preparation := preload("res://scripts/bot_preparation.gd")
 const Execution := preload("res://scripts/contact_execution.gd")
+const Table := preload("res://scripts/action_table.gd")
 const Influence := preload("res://scripts/directional_influence.gd")
 const Geometry := preload("res://scripts/contact_geometry.gd")
 const Visual := preload("res://scripts/voli_visual.gd")
@@ -666,7 +667,7 @@ func tick_contact(dt: float) -> bool:
 	if remaining > 0 and not passive:
 		return false
 	if passive and block_state_for(active_slot).latched: return false
-	if not passive and remaining < -Execution.contact_seconds(action):
+	if not passive and remaining < -Table.row(action).live_end:
 		active_action = -1
 		active_slot = -1
 		replan(action == 3)
@@ -682,7 +683,7 @@ func tick_contact(dt: float) -> bool:
 	var prepared := preparation.state_for(bot_slot)
 	if not passive and prepared.phase != "confirmed":
 		return false
-	if not passive and float(prepared.confirmation_age) > Execution.contact_seconds(action):
+	if not passive and float(prepared.confirmation_age) > Table.row(action).live_end:
 		active_action = -1
 		active_slot = -1
 		preparation.finish(bot_slot)
@@ -706,7 +707,7 @@ func tick_contact(dt: float) -> bool:
 			var local: Vector3 = (lab.ball.position - actors[bot_slot].position).rotated(Vector3.UP, -actors[bot_slot].rotation.y)
 			var local_velocity: Vector3 = lab.ball_velocity.rotated(Vector3.UP, -actors[bot_slot].rotation.y)
 			var cleared_block: bool = action == 3 and local_velocity.z > 0 and local.z > float(contact_shape(bot_slot).center.z) + float(contact_shape(bot_slot).size.z) * 0.5 + Geometry.BALL_RADIUS
-			if (not passive and remaining < -Execution.contact_seconds(action)) or cleared_block:
+			if (not passive and remaining < -Table.row(action).live_end) or cleared_block:
 				active_action = -1
 				active_slot = -1
 				if action == 3:
