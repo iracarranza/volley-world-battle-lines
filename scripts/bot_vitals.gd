@@ -14,8 +14,7 @@ static func create(template: LabAthlete) -> LabAthlete:
 
 static func refresh(athlete: LabAthlete) -> void:
 	athlete.reset_fatigue()
-	athlete.stamina = athlete.max_stamina()
-	athlete.hp = 100.0
+	athlete.refill()
 
 static func spend(athlete: LabAthlete,cost: float,flow: Node3D,actor_id: String,resolved: bool = false) -> void:
 	var epoch := athlete.fatigue_epoch

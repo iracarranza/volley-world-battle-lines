@@ -314,7 +314,7 @@ func tick(dt: float) -> void:
 			var prepared: Dictionary = state(actor_id).prepare(eligible,"low_stamina",amount(actor_id))
 			commit_context(actor_id,prepared)
 			for rule in prepared.activations:
-				athlete.stamina = minf(athlete.max_stamina(),athlete.stamina+maxf(0,float(rule.get("restore_stamina",0)))*athlete.max_stamina())
+				athlete.restore(maxf(0,float(rule.get("restore_stamina",0)))*athlete.max_stamina())
 		var before := float(idle_seconds.get(actor_id,0))
 		var after := before+maxf(dt,0)
 		idle_seconds[actor_id] = after

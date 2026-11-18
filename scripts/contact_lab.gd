@@ -1408,8 +1408,7 @@ func _reset() -> void:
 	motion.quick_step_cooldown = 0.0
 	motion.tap_times.clear()
 	motion.generic_jump = false
-	athlete.hp = 100
-	athlete.stamina = athlete.max_stamina()
+	athlete.refill()
 	athlete.reset_fatigue()
 	player.position = start_position
 	player.velocity = Vector3.ZERO

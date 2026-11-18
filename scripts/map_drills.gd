@@ -411,7 +411,7 @@ func on_ball_down() -> void:
 	var in_bonus := offset.distance_to(spike_bonus_center - Vector2(SPIKE_GOAL.x, SPIKE_GOAL.z)) <= BONUS_RADIUS
 	spike_points += 2 if in_bonus else 1
 	LiveBall.release(lab)
-	lab.athlete.hp = minf(100, lab.athlete.hp + 5)
+	lab.athlete.heal(5)
 	if spike_progress == SPIKES_REQUIRED:
 		spike_state = State.COMPLETE
 		reward(30, 20, 10)
@@ -518,7 +518,7 @@ func _spike_used(success: bool, actor: String, reason: String) -> void:
 	spike_state = State.IDLE
 	var result: String = distributor.record(success, actor)
 	if success:
-		lab.athlete.hp = minf(100, lab.athlete.hp + 5)
+		lab.athlete.heal(5)
 	match result:
 		"complete":
 			reward(30, 20, 10)
@@ -556,8 +556,8 @@ func fail_spike(reason: String) -> void:
 
 func reward(xp: int, hp: float, stamina: float) -> void:
 	earned_xp += xp
-	lab.athlete.hp = minf(100, lab.athlete.hp + hp)
-	lab.athlete.stamina = minf(lab.athlete.max_stamina(), lab.athlete.stamina + stamina)
+	lab.athlete.heal(hp)
+	lab.athlete.restore(stamina)
 
 func reset() -> void:
 	box_state = State.IDLE

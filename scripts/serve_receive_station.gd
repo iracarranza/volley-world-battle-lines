@@ -238,8 +238,8 @@ func _serve_used(success: bool, reason: String) -> void:
 		"complete":
 			earned_xp += 25
 			var grant: Dictionary = preload("res://scripts/setup_grants.gd").grant(lab.athlete, "SERVE MACHINE")
-			lab.athlete.hp = minf(100, lab.athlete.hp + 20)
-			lab.athlete.stamina = minf(lab.athlete.max_stamina(), lab.athlete.stamina + 15)
+			lab.athlete.heal(20)
+			lab.athlete.restore(15)
 			detail = "SERVE MACHINE COMPLETE / %d reward balls to claim (I) / +25 lab XP / +%d platform quality access / reactivates in %ds" % [distributor.pile, int(grant.get("amount", 0)), ceili(distributor.cooldown)]
 			lab._message(detail)
 		"failed":
@@ -441,8 +441,8 @@ func advance() -> void:
 	if points >= GOAL:
 		state = State.COMPLETE
 		earned_xp += 25
-		lab.athlete.hp = minf(100, lab.athlete.hp + 20)
-		lab.athlete.stamina = minf(100, lab.athlete.stamina + 15)
+		lab.athlete.heal(20)
+		lab.athlete.restore(15, 100.0)  # G-15: the literal 100 stays until MS-21
 		detail = "COMPLETE / %d points / +25 lab XP, +20 HP, +15 STA. I to repeat." % points
 	else:
 		state = State.WAITING
