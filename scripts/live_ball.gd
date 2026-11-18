@@ -19,10 +19,21 @@ static func integrate(lab, dt: float) -> void:
 	lab.ball_velocity.y -= lab.GRAVITY * dt
 	lab.ball.rotate_x(dt * 4)
 
-## What the net did to the step: position and velocity after resolving the net response.
-static func commit_net(lab, net_result: Dictionary) -> void:
-	lab.ball.position = net_result.position
-	lab.ball_velocity = net_result.velocity
+## What a collision step did to the ball (the net response, a basket): position and velocity after resolving it.
+static func commit_step(lab, step_result: Dictionary) -> void:
+	lab.ball.position = step_result.position
+	lab.ball_velocity = step_result.velocity
+
+## An activity's feed: the ball appears at `position` moving at `velocity` with `shot` as its metadata, and is live.
+static func launch(lab, position: Vector3, velocity: Vector3, shot: Dictionary) -> void:
+	lab.ball.position = position
+	lab.ball_velocity = velocity
+	lab.ball_shot = shot
+	lab.ball_active = true
+
+## The ball is out of play (a drill ended or stopped, a feed ran out, the ball was parked or caught).
+static func release(lab) -> void:
+	lab.ball_active = false
 
 ## Trajectory steering: the change the player's input made since the last update, on top of whatever physics added meanwhile.
 static func steer(lab, delta: Vector3) -> void:

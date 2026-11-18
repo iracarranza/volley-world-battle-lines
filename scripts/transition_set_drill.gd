@@ -94,7 +94,7 @@ func interact() -> void:
 		return
 	if running():
 		reset()
-		lab.ball_active = false
+		LiveBall.release(lab)
 		detail = "Transition Set stopped / I to retry"
 	elif in_zone():
 		lab.station.stop()
@@ -113,10 +113,7 @@ func feed() -> void:
 	var start: Vector3 = partner.position+Vector3(0,1.0,0)
 	var destination: Vector3 = anchor+Vector3.UP*lab.athlete.reach()
 	var flight := 1.25
-	lab.ball.position = start
-	lab.ball_velocity = (destination-start)/flight+Vector3.UP*lab.GRAVITY*flight*0.5
-	lab.ball_shot = preload("res://scripts/receive_charge.gd").shot("receive",0.35,"transition_partner")
-	lab.ball_active = true
+	LiveBall.launch(lab, start, (destination-start)/flight+Vector3.UP*lab.GRAVITY*flight*0.5, preload("res://scripts/receive_charge.gd").shot("receive",0.35,"transition_partner"))
 	lab.outgoing = false
 	RallyLedger.clear_all(lab)
 	lab.trail_points.clear()
@@ -153,8 +150,7 @@ func on_contact(action: int) -> void:
 func sweep_ball(previous: Vector3,dt: float) -> bool:
 	if spike_state != State.RETURNING: return false
 	var result: Dictionary = basket.step(previous,lab.ball.position,lab.ball_velocity,dt)
-	lab.ball.position = result.position
-	lab.ball_velocity = result.velocity
+	LiveBall.commit_step(lab, result)
 	if result.scored:
 		_score()
 		return true
@@ -172,7 +168,7 @@ func _score() -> void:
 		progress += 1
 		_spike_used(true, "player", "")
 		return
-	lab.ball_active = false
+	LiveBall.release(lab)
 	progress += 1
 	if progress >= PASSES_REQUIRED:
 		spike_state = State.COMPLETE
@@ -187,7 +183,7 @@ func _score() -> void:
 
 func fail(reason: String) -> void:
 	spike_state = State.FAILED
-	lab.ball_active = false
+	LiveBall.release(lab)
 	detail = reason
 	lab._message(reason)
 

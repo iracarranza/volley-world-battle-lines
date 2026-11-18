@@ -1,6 +1,7 @@
 extends Node3D
 
 # Provisional, world-space drills using the same movement and action contacts.
+const LiveBall := preload("res://scripts/live_ball.gd")
 const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const Footprints := preload("res://scripts/drill_layout.gd")
 const BOX_START := Vector3(-36, 0, 13)

@@ -12,6 +12,7 @@ const Action := preload("res://scripts/contact/action.gd").Type
 
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
 const RallyLedger := preload("res://scripts/rally_ledger.gd")
+const BallLease := preload("res://scripts/ball_lease.gd")
 const LiveBall := preload("res://scripts/live_ball.gd")
 const ContactCommit := preload("res://scripts/contact_commit.gd")
 var ball_shot: Dictionary = {}
@@ -725,7 +726,7 @@ func _physics_process(dt: float) -> void:
 	var previous_player_position := player.position
 	block_state.tick(dt)
 	motion.tick(dt, motion_scale)
-	var rally_live: bool = ball_active and not station.running() and not drills.running() and not pepper.active()
+	var rally_live: bool = ball_active and BallLease.ledger_open(self)
 	if rally_live and athlete_touches_net(previous_player_position,player.position):
 		_finish_fault("NET FAULT / Athlete touched the net",side_index(previous_player_position.z))
 	elif not rally_live:
@@ -738,7 +739,7 @@ func _physics_process(dt: float) -> void:
 	if ball_active:
 		_tick_ball(world_dt)
 		_remember_contacts(0.0)
-		if ball_active and not station.running() and not drills.running() and not pepper.active():
+		if ball_active and BallLease.ledger_open(self):
 			for slot in range(training_bots.actors.size()):
 				var actor: Node3D = training_bots.actors[slot]
 				if training_bots.slot_enabled(slot) and athlete_touches_net(actor.position,actor.position,training_bots.physique.body_height()):
@@ -989,7 +990,7 @@ func _impact_event(actor_id: String, action: int, incoming: Vector3, assessment:
 
 func _publish_impact(event: Dictionary) -> void:
 	hud.athlete_hud.timeline.contact(event)
-	if not station.running() and not drills.running() and not pepper.active():
+	if BallLease.ledger_open(self):
 		# An opponent's touch renews the team's allowance even when a block
 		# reverses the ball before it fully clears the net's crossing plane.
 		RallyLedger.renew_opponent(self, int(event.team))
@@ -1209,10 +1210,10 @@ func _tick_ball(dt: float) -> void:
 	elif net_bounce_pending and not bool(net_result.pocket):
 		net_bounce_pending = false
 		training_bots.replan_after_net()
-	LiveBall.commit_net(self, net_result)
+	LiveBall.commit_step(self, net_result)
 	if previous.z*ball.position.z < 0 and not bool(net_result.pocket) and net_result.contact == "":
 		var crossing := previous.lerp(ball.position,previous.z/(previous.z-ball.position.z))
-		if not station.running() and not drills.running() and not pepper.active() and (serve.state != serve.State.FLIGHT or serve.main_court) and absf(crossing.x-court_center.x)+Geometry.VISUAL_BALL_RADIUS > net_response.web_half_width:
+		if BallLease.ledger_open(self) and (serve.state != serve.State.FLIGHT or serve.main_court) and absf(crossing.x-court_center.x)+Geometry.VISUAL_BALL_RADIUS > net_response.web_half_width:
 			_finish_fault("OUTSIDE-ANTENNA FAULT / Ball crossed outside the net",rally_rules.last_touch_side)
 			return
 		if absf(crossing.x-Vector3(net_result.net_origin).x) <= float(net_result.net_half_width) and crossing.y < float(net_result.net_bottom)-NetResponse.RADIUS:
@@ -1290,7 +1291,7 @@ func _finish(message: String,point_result: Dictionary = {}) -> void:
 	inventory.landed_free = inventory.free_ball
 	if inventory.free_ball:
 		message = "Free ball down / pick it up (I) before it despawns"
-	elif not station.running() and not drills.running() and not pepper.active():
+	elif BallLease.ledger_open(self):
 		rally_rules.record(point_result)
 		if not rally_rules.label().is_empty(): message += " / "+rally_rules.label()
 	inventory.free_ball = false
