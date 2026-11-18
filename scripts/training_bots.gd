@@ -4,6 +4,8 @@ extends Node3D
 
 # Dependencies and fixed configuration.
 const AttackTarget := preload("res://scripts/bot_attack_target.gd")
+const LiveBall := preload("res://scripts/live_ball.gd")
+const ContactCommit := preload("res://scripts/contact_commit.gd")
 const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const RngSeed := preload("res://scripts/rng_seed.gd")
 const BotSettings := preload("res://scripts/bot_settings.gd")
@@ -773,37 +775,36 @@ func tick_contact(dt: float) -> bool:
 		lab.ball_velocity *= Preparation.output_factor(lab.contact_flow.attack_charge(float(prepared.locked_charge),"training_bot_%d"%slot,lab.ball.position,execution) if action == 2 else float(prepared.locked_charge))
 	request.base_velocity = lab.ball_velocity
 	var result := ContactResolver.resolve(request, execution)
-	lab.ball_velocity = result.velocity
-	lab.ball.position += result.separation_offset
+	LiveBall.commit_contact(lab, result)
 	execution = result.assessment
 	last_aim = result.aiming
 	if action == 2 and motion.plans.has(slot):
 		motion.plans[slot]["swing_yaw"] = result.influence.shot_yaw_radians
-	lab.ball_shot = ReceiveCharge.shot(["receive", "set", "attack", "block"][action], lab.contact_flow.attack_charge(float(prepared.locked_charge),"training_bot_%d"%slot,lab.ball.position,execution) if action == 2 else float(prepared.locked_charge), "training_bot_%d" % slot)
-	if not result.outgoing_shot.is_empty():
-		lab.ball_shot = result.outgoing_shot
-	lab.ball_shot = lab.contact_flow.decorate_shot(lab.ball_shot,request.incoming_shot,"training_bot_%d"%slot,action,execution)
-	if action == 2 and execution.hit:
-		lab.contact_flow.consume_attack("training_bot_%d"%slot)
-	if passive: block_state_for(slot).latched = true
-	else: preparation.finish(slot)
-	lab._emit_external_impact("training_bot_%d" % slot, action, incoming, execution,incoming_shot)
-	var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), local_contact, move_speed_for(slot) if settings[slot].moves else 0.0) if action == 0 else "planted"
-	var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actors[slot].rotation.y, -PI, PI) if action == 2 else 0.0
-	animation.contact(rigs[slot], action, local_contact, posture, swing_yaw, execution.get("rescue", false), execution)
-	dives.contacted(slot)
-	return_after_contact(slot)
-	var contact_cost: float = request.athlete.contact_cost(action,1,execution,incoming_shot).x
-	athlete_for(slot).last_stamina_cost = request.athlete.last_stamina_cost
-	spend_stamina(slot,contact_cost,true)
-	total_contacts += 1
-	last_action = action
-	lab.trail_points.clear()
-	RallyLedger.clear_personal(lab)
-	for memory_slot in range(4):
-		lab.contact_memory[memory_slot] = 0.0
-	lab.outgoing = false
-	lab._message(NAMES[action] + " BOT contact / Ball View tracks the new flight")
+	ContactCommit.outgoing_shot(lab, request, result, "training_bot_%d" % slot, action, float(prepared.locked_charge))
+	ContactCommit.run(lab, ContactCommit.BOT, {
+		"prepare": func() -> void:
+			if passive: block_state_for(slot).latched = true
+			else: preparation.finish(slot),
+		"publish": func() -> void: lab._emit_external_impact("training_bot_%d" % slot, action, incoming, execution,incoming_shot),
+		"present": func() -> void:
+			var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), local_contact, move_speed_for(slot) if settings[slot].moves else 0.0) if action == 0 else "planted"
+			var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actors[slot].rotation.y, -PI, PI) if action == 2 else 0.0
+			animation.contact(rigs[slot], action, local_contact, posture, swing_yaw, execution.get("rescue", false), execution)
+			dives.contacted(slot)
+			return_after_contact(slot),
+		"spend": func() -> void:
+			var contact_cost: float = request.athlete.contact_cost(action,1,execution,incoming_shot).x
+			athlete_for(slot).last_stamina_cost = request.athlete.last_stamina_cost
+			spend_stamina(slot,contact_cost,true),
+		"settle": func() -> void:
+			total_contacts += 1
+			last_action = action
+			lab.trail_points.clear()
+			for memory_slot in range(4):
+				lab.contact_memory[memory_slot] = 0.0
+			lab.outgoing = false
+			lab._message(NAMES[action] + " BOT contact / Ball View tracks the new flight"),
+	})
 	resolving_contact = false
 	replan()
 	return true
