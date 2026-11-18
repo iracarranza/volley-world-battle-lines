@@ -22,8 +22,8 @@ func order_for(policy: Dictionary, lab) -> Array:
 	return log
 
 func run() -> void:
-	for name in ["PLAYER", "SERVE", "BOT", "PEPPER"]:
-		check(Commit.get(name).size() <= Commit.MAX_POLICY_FIELDS, "%s policy stays within the five-field cap" % name)
+	for policy in [Commit.PLAYER, Commit.SERVE, Commit.BOT, Commit.PEPPER]:
+		check(policy.size() <= Commit.MAX_POLICY_FIELDS, "A caller policy stays within the five-field cap")
 	check(order_for(Commit.PLAYER, StubLab.new()) == ["spend", "prepare", "publish", "present", "settle"], "Player spends before the event is published")
 	check(order_for(Commit.SERVE, StubLab.new()) == ["spend", "prepare", "publish", "present", "settle"], "Serve spends before the event is published")
 	check(order_for(Commit.BOT, StubLab.new()) == ["prepare", "publish", "present", "spend", "settle"], "A court bot publishes, presents, then spends")

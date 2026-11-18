@@ -1,6 +1,7 @@
 extends Node3D
 
 enum State { IDLE, TOSS, SWING, FLIGHT, CHANNEL, TOSS_CHARGE }
+const ContactCommit := preload("res://scripts/contact_commit.gd")
 const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const HOLD_THRESHOLD := 0.18
 const CHANNEL_SECONDS := 1.0
@@ -399,12 +400,16 @@ func _finish_strike(incoming: Vector3, sweet: bool) -> void:
 	follow_time = 0.22
 	lab.outgoing = true
 	lab.attempts += 1
-	lab.athlete.spend_resolved(float(lab.athlete.stamina_quote("serve").total))
-	if main_court:
-		if not lab.training_bots.is_enabled(0,-lab.player.position.z):
-			lab.training_bots.ensure_receiver(lab.player.position.z < 0)
-		lab._resize_court()
-		lab.training_bots.replan()
-	lab._emit_external_impact("player_serve", 4, incoming, {"hit": true, "sweet": sweet})
+	# Serve is a partial commit (SADR-16): spend and publish only; it builds its own velocity and shot before this point.
+	ContactCommit.run(lab, ContactCommit.SERVE, {
+		"spend": func() -> void: lab.athlete.spend_resolved(float(lab.athlete.stamina_quote("serve").total)),
+		"prepare": func() -> void:
+			if main_court:
+				if not lab.training_bots.is_enabled(0,-lab.player.position.z):
+					lab.training_bots.ensure_receiver(lab.player.position.z < 0)
+				lab._resize_court()
+				lab.training_bots.replan(),
+		"publish": func() -> void: lab._emit_external_impact("player_serve", 4, incoming, {"hit": true, "sweet": sweet}),
+	})
 	if evidence.get("mode", "") == "tap":
 		lab._message("SERVE / physical hand contact / %.0f° launch / aim at a Pepper opponent" % evidence.angle_degrees)
