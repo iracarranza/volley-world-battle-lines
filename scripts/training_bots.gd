@@ -549,13 +549,13 @@ var pose_debt := {}
 func tick_motion(dt: float) -> void:
 	for slot in range(settings.size()):
 		if slot_enabled(slot):
-			preparation.tick(slot, dt * lab.moc.bot_scale("training_bot_%d" % slot))
+			preparation.tick(slot, dt * lab.moc.clock_record().bot("training_bot_%d" % slot))
 	var previous_positions: Array[Vector3] = []
 	for actor in actors:
 		previous_positions.append(actor.position)
 	var scales := {}
 	for slot in range(settings.size()):
-		scales[slot] = lab.moc.bot_scale("training_bot_%d" % slot)
+		scales[slot] = lab.moc.clock_record().bot("training_bot_%d" % slot)
 		motion_clocks[slot] = float(motion_clocks.get(slot,0))+dt*float(scales[slot])
 	returns.tick(self,dt)
 	dives.tick(self,dt,scales)
@@ -658,7 +658,7 @@ func tick(dt: float) -> bool:
 var resolving_contact := false
 
 func tick_contact(dt: float) -> bool:
-	dt *= lab.moc.simulation_scale()
+	dt *= lab.moc.clock_record().ball()
 	if not lab.ball_active or active_action < 0:
 		return false
 	remaining -= dt
