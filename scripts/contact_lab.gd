@@ -12,6 +12,8 @@ const Action := preload("res://scripts/contact/action.gd").Type
 
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
 const RallyLedger := preload("res://scripts/rally_ledger.gd")
+const LiveBall := preload("res://scripts/live_ball.gd")
+const ContactCommit := preload("res://scripts/contact_commit.gd")
 var ball_shot: Dictionary = {}
 var last_receive_match: Dictionary = {}
 const ReceivePlatform := preload("res://scripts/receive_platform.gd")
@@ -1114,39 +1116,37 @@ func _contact() -> void:
 	request.rolling_receive = rolled
 	request.intent_direction = _intent_direction(locked_action, committed_intent.direction)
 	var result := ContactResolver.resolve(request, assessment)
-	ball_velocity = result.velocity
-	ball.position += result.separation_offset
+	LiveBall.commit_contact(self, result)
 	assessment = result.assessment
 	last_directional_influence = result.influence
 	if locked_action == Action.ATTACK:
 		animation.spike_swing_yaw = result.influence.shot_yaw_radians
-	ball_shot = ReceiveCharge.shot(["receive", "set", "attack", "block"][locked_action], contact_flow.attack_charge(request.charge,"player",ball.position,assessment) if locked_action == 2 else request.charge, "player")
-	if not result.outgoing_shot.is_empty():
-		ball_shot = result.outgoing_shot
-	ball_shot = contact_flow.decorate_shot(ball_shot,request.incoming_shot,"player",locked_action,assessment)
-	if locked_action == 2 and assessment.hit:
-		contact_flow.consume_attack("player")
-	var cost: Vector2 = request.athlete.contact_cost(locked_action, contacts,assessment,incoming_shot)
-	athlete.last_stamina_cost = request.athlete.last_stamina_cost
-	athlete.spend_resolved(cost.x)
-	contact_memory = [0.0, 0.0, 0.0, 0.0]
-	last_contact = elapsed
-	if locked_action == 1:
-		back_set = false
-	outgoing = true
-	if locked_action == 3 and block_state.active:
-		block_state.latched = true
-	else:
-		armed = false
-		auto_preparation.clear()
-	_update_hurtbox_visual(0.0)
-	confirm_window = 0
-	trail_points.clear()
-	if pepper.active():
-		pepper.on_player_contact(locked_action, quality)
-	else:
-		training_bots.replan()
-	_emit_contact_impact(incoming_velocity, assessment, incoming_shot)
+	ContactCommit.outgoing_shot(self, request, result, "player", locked_action, request.charge)
+	ContactCommit.run(self, ContactCommit.PLAYER, {
+		"spend": func() -> void:
+			var cost: Vector2 = request.athlete.contact_cost(locked_action, contacts,assessment,incoming_shot)
+			athlete.last_stamina_cost = request.athlete.last_stamina_cost
+			athlete.spend_resolved(cost.x),
+		"prepare": func() -> void:
+			contact_memory = [0.0, 0.0, 0.0, 0.0]
+			last_contact = elapsed
+			if locked_action == 1:
+				back_set = false
+			outgoing = true
+			if locked_action == 3 and block_state.active:
+				block_state.latched = true
+			else:
+				armed = false
+				auto_preparation.clear()
+			_update_hurtbox_visual(0.0)
+			confirm_window = 0
+			trail_points.clear()
+			if pepper.active():
+				pepper.on_player_contact(locked_action, quality)
+			else:
+				training_bots.replan(),
+		"publish": func() -> void: _emit_contact_impact(incoming_velocity, assessment, incoming_shot),
+	})
 	_message("%s %s   /   contact %d of 3" % [last_quality, ACTIONS[locked_action], contacts])
 	if station.running():
 		station.on_contact(locked_action, assessment.get("charge_match", {}).get("matched", true))

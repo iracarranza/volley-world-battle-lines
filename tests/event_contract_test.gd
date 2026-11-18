@@ -8,7 +8,7 @@ const FIELDS := ["id", "actor", "team", "action", "charge", "point", "incoming_v
 ## Added by MomentOfContact to the copy that impact_started carries.
 const MOC_FIELDS := ["moc_mode", "velocity_duration_seconds", "sweet_duration_seconds", "duration_extension_seconds", "contact_duration_seconds", "duration_seconds", "incoming_speed", "outgoing_speed", "velocity_change"]
 ## _publish_impact order, by the first token each step is written with.
-const PUBLISH_ORDER := ["hud.athlete_hud.timeline.contact(event)", "rally_rules.touch(touching_side)", "clear_net_responses()", "receive_resolved.emit(event)", "animation.on_contact(event)", "contact_flow.record(event)", "moc.begin(event)"]
+const PUBLISH_ORDER := ["hud.athlete_hud.timeline.contact(event)", "RallyLedger.renew_opponent(self, int(event.team))", "clear_net_responses()", "receive_resolved.emit(event)", "animation.on_contact(event)", "contact_flow.record(event)", "moc.begin(event)"]
 var seen: Array = []
 
 func _initialize() -> void: call_deferred("run")
