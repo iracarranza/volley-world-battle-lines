@@ -139,3 +139,29 @@ Commits: MS-08a `8506283` (S-21 scenario and golden, recorded before routing), 0
 
 ## Final full suite (MS-06..MS-08, head 370e212)
 `python3 tools/test.py --logs <scratch>/logs-ms08`: **171/171 passed** (167 + rally_ledger, contact_commit, ball_lease, ball_custody). `tools/dual_run.py d6d2373 WORKTREE` (MS-05 head vs head): 29 scenarios, 0 differences. No stage stopped.
+
+## MS-09 Athlete mutators and one Flow store (extract)
+
+Commits: MS-09a `19cc69f` (mutators; Stamina and HP writers), 09b `9504158` (Flow writes, modifier adds), 09c `1a65025` (Flow direction pinned, ratchet).
+- `athlete.gd` gains `restore(amount, cap)`, `add_stamina`, `heal`, `refill`, `award_flow`, `set_flow`, `lose_flow`, `add_modifier` beside the existing `spend`, `spend_resolved`, `recover`. Every outside write of `.stamina`, `.hp`, `athlete.flow` in `scripts/` now goes through them (map_drills, map_activities, serve_receive_station, contact_flow, contact_lab reset, bot_vitals). The Serve Receive reward keeps its literal cap through `restore(15, 100.0)` (G-15 stays for MS-21).
+- Flow store direction (PRB-13): `athlete.flow` is the authoritative cell for the player (`amount("player")` reads it); `values["player"]` is a write-only shadow, kept because the characterization trace records the `values` dictionary and removing the entry would change goldens. Pinned in `athlete_mutator_test`. `fatigue_epoch` polling stays in `ContactFlow` (coherence C5).
+- Tests: `athlete_mutator_test` (every row of the status machine including Exhausted expiry clearing Flow, caps, the source lint). Ratchet: new `athlete_vitals` category at zero (athlete.gd is a declared owner).
+- Deviation: no event replaced epoch polling; the `values["player"]` shadow was not removed (trace parity).
+
+## MS-10 Player lifecycle record, Bench cancel(), locks facade (extract)
+
+Commits: MS-10a `9e1741c`/`9ebb02e` (table doc, data, derived phase, `PlayerLocks`), 10b `27bb986` (lab and motor writers), 10c `d342b90` (drills, station, serve), 10d `3d054a6` (Bench `cancel()`, ratchet), 10e `16a20c5` (lock readers through the facade).
+- `docs/architecture-migration/player-lifecycle.md` (table of CURRENT legality), `scripts/player_lifecycle.gd` (`TABLE`, `legal`, derived `phase`, `arm`, `disarm`, `set_window`, `cancel`), `scripts/player_locks.gd` (read-only: `input_locked`, `recovering`, `recovery`). `armed` and `confirm_window` have no writers outside the operations (new `lifecycle_fields` ratchet category at zero); fields stay on the lab so tests keep reading them.
+- Bench entry calls `cancel()`; `player_lifecycle_test` runs the old hand-written sequence and `cancel()` on the same dirty lab and compares 25 fields (PRB-15), and checks that Bench, rally end and a lab reset clear `armed` and the window.
+- Found by the dual run: the S-11 scenario scans source for readers of `action_endlag`; the derived phase therefore does not read it (it gates nothing).
+- Deviations: step 3 (store the enum, derive the flags) NOT done: the legacy flags carry combinations the enum cannot represent (armed inside an open window, a charge during a lock), so it cannot be shown behaviour-identical from the traces; the accessor stage is the declared stable intermediate. Step 5 (bot phase strings on paper) is in the doc table notes. Step 6: the facade exists and the two input-lock readers use it; the animation controller itself still reads its own fields.
+
+## MS-11 Scheduler as numbered order, layering lint (extract)
+
+Commits: MS-11a `03d8839` (`scripts/tick_order.gd`), 11b `970d3ab` (stages), 11c `abea7c6` (layering lint).
+- `tick_order.gd` lists ten numbered stages (pause gate, clock, pre-motion, bench gate, player, activities, ball or feed, idle actors, confirm window, present) with first tokens and the line budgets (contact_lab 1600, map_lab 260, drill_lab 60; orchestrator 30 lines). `LabSession._physics_process` is now a list of calls to `_tick_*` stage functions laid out in numbered order; no statement was reordered. `scheduler_order_test` pins the call order against the list, each stage's token order, the layout and the budgets; the old whole-step token check still passes unchanged.
+- `layering_test`: layer table (pure rules, state, orchestration, presentation), upward preloads fail; 7 existing upward references (orchestrators naming `athlete_pose`, `impact_visual`, `bot_animation`) are registered and may only shrink.
+- Not done: `_tick_ball` stays one function (pinned by the BALL token list; many early returns and shared locals); step 4 (session profiles) skipped as the blueprint allows (no initialization-order characterization test exists). Dual run for 11a was folded into 11b (11a adds an unreferenced data file).
+
+## Final full suite (MS-09..MS-11)
+`python3 tools/test.py`: **174/174 passed** (171 + athlete_mutator, player_lifecycle, layering). `tools/dual_run.py b327fe7 WORKTREE`: 29 scenarios, 0 differences. Goldens and BDR pins unchanged; the writer ratchet only gained zero-baseline categories (`athlete_vitals`, `lifecycle_fields`). MS-16..MS-21 untouched; no constant or ordering changed.
