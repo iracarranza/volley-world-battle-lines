@@ -1,0 +1,43 @@
+{
+	"facts": {
+		"attack": {
+			"all_contacts_required": true,
+			"all_contacts_status": "undercharged",
+			"manual_required": true,
+			"manual_status": "undercharged"
+		},
+		"block": {
+			"all_contacts_required": true,
+			"all_contacts_status": "undercharged",
+			"manual_required": false,
+			"manual_status": "unrestricted"
+		},
+		"receive": {
+			"all_contacts_required": true,
+			"all_contacts_status": "undercharged",
+			"manual_required": false,
+			"manual_status": "unrestricted"
+		},
+		"resolver_auto": {
+			"required": true,
+			"status": "undercharged"
+		},
+		"resolver_manual": {
+			"required": false,
+			"status": "unrestricted"
+		},
+		"serve": {
+			"all_contacts_required": true,
+			"all_contacts_status": "undercharged",
+			"manual_required": true,
+			"manual_status": "undercharged"
+		},
+		"set": {
+			"all_contacts_required": true,
+			"all_contacts_status": "undercharged",
+			"manual_required": false,
+			"manual_status": "unrestricted"
+		}
+	},
+	"trace": []
+}

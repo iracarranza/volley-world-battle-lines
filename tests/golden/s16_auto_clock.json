@@ -1,0 +1,33 @@
+{
+	"facts": {
+		"auto_moc_off": {
+			"actor_scale": 1.0,
+			"armed": true,
+			"auto_age": 0.5,
+			"auto_prepared": 0.075,
+			"charge": -1.0
+		},
+		"auto_moc_on": {
+			"actor_scale": 0.1203703704,
+			"armed": true,
+			"auto_age": 0.5,
+			"auto_prepared": 0.075,
+			"charge": -1.0
+		},
+		"manual_moc_off": {
+			"actor_scale": 1.0,
+			"armed": false,
+			"auto_age": -1.0,
+			"auto_prepared": -1.0,
+			"charge": 0.5882352941
+		},
+		"manual_moc_on": {
+			"actor_scale": 0.1203703704,
+			"armed": false,
+			"auto_age": -1.0,
+			"auto_prepared": -1.0,
+			"charge": 0.0708061002
+		}
+	},
+	"trace": []
+}
