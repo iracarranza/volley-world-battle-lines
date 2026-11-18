@@ -2,6 +2,7 @@ class_name AthleteMotor
 extends RefCounted
 
 ## Owns motion state. LabSession schedules updates and composes peers.
+const PlayerLocks := preload("res://scripts/player_locks.gd")
 const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
 const Approach = preload("res://scripts/approach_run.gd")
 const Flight = preload("res://vendor/vwm/ball_flight_model.gd")
@@ -51,7 +52,7 @@ func tick(dt: float, motion_scale: float) -> void:
 	quick_step_time = maxf(0.0, quick_step_time - dt)
 	quick_step_cooldown = maxf(0.0, quick_step_cooldown - dt)
 	var local_move := Vector3(float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A)), 0, float(Input.is_physical_key_pressed(KEY_S)) - float(Input.is_physical_key_pressed(KEY_W))).normalized()
-	if lab.animation.roll_lock > 0.0 or lab.animation.dive_input_locked() or lab.animation.floor_input_locked():
+	if PlayerLocks.input_locked(lab):
 		local_move = Vector3.ZERO
 	lab.receive_plant.tick(dt, local_move, lab.receive_planted())
 	var move := lab.camera_rig.movement_direction(local_move)

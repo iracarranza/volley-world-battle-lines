@@ -4,6 +4,7 @@ extends Node3D
 @export var camera_tuning: LabCameraTuning = preload("res://resources/lab_camera.tres")
 
 signal receive_resolved(event: Dictionary)
+const PlayerLocks := preload("res://scripts/player_locks.gd")
 const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
 const ContactEvent := preload("res://scripts/contact/contact_event.gd")
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
@@ -602,7 +603,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	if is_instance_valid(creator) and creator.visible:
 		return
-	if (animation.roll_lock > 0.0 or animation.dive_input_locked() or animation.floor_input_locked()) and not (event is InputEventKey and event.keycode in [KEY_O, KEY_M, KEY_P, KEY_T, KEY_H, KEY_F3, KEY_F8, KEY_F9, KEY_K]):
+	if PlayerLocks.input_locked(self) and not (event is InputEventKey and event.keycode in [KEY_O, KEY_M, KEY_P, KEY_T, KEY_H, KEY_F3, KEY_F8, KEY_F9, KEY_K]):
 		return
 	if not paused and drills.has_method("drill_input") and drills.drill_input(event):
 		return
