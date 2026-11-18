@@ -4,6 +4,7 @@ extends Node3D
 
 # Dependencies and fixed configuration.
 const AttackTarget := preload("res://scripts/bot_attack_target.gd")
+const RngSeed := preload("res://scripts/rng_seed.gd")
 const BotSettings := preload("res://scripts/bot_settings.gd")
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
@@ -40,6 +41,8 @@ var physique := Athlete.new()
 var athletes: Array[LabAthlete] = []
 var shapes: Array[Dictionary] = []
 var random := RandomNumberGenerator.new()
+# Optional base seed for reproducible rallies; -1 draws fresh seeds (the default).
+var rng_seed := -1
 var aim_random := RandomNumberGenerator.new()
 var last_aim: Dictionary = {}
 var lab: Node3D
@@ -71,13 +74,14 @@ func _init() -> void:
 		config.contact_order = (slot % 4 + 1) % 4
 		settings.append(config)
 
+func reseed(base_seed: int = -1) -> void:
+	RngSeed.seed_generators({"bots.random": random, "bots.aim": aim_random, "bots.charge": charge_random}, base_seed)
+
 func setup(owner_lab: Node3D) -> void:
 	lab = owner_lab
 	physique.build.height = Store.DEFAULT_INCHES * 0.0254
 	physique.build.span = 1.90
-	random.randomize()
-	aim_random.randomize()
-	charge_random.randomize()
+	reseed(rng_seed)
 	for slot in range(settings.size()):
 		athletes.append(Vitals.create(physique))
 		var action := slot_action(slot)

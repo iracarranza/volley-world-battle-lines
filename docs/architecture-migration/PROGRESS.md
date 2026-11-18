@@ -25,3 +25,11 @@ Branch `migration/architecture-ms00-14`, stages MS-00..MS-04 (group 1). Behaviou
 - Lint: `tests/governance_docs_test.gd` 150/150 (every cited FC id defined, every entry has citation/status/pin/gate-or-none).
 - Behaviour evidence: no code touched. Citations use file and symbol, not line numbers (lines drift).
 - Deviation: BDR-19 (left-handed bots) cites no FC id (single-source item of the study's section 4).
+
+## MS-02 Seed hooks (extract, additive)
+
+- New `scripts/rng_seed.gd` (`seed_generators`): no base seed calls `randomize()` exactly as before; a base seed gives each generator `base + index`. Every seed used is logged (`RngSeed.used` and a stdout line).
+- Hooked: `training_bots.gd` (random, aim, charge; `rng_seed`, `reseed()`), `pepper_partners.gd` (aim, charge; same), `transition_set_drill.gd` (target), `weighted_balancing.gd` (sway). `dominant_sign = 1` and the unseeded default are unchanged (G-19 not answered).
+- Not hooked: `map_drills.gd` `spike_rng` and `serve_receive_station.gd` `rng` (never call `randomize()`; Godot seeds a new generator randomly). `title_rally_backdrop.gd` already uses a fixed seed 7. Left alone to keep default behaviour byte-identical.
+- Tests: new `seed_hooks_test` 7/7 (default draws fresh seeds per session and logs them; same seed reproduces the three-contact bot rally ledger exactly; a different seed changes it; Pepper takes the hook). Existing `bot_aim`, `bot_generic_rally`, `bot_rally_motion`, `pepper_sequence`, `pepper_move_set`, `bot_interaction`, `drill_mechanics`, `drill_lab`, `map_drills`, `map_bot_rally`, `map_activities`, `serve_pepper` green.
+- Deviation: the ledger test lowers bot aiming accuracy to 20 so that RNG draws are visible (default accuracy shows no scatter in this rally).

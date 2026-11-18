@@ -2,6 +2,7 @@ extends "res://scripts/map_drills.gd"
 ## Provisional cooperative practice: a receiving partner passes; the athlete sets into a goal.
 const PASSES_REQUIRED := 3
 const Basket := preload("res://scripts/drill_basket.gd")
+const RngSeed := preload("res://scripts/rng_seed.gd")
 const TARGETS := [Vector3(5,3.4,-7),Vector3(-5,3.4,-7),Vector3(4,3.8,-6),Vector3(-4,3.8,-6),Vector3(6,3.2,-8),Vector3(-6,3.2,-8)]
 var anchor := Vector3.ZERO
 var partner: Node3D
@@ -10,13 +11,14 @@ var basket: Node3D
 var goal_label: Label3D
 var target_index := -1
 var target_rng := RandomNumberGenerator.new()
+var rng_seed := -1
 var progress := 0
 var waiting := false
 var pose_time := 0.0
 
 func setup(host: Node3D,_anchors: Dictionary = {}) -> void:
 	lab = host
-	target_rng.randomize()
+	RngSeed.seed_generators({"transition_set.target": target_rng}, rng_seed)
 	box_enabled = false
 	spike_enabled = false
 	lab.world_builder.box(self,Vector3(8,0.03,8),anchor-Vector3.UP*0.015,Color("315967"))

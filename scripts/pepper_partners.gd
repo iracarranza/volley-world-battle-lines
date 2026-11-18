@@ -2,6 +2,7 @@ extends Node3D
 
 # Dependencies and fixed configuration.
 const Settings := preload("res://scripts/bot_settings.gd")
+const RngSeed := preload("res://scripts/rng_seed.gd")
 const Vitals := preload("res://scripts/bot_vitals.gd")
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
@@ -30,6 +31,8 @@ var spots: Array = SPOTS.duplicate()
 var home_rings: Array[MeshInstance3D] = []
 var home_labels: Array[Label3D] = []
 var aim_random := RandomNumberGenerator.new()
+# Optional base seed for reproducible rallies; -1 draws fresh seeds (the default).
+var rng_seed := -1
 var last_aim: Dictionary = {}
 var lab: Node3D
 var actors: Array[Node3D] = []
@@ -54,11 +57,13 @@ var approach_yaw := 0.0
 var attack_facing_locked := false
 var movement_cycle := 0.0
 
+func reseed(base_seed: int = -1) -> void:
+	RngSeed.seed_generators({"pepper.aim": aim_random, "pepper.charge": charge_random}, base_seed)
+
 func setup(owner_lab: Node3D) -> void:
 	lab = owner_lab
 	spots = lab.pepper_spots()
-	aim_random.randomize()
-	charge_random.randomize()
+	reseed(rng_seed)
 	for index in range(3):
 		athletes.append(Vitals.create(lab.training_bots.physique))
 		var actor := Node3D.new()
