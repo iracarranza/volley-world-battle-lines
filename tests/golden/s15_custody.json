@@ -7,7 +7,7 @@
 		"inventory_held_while_benched": true,
 		"max_balls": 3,
 		"max_stamina": 150.0,
-		"stamina_after_station_complete": 100.0,
+		"stamina_after_station_complete": 120.0,
 		"team_empty_callers": []
 	},
 	"trace": [
@@ -245,7 +245,7 @@
 					"exhausted": false,
 					"flow_field": 0.0,
 					"hp": 100.0,
-					"stamina": 100.0,
+					"stamina": 120.0,
 					"winded": false
 				},
 				"rally": {

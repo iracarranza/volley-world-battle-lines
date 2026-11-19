@@ -181,7 +181,7 @@ static func pin_s15_custody(t: Object, f: Dictionary) -> void:
 	t.check(f.ground_balls_after_four_landings == 3 and f.cart_balls_before == f.cart_balls_after, "BDR-16: the fourth ground ball evicts the oldest and nothing returns to a cart")
 	t.check(f.team_empty_callers == [], "BDR-16: team_empty has no caller")
 	t.check(f.benched and f.inventory_held_while_benched, "BDR-16: the Bench keeps the held ball")
-	t.check(f.max_stamina > 100.0 and near(f.stamina_after_station_complete, 100.0), "BDR-16: the Serve Receive reward caps Stamina at the literal 100, below the athlete's maximum")
+	t.check(f.max_stamina > 100.0 and f.stamina_after_station_complete > 100.0 and f.stamina_after_station_complete <= f.max_stamina, "BDR-16 (MS-21, G-15): the Serve Receive reward is capped by the athlete's own maximum, not the literal 100 (120 of 150 here)")
 
 # --- BDR-17/18 ledger ----------------------------------------------------------------------------------------------------------------------
 static func pin_s03_ledger_table(t: Object, f: Dictionary) -> void:

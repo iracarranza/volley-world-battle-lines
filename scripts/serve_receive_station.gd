@@ -444,7 +444,7 @@ func advance() -> void:
 		state = State.COMPLETE
 		earned_xp += 25
 		lab.athlete.heal(20)
-		lab.athlete.restore(15, 100.0)  # G-15: the literal 100 stays until MS-21
+		lab.athlete.restore(15)  # G-15 (MS-21): capped at max_stamina(), not the literal 100
 		detail = "COMPLETE / %d points / +25 lab XP, +20 HP, +15 STA. I to repeat." % points
 	else:
 		state = State.WAITING
