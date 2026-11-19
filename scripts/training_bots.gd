@@ -341,8 +341,8 @@ func athlete_for(slot: int) -> LabAthlete:
 func move_speed_for(slot: int) -> float:
 	return settings[slot].move_speed*(0.55 if athlete_for(slot).exhausted else 1.0)
 
-func spend_stamina(slot: int,cost: float,resolved: bool = false) -> void:
-	Vitals.spend(athlete_for(slot),cost,lab.contact_flow,"training_bot_%d" % slot,resolved)
+func spend_stamina(slot: int,cost: float,resolved: bool = false,contact_spend: bool = false) -> void:
+	Vitals.spend(athlete_for(slot),cost,lab.contact_flow,"training_bot_%d" % slot,resolved,contact_spend)
 
 func spend_jump(slot: int) -> void:
 	spend_stamina(slot,athlete_for(slot).jump_stamina_cost(),true)
@@ -795,7 +795,7 @@ func tick_contact(dt: float) -> bool:
 		"spend": func() -> void:
 			var contact_cost: float = request.athlete.contact_cost(action,1,execution,incoming_shot).x
 			athlete_for(slot).last_stamina_cost = request.athlete.last_stamina_cost
-			spend_stamina(slot,contact_cost,true),
+			spend_stamina(slot,contact_cost,true,true),
 		"settle": func() -> void:
 			total_contacts += 1
 			last_action = action

@@ -16,12 +16,14 @@ static func refresh(athlete: LabAthlete) -> void:
 	athlete.reset_fatigue()
 	athlete.refill()
 
-static func spend(athlete: LabAthlete,cost: float,flow: Node3D,actor_id: String,resolved: bool = false) -> void:
+## contact_spend (G-01, MS-16): the contact spend now precedes the publish, so the epoch change is left for ContactFlow.record to see (as for the player),
+## otherwise a depleting contact would record a Flow gain on a Winded bot. Everything else here still applies immediately.
+static func spend(athlete: LabAthlete,cost: float,flow: Node3D,actor_id: String,resolved: bool = false,contact_spend: bool = false) -> void:
 	var epoch := athlete.fatigue_epoch
 	if resolved: athlete.spend_resolved(cost)
 	else: athlete.spend(cost)
 	if athlete.fatigue_epoch != epoch and is_instance_valid(flow):
-		flow.actor_fatigue_changed(actor_id)
+		if not contact_spend: flow.actor_fatigue_changed(actor_id)
 		flow.values[actor_id] = 0.0
 		flow.pending_attacks.erase(actor_id)
 		flow.pending_jumps.erase(actor_id)

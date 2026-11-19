@@ -29,7 +29,7 @@ MoC adds nine fields to the copy carried by `impact_started` (`moc_mode`, `veloc
 6. `contact_flow.record(event)`
 7. `moc.begin(event)`
 
-Only the spend position differs by caller: player and Serve spend Stamina before step 1, bots and Pepper after step 7 (BDR-01, `spend_position` in MS-07).
+Every caller spends Stamina before step 1 (G-01, MS-16: bots and Pepper moved from after step 7 to before step 1; BDR-01 CHANGED). `spend_position` is now one value for all four policies.
 
 Order-sensitive pairs:
 - spend vs `record`: Flow `record` zeroes the gain when the fatigue epoch changed (player: spent first; bots: record sees pre-spend state).

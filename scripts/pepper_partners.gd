@@ -98,8 +98,8 @@ func athlete_for(index: int) -> LabAthlete:
 func refresh_for_rally() -> void:
 	for athlete in athletes: Vitals.refresh(athlete)
 
-func spend_stamina(cost: float,resolved: bool = false) -> void:
-	Vitals.spend(athlete_for(partner),cost,lab.contact_flow,"pepper_%d" % partner,resolved)
+func spend_stamina(cost: float,resolved: bool = false,contact_spend: bool = false) -> void:
+	Vitals.spend(athlete_for(partner),cost,lab.contact_flow,"pepper_%d" % partner,resolved,contact_spend)
 
 func set_charge_accuracy(index: int, value: float) -> void:
 	settings[index].charge_accuracy = clampf(value, 0, 100)
@@ -391,7 +391,7 @@ func tick(dt: float) -> bool:
 		"spend": func() -> void:
 			var contact_cost: float = request.athlete.contact_cost(stage,1,assessment,incoming_shot).x
 			athlete_for(partner).last_stamina_cost = request.athlete.last_stamina_cost
-			spend_stamina(contact_cost,true),
+			spend_stamina(contact_cost,true,true),
 		"settle": func() -> void:
 			last_delivery = {"action": stage, "quality": assessment.quality, "required_action": player_action, "target": target, "origin": origin, "velocity": lab.ball_velocity, "duration": duration, "aim": last_aim, "preparation": preparation.evidence(partner), "incoming_shot": incoming_shot, "charge_match": assessment.get("charge_match", {}), "receive_outcome":assessment.get("receive_outcome",{})}
 			last_delivery.make_read_only()

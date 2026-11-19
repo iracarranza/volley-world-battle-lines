@@ -31,7 +31,7 @@
 					"epoch": 0,
 					"exhausted": false,
 					"flow": 50.0,
-					"stamina": 100.0,
+					"stamina": 84.3824834824,
 					"winded": false
 				}
 			},
@@ -71,11 +71,11 @@
 			],
 			"listener": {
 				"at_receive_resolved": {
-					"epoch": 0,
+					"epoch": 1,
 					"exhausted": false,
-					"flow": 50.0,
-					"stamina": 0.41,
-					"winded": false
+					"flow": 0.0,
+					"stamina": 50.0,
+					"winded": true
 				}
 			},
 			"post": {
@@ -271,9 +271,9 @@
 					},
 					"last_changes": {
 						"training_bot_0": {
-							"after": 69.2152623757,
-							"before": 50.0,
-							"delta": 19.2152623757,
+							"after": 0.0,
+							"before": 0.0,
+							"delta": 0.0,
 							"event": {
 								"action": 0,
 								"actor": "training_bot_0",

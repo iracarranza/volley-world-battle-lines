@@ -40,7 +40,7 @@ func run() -> void:
 		for match in fc_pattern.search_all(cells[2]):
 			check(defined.has(match.get_string()), "%s cites a defined FC id (%s)" % [id, match.get_string()])
 		check(cells[4] != "", "%s has a citation" % id)
-		check(cells[6] in ["CURRENT-reproduced", "GATED", "DESIGNER-APPROVED-AS-IS"], "%s has a valid status" % id)
+		check(cells[6] in ["CURRENT-reproduced", "CHANGED", "GATED", "DESIGNER-APPROVED-AS-IS"], "%s has a valid status" % id)
 		check(cells[7] != "", "%s names a pin test or its placeholder" % id)
 		check(cells[8].begins_with("G-") or cells[8] == "none", "%s names a gate or 'none'" % id)
 	var registry := _read("event-field-registry.md")

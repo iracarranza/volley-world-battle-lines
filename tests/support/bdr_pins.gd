@@ -34,18 +34,18 @@ static func pin_s01_depleted_player(t: Object, f: Dictionary) -> void:
 
 static func pin_s01_depleted_bot(t: Object, f: Dictionary) -> void:
 	var d: Dictionary = f.depleting.listener.at_receive_resolved
-	t.check(not d.winded and d.epoch == 0 and near(d.flow, 50.0) and d.stamina < 1.0, "BDR-01 bot: a listener sees the pre-depletion state (publish before spend)")
-	t.check(f.depleting.post.winded and f.depleting.post.epoch == 1 and near(f.depleting.post.flow, 0.0), "BDR-01 bot: the spend then enters Winded and zeroes Flow")
+	t.check(d.winded and d.epoch == 1 and near(d.flow, 0.0), "BDR-01 bot (MS-16, G-01): a listener sees the post-depletion state (spend before publish)")
+	t.check(f.depleting.post.winded and f.depleting.post.epoch == 1 and near(f.depleting.post.flow, 0.0), "BDR-01 bot: depleting contact ends Winded with Flow 0 and no gain recorded (as the player)")
 	var c: Dictionary = f.control.listener.at_receive_resolved
-	t.check(near(c.stamina, 100.0) and near(c.flow, 50.0), "BDR-01 bot control: nothing is spent or recorded yet at the listener")
-	t.check(f.control.post.stamina < 100.0 and not near(f.control.post.flow, 50.0), "BDR-01 bot control: spend and Flow record follow the publish")
+	t.check(c.stamina < 100.0 and not c.winded and c.epoch == 0, "BDR-01 bot control: the cost is already paid when the listener runs")
+	t.check(f.control.post.stamina < 100.0 and not near(f.control.post.flow, 50.0), "BDR-01 bot control: the Flow record follows the publish")
 	t.check(f.depleting.events.size() == 1, "BDR-01 bot: a depleting contact still publishes")
 
 static func pin_s01_depleted_pepper(t: Object, f: Dictionary) -> void:
 	var d: Dictionary = f.depleting.listener.at_receive_resolved
-	t.check(not d.winded and d.epoch == 0 and near(d.flow, 50.0), "BDR-01 Pepper: a listener sees the pre-depletion state (publish before spend)")
-	t.check(f.depleting.post.winded and f.depleting.post.epoch == 1 and near(f.depleting.post.flow, 0.0), "BDR-01 Pepper: the spend then enters Winded and zeroes Flow")
-	t.check(near(f.control.listener.at_receive_resolved.stamina, 100.0) and f.control.post.stamina < 100.0, "BDR-01 Pepper control: Stamina is spent after publishing")
+	t.check(d.winded and d.epoch == 1 and near(d.flow, 0.0), "BDR-01 Pepper (MS-16, G-01): a listener sees the post-depletion state (spend before publish)")
+	t.check(f.depleting.post.winded and f.depleting.post.epoch == 1 and near(f.depleting.post.flow, 0.0), "BDR-01 Pepper: depleting contact ends Winded with Flow 0 and no gain recorded")
+	t.check(f.control.listener.at_receive_resolved.stamina < 100.0 and f.control.post.stamina < 100.0, "BDR-01 Pepper control: Stamina is spent before publishing")
 
 static func pin_s01_depleted_serve(t: Object, f: Dictionary) -> void:
 	var d: Dictionary = f.depleting.listener.at_moc

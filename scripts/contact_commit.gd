@@ -3,9 +3,9 @@ extends RefCounted
 ## Sequence: [spend, if before_publish] -> prepare -> publish -> present -> [spend, if after_publish] -> counter reset -> settle.
 ## The caller supplies the steps as callables (what is spent and how, the follow-up, the publish call, the presentation); the commit
 ## fixes only their order and the two policy values below. CURRENT per caller, reproduced exactly (FC-01, FC-04, FC-30):
-##   player and Serve spend before the event is published (listeners see post-depletion Stamina), court bots and Pepper after it.
+##   every caller spends before the event is published (listeners see post-depletion Stamina): G-01, MS-16 moved court bots and Pepper (they spent after it).
 ##   counters: the player's and Serve's reset happens in the publish renewal, a bot clears the personal count, Pepper clears both.
-## The spend_position field is the migration switch for G-01 (MS-16 flips it for bots and Pepper). The cap is five fields (SADR-03).
+## The spend_position field was the migration switch for G-01 (flipped in MS-16; all four policies now share one value). The cap is five fields (SADR-03).
 const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
 const LiveBall := preload("res://scripts/live_ball.gd")
@@ -17,8 +17,8 @@ const SHOT_KINDS := ["receive", "set", "attack", "block"]
 
 const PLAYER := {"spend_position": Spend.BEFORE_PUBLISH, "counter_reset": Counters.NONE}
 const SERVE := {"spend_position": Spend.BEFORE_PUBLISH, "counter_reset": Counters.NONE}
-const BOT := {"spend_position": Spend.AFTER_PUBLISH, "counter_reset": Counters.PERSONAL}
-const PEPPER := {"spend_position": Spend.AFTER_PUBLISH, "counter_reset": Counters.BOTH}
+const BOT := {"spend_position": Spend.BEFORE_PUBLISH, "counter_reset": Counters.PERSONAL}
+const PEPPER := {"spend_position": Spend.BEFORE_PUBLISH, "counter_reset": Counters.BOTH}
 
 ## The outgoing shot of a resolved contact (the ball's velocity has already been committed): built from the action's charge, replaced by
 ## the resolver's shot when it made one, decorated by Flow, and an Attack's pending bonus is consumed on a hit. Written to the ball once.
