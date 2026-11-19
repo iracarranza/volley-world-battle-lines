@@ -389,6 +389,9 @@ func apply_created_athlete(config: Dictionary) -> void:
 	build["offsets"] = config.get("offsets", {}).duplicate(true)
 	build["statistics"] = config.get("statistics",{}).duplicate(true)
 	build["stat_version"] = config.get("stat_version",2)
+	# G-14 (MS-20): earned growth saved at completion comes back with the athlete.
+	if not config.get("workout_counts",{}).is_empty(): build["workout_counts"] = config.workout_counts.duplicate(true)
+	if config.has("drill_auxiliaries"): build["drill_auxiliaries"] = config.drill_auxiliaries.duplicate(true)
 	if config.has("picks"):
 		build["picks"] = config.picks.duplicate()
 	build["stat_names"] = config.get("stat_names",preload("res://scripts/athlete_store.gd").STATS).duplicate(true)

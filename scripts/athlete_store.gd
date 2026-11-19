@@ -591,6 +591,21 @@ static func load_roster() -> void:
 	else:
 		load_state = "corrupt"
 
+## G-14 (MS-20): Workout and Setup growth is saved at completion. The three growth fields of the lab athlete's build are copied onto the selected roster
+## entry (only when that entry is the athlete in the lab, matched by name) and the roster is saved through `save_roster`. {"saved": false, "error": ""}
+## means "not a saved athlete, nothing written"; a failed write returns its error (never reported as saved).
+const GROWTH_KEYS := ["statistics", "workout_counts", "drill_auxiliaries"]
+
+static func persist_growth(build: Dictionary, athlete_name: String) -> Dictionary:
+	if selected < 0 or selected >= roster.size() or str(roster[selected].get("name", "")).strip_edges() != athlete_name:
+		return {"ok": true, "saved": false, "error": ""}
+	for key in GROWTH_KEYS:
+		if build.has(key):
+			roster[selected][key] = build[key].duplicate(true)
+	var result := save_roster()
+	result["saved"] = bool(result.ok)
+	return result
+
 static func save_roster() -> Dictionary:
 	if load_state == "newer_schema":
 		return {"ok": false, "error": "The save file is from a newer version and was left untouched."}

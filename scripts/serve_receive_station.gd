@@ -3,6 +3,7 @@ extends Node3D
 const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
 const LiveBall := preload("res://scripts/live_ball.gd")
 const RallyLedger := preload("res://scripts/rally_ledger.gd")
+const GrowthSave := preload("res://scripts/growth_save.gd")
 const CENTER := Vector3(16, 0, 6.5)
 const SERVE_BASELINE_Z := -10.0
 const SERVE_CONTACT_HEIGHT := 3.60
@@ -241,7 +242,7 @@ func _serve_used(success: bool, reason: String) -> void:
 			var grant: Dictionary = preload("res://scripts/setup_grants.gd").grant(lab.athlete, "SERVE MACHINE")
 			lab.athlete.heal(20)
 			lab.athlete.restore(15)
-			detail = "SERVE MACHINE COMPLETE / %d reward balls to claim (I) / +25 lab XP / +%d platform quality access / reactivates in %ds" % [distributor.pile, int(grant.get("amount", 0)), ceili(distributor.cooldown)]
+			detail = "SERVE MACHINE COMPLETE / %d reward balls to claim (I) / +25 lab XP / +%d platform quality access / reactivates in %ds%s" % [distributor.pile, int(grant.get("amount", 0)), ceili(distributor.cooldown), GrowthSave.at_completion(lab) if not grant.is_empty() else ""]
 			lab._message(detail)
 		"failed":
 			detail = "SERVE MACHINE FAILED / out of balls / reactivates in %ds" % ceili(distributor.cooldown)

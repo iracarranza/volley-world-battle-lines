@@ -144,6 +144,7 @@ func _complete(extra: String = "") -> void:
 	var growth := ""
 	if not last_progress.is_empty():
 		growth = " / %s %s" % [subattribute.capitalize(), "+1 (now %d)" % int(last_progress.rating) if last_progress.gained else "%d of %d" % [last_progress.count, last_progress.needed]]
+	if not last_progress.is_empty(): growth += GrowthSave.at_completion(lab)
 	detail = "%s COMPLETE / +%d lab XP%s%s" % [title, xp_reward, growth, extra]
 	_reset_run()
 	lab._message(detail)
