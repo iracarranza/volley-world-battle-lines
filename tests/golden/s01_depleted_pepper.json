@@ -609,7 +609,7 @@
 					"roll_lock": 0.0
 				},
 				"moc": {
-					"active": true,
+					"active": false,
 					"ball_scale": 1.0,
 					"events": 1,
 					"player_scale": 1.0
@@ -1158,7 +1158,7 @@
 					"roll_lock": 0.0
 				},
 				"moc": {
-					"active": true,
+					"active": false,
 					"ball_scale": 1.0,
 					"events": 1,
 					"player_scale": 1.0

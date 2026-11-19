@@ -109,6 +109,9 @@ func charge_duration(event: Dictionary) -> float:
 	var charge := float(shot.get("charge",event.get("charge",0.0 if action == 5 else 1.0)))
 	return lerpf(0.05,maxf(0.05,steering_duration),clampf(charge,0,1))
 
+static func _is_helper_actor(actor_id: String) -> bool:
+	return actor_id.begins_with("training_bot_") or actor_id.begins_with("pepper_")
+
 func begin(event: Dictionary) -> void:
 	var incoming := Vector3(event.get("incoming_velocity", Vector3.ZERO))
 	var outgoing := Vector3(event.get("outgoing_velocity", Vector3.ZERO))
@@ -147,6 +150,9 @@ func begin(event: Dictionary) -> void:
 	if (int(event.action) == 1 and mode != Mode.TRAJECTORY_STEERING) or (mode == Mode.TUNED_SLOWDOWN and int(event.action) != 2):
 		clear()
 	impact_started.emit(last_event)
+	# G-04 (MS-17): only the player's own contacts (including the player's Serve) slow the ball; a court bot's or Pepper partner's hit does not.
+	if _is_helper_actor(str(event.get("actor", "player"))):
+		return
 	if duration <= 0 or not enabled or (is_instance_valid(owner_lab) and owner_lab.paused):
 		return
 	var now := _now()

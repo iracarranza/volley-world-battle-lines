@@ -76,12 +76,14 @@ static func pin_s02_repeat_gate_bot(t: Object, f: Dictionary) -> void:
 # --- BDR-03 slowdown --------------------------------------------------------------------------------------------------------------------
 static func pin_s04_slowdown(t: Object, f: Dictionary) -> void:
 	t.check(f.player.mode == 3 and f.player.enabled and near(f.player.steering_speed, 0.05), "BDR-03: the default MoC is Trajectory Steering at 0.05 steering speed")
-	for caller in ["bot", "pepper", "serve"]:
-		var c: Dictionary = f[caller]
-		t.check(c.active and c.ball_scale < 0.2 and not c.steering_active and not c.steer_changed_velocity and near(c.player_scale, 1.0), "BDR-03 %s: the hit slows the ball while nobody can steer and the player keeps full speed" % caller)
-	t.check(f.bot.acting_actor == "training_bot_0" and f.pepper.acting_actor == "pepper_1" and f.serve.acting_actor == "player_serve", "BDR-03: every physical hit starts the effect for its own actor")
+	for caller in ["bot", "pepper"]:
+		var h: Dictionary = f[caller]
+		t.check(not h.active and near(h.ball_scale, 1.0) and h.acting_actor == "" and not h.steering_active and near(h.player_scale, 1.0), "BDR-03 %s (MS-17, G-04): the hit starts no slowdown, the ball and player stay at full speed" % caller)
+	var c: Dictionary = f.serve
+	t.check(c.active and c.ball_scale < 0.2 and not c.steering_active and not c.steer_changed_velocity and near(c.player_scale, 1.0), "BDR-03 serve: the player's Serve still slows the ball (G-04 changes bot and Pepper hits only)")
+	t.check(f.serve.acting_actor == "player_serve", "BDR-03: the Serve starts the effect for its own actor")
 	t.check(f.player.acting_actor == "player" and f.player.steering_active and f.player.steer_changed_velocity and near(f.player.player_scale, f.player.ball_scale), "BDR-03 player: the player's own hit can be steered and slows the player too")
-	t.check(near(f.pepper.ball_scale, 0.05) and near(f.serve.ball_scale, 0.05), "BDR-03: Pepper and Serve windows are at the steering speed after 50 ms")
+	t.check(near(f.serve.ball_scale, 0.05), "BDR-03: the Serve window is at the steering speed after 50 ms")
 
 # --- BDR-04 DI -----------------------------------------------------------------------------------------------------------------------------
 static func pin_s05_di_by_mode(t: Object, f: Dictionary) -> void:
