@@ -142,6 +142,7 @@ var locked_action := 0
 var charging := false
 var armed := false
 const AutoCharge := preload("res://scripts/auto_charge.gd")
+const ShoulderFrame := preload("res://scripts/shoulder_frame.gd")
 var auto_preparation := AutoCharge.new()
 var charge := 0.0
 var locked_charge := 0.0
@@ -174,6 +175,7 @@ const ROLL_TIME := LockData.ROLL_TIME
 var contact_memory: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var body_collision_view: MeshInstance3D
 var arms: Array[Node3D] = []
+var idle_shoulder := Vector2(-1.0, -1.0)  # MS-19: ShoulderFrame.idle of the current rig
 var legs: Array[Node3D] = []
 
 
@@ -364,6 +366,7 @@ func _rebuild_visual() -> void:
 	var rig := VoliVisual.build(self, player, body_type, appearance, athlete.build)
 	body = rig.body
 	arms = rig.arms
+	idle_shoulder = ShoulderFrame.idle(arms)
 	legs = rig.legs
 	visual_rig_height = rig.rig_height
 	visual_hip_x = rig.hip_x
@@ -404,8 +407,9 @@ func _hurtbox_definition(action: int) -> Dictionary:
 func _raw_hurtbox_definition(action: int) -> Dictionary:
 	var height: float = athlete.body_height()
 	var scale_to_world: float = height / visual_rig_height
-	var shoulder := arms[1].position.y * scale_to_world if arms.size() > 1 else height * 0.815
-	var shoulder_x := absf(arms[1].position.x) * scale_to_world if arms.size() > 1 else height * 0.17
+	var frame: Vector2 = ShoulderFrame.scaled(idle_shoulder, scale_to_world)
+	var shoulder: float = frame.x if frame.x >= 0.0 else height * 0.815
+	var shoulder_x: float = frame.y if frame.x >= 0.0 else height * 0.17
 	var shape := Geometry.definition(action, height, athlete.reach(), motion.jumped and motion.airborne_action == 0, -1.0 if dominant_hand == "Left" else 1.0, shoulder, shoulder_x, athlete.ball_control(), Geometry.arm_length(arms[0 if dominant_hand == "Left" else 1], scale_to_world),athlete.build)
 	if action == 0:
 		shape["platform_quality"] = athlete.trait_effect("platform_quality")

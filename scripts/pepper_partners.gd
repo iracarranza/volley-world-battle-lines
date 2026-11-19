@@ -7,6 +7,7 @@ const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const Settings := preload("res://scripts/bot_settings.gd")
 const RngSeed := preload("res://scripts/rng_seed.gd")
 const Vitals := preload("res://scripts/bot_vitals.gd")
+const ShoulderFrame := preload("res://scripts/shoulder_frame.gd")
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
@@ -41,6 +42,7 @@ var last_aim: Dictionary = {}
 var lab: Node3D
 var actors: Array[Node3D] = []
 var rigs: Array[Dictionary] = []
+var idle_shoulders: Array[Vector2] = []  # MS-19: ShoulderFrame.idle per rig, captured at build
 var volumes: Array[Node3D] = []
 var partner := -1
 var stage := 0
@@ -77,6 +79,7 @@ func setup(owner_lab: Node3D) -> void:
 		actor.position = spots[index]
 		var rig := Visual.build(lab, actor, "Avi" if index == 0 else "Feli", {"palette_index": index, "marking": "none"}, athletes[index].build)
 		rigs.append(rig)
+		idle_shoulders.append(ShoulderFrame.idle(rig.arms))
 		var volume := Node3D.new()
 		actor.add_child(volume)
 		volumes.append(volume)
@@ -156,7 +159,7 @@ func shape() -> Dictionary:
 	var rig := rigs[partner]
 	var physique = athlete_for(partner)
 	var scale: float = physique.body_height() / rig.rig_height
-	var definition := Geometry.definition(stage, physique.body_height(), physique.reach(), false, 1, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
+	var definition := Geometry.definition(stage, physique.body_height(), physique.reach(), false, 1, idle_shoulders[partner].x * scale, idle_shoulders[partner].y * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
 	if stage == 0:
 		definition["platform_quality"] = physique.trait_effect("platform_quality")
 	var effects: Dictionary = lab.contact_flow.shape_effects("pepper_%d"%partner,stage)

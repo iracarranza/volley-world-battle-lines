@@ -117,11 +117,11 @@ static func pin_s08_grounded_attack(t: Object, f: Dictionary) -> void:
 
 # --- BDR-09 pose-dependent attack volume -----------------------------------------------------------------------------------------------
 static func pin_s10_attack_volume(t: Object, f: Dictionary) -> void:
-	t.check(near(f.idle_centres["2"][1], 1.3133060932) and near(f.leaned_centres["2"][1], 1.024029851) and near(f.leaned_centres["2"][0], 0.3902215064), "BDR-09: the player's Attack centre follows the live pose (1.3133 idle, 1.0240 at full plant lean)")
+	t.check(near(f.idle_centres["2"][1], 1.3133060932) and f.leaned_centres["2"] == f.idle_centres["2"], "BDR-09 (MS-19, G-08): the player's Attack centre is the idle-rig shoulder reference (1.3133) and no longer follows the live pose (was 1.0240 at full plant lean)")
 	for action in ["0", "1", "3"]:
 		t.check(f.idle_centres[action] == f.leaned_centres[action], "BDR-09: action %s's volume ignores the pose edit" % action)
 	t.check(f.released_attack_centre == f.idle_centres["2"] and near(f.radius, 0.7421991426), "BDR-09: the Attack centre returns when the pose is released; the radius is constant")
-	t.check(f.bot_centre_unchanged_by_player_pose and not near(f.bot_attack_centre[1], f.idle_centres["2"][1], 1e-4), "BDR-09: the court bot's volume is measured separately and does not follow the player's pose")
+	t.check(f.bot_centre_unchanged_by_player_pose and not near(f.bot_attack_centre[1], f.idle_centres["2"][1], 1e-4), "BDR-09: the court bot's volume uses its own rig's idle shoulder and does not follow the player's pose")
 
 # --- BDR-10/20 recovery ----------------------------------------------------------------------------------------------------------------------
 static func pin_s13_recovery(t: Object, f: Dictionary) -> void:
