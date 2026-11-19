@@ -10,8 +10,8 @@
 		"auto_moc_on": {
 			"actor_scale": 0.1203703704,
 			"armed": true,
-			"auto_age": 0.5,
-			"auto_prepared": 0.075,
+			"auto_age": 0.0601851852,
+			"auto_prepared": 0.0722222222,
 			"charge": -1.0
 		},
 		"manual_moc_off": {

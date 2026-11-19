@@ -165,7 +165,8 @@ static func pin_s09_match_scope(t: Object, f: Dictionary) -> void:
 # --- BDR-14 Auto clock ------------------------------------------------------------------------------------------------------------------------
 static func pin_s16_auto_clock(t: Object, f: Dictionary) -> void:
 	t.check(near(f.manual_moc_off.charge, 0.5 / 0.85) and near(f.auto_moc_off.auto_age, 0.5), "BDR-14: with no slowdown both clocks accrue 0.5 s")
-	t.check(near(f.auto_moc_on.auto_age, 0.5) and near(f.auto_moc_on.auto_prepared, f.auto_moc_off.auto_prepared), "BDR-14: Auto preparation ticks on world time under a slowdown")
+	t.check(f.auto_moc_on.auto_age < 0.1 and near(f.auto_moc_on.auto_age, f.manual_moc_on.charge * 0.85) and near(f.auto_moc_on.auto_age, f.auto_moc_off.auto_age * f.manual_moc_on.actor_scale), "BDR-14 (MS-18, G-17): Auto preparation ticks on the actor-scaled clock under a slowdown, the same age as manual charge")
+	t.check(f.auto_moc_on.auto_prepared != f.auto_moc_off.auto_prepared, "BDR-14: the slowed Auto preparation has accrued less than the unslowed one")
 	t.check(f.manual_moc_on.charge < 0.1 and near(f.manual_moc_on.charge, f.manual_moc_off.charge * f.manual_moc_on.actor_scale), "BDR-14: manual charge ticks on the actor-scaled clock under a slowdown")
 
 # --- BDR-15 event.charge ---------------------------------------------------------------------------------------------------------------------

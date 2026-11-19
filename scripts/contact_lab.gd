@@ -731,7 +731,7 @@ func _tick_pause() -> bool:
 
 func _tick_pre_motion(world_dt: float) -> void:
 	if auto_preparation.active and armed:
-		auto_preparation.tick(world_dt,athlete,ball_shot,ball_velocity)
+		auto_preparation.tick(world_dt*moc.clock_record().actor("player"),athlete,ball_shot,ball_velocity)
 	contact_flow.tick(world_dt)
 	ground_balls.tick(self,world_dt)
 	serve.tick_toss_charge(world_dt)
