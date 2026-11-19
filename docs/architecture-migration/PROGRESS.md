@@ -174,3 +174,18 @@ Commits: MS-12a `c48ee4b`, MS-12b `559d8cf`, MS-13 `2efbf91`, MS-14 `7d1f5c1`.
 - MS-14: `TraitBook.GAMEPLAY_KEYS` is now the registry's `EFFECT_KEYS` (one list); `READER_SITES` declares the eight keys with no quoted reader; `scripts/technique_unlocks.gd` table for back set, float serve, rolling receive, quick step, read by the lab and motor; `technique_unlocks_test`. Duplicate rule ids were already rejected.
 - Deviations: (1) `action_endlag` data/enforcement (G-10) NOT done: scenario S-11 records the endlag lines' source text, so routing them is a recorded difference; stopped, needs its own decision. (2) The lock countdown clocks and `floor_recovery_lock` stay on the animation controller (traces and the BDR-10 pin read them there); only durations and predicates moved. (3) MS-13 steps 4-5 only partly: schema number plus tolerant load, no migration table beyond the existing `migrate`; authoring writes to `res://` untouched. (4) MS-14 step 4 ordering display not done (no evidence of a conflict case); key metadata has unit, stage, actions already, reader site added only for exceptions.
 - Evidence: dual run vs f40a488, 29 scenarios, 0 differences (after each sub-step; MS-12a first attempt showed 3 S-11 source-text differences and was reduced). Full suite 176/176 (174 + repository, technique_unlocks). Goldens, BDR pins and writer ratchet untouched. MS-16..MS-21 untouched.
+
+## MS-16..MS-21 CHANGE stages (extract)
+
+Authorized by the designer (provisional gate decisions G-01, G-04, G-17, G-08, G-14, G-15 cap). D-09 and all other open items untouched. Each stage was a dual run against the previous head, goldens regenerated with `tools/regen_golden.py` only for the scenarios named, BDR status CURRENT-reproduced -> CHANGED.
+
+| Stage | Commit message prefix | Scenarios changed | Pins / register |
+|---|---|---|---|
+| MS-16 G-01 spend-first for bots and Pepper | MS-16 | s01_depleted_bot, s01_depleted_pepper | BDR-01 CHANGED (bot, Pepper pins rewritten) |
+| MS-17 G-04 slowdown for player contacts only | MS-17 | s01_depleted_bot/pepper (moc.active), s04_slowdown, s06_delivery_by_actor (moc.active) | BDR-03 CHANGED |
+| MS-18 G-17 Auto charge on actor clock | MS-18 | s16_auto_clock (slow-motion facts only) | BDR-14 CHANGED |
+| MS-19 G-08 idle shoulder reference for Attack volume | MS-19 | s10_attack_volume (leaned centre only) | BDR-09 CHANGED |
+| MS-20 G-14 growth saved at completion | MS-20 | none (scenarios have no roster athlete) | none; growth_save_test added |
+| MS-21 G-15 cap fix | MS-21 | s15_custody (stamina after station complete 100 -> 120) | BDR-16 CHANGED (cap only) |
+
+Final suite 178/178. Deviations and interpretations: see the stage commit messages and the final report (MS-16 `contact_spend` flag in BotVitals.spend; MS-17 whole slowdown window skipped for bots and Pepper, Serve unchanged; MS-19 analytic = idle-rig shoulder snapshot).
