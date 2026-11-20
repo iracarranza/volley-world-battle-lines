@@ -41,7 +41,7 @@ func land(lab: Node3D,point: Vector3,incoming: Vector3,shot: Dictionary) -> void
 	lab.shadow.visible = lab.ball_active
 
 func tick(lab: Node3D,dt: float) -> void:
-	var step: float = dt*lab.moc.simulation_scale()
+	var step: float = dt*lab.moc.clock_record().ball()
 	for index in range(balls.size()-1,-1,-1):
 		var entry: Dictionary = balls[index]
 		entry.age += dt

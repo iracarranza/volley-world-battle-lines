@@ -134,7 +134,7 @@ func state(actor_id: String):
 
 func set_amount(actor_id: String, value: float) -> void:
 	values[actor_id] = 0.0 if profile(actor_id).exhausted else clampf(value,0,CAP)
-	if actor_id == "player": lab.athlete.flow = values[actor_id]
+	if actor_id == "player": lab.athlete.set_flow(values[actor_id])
 
 func context(actor_id: String,action: int,evidence: Dictionary = {}) -> Dictionary:
 	if action < 0 or action > 3: return {"effects":{}}
@@ -202,7 +202,7 @@ func consume_attack(actor_id: String) -> void:
 	if profile(actor_id).trait_effect("flow_attack_velocity") > 0 and amount(actor_id) > 0:
 		values[actor_id] = 0.0
 		if actor_id == "player":
-			lab.athlete.flow = 0.0
+			lab.athlete.lose_flow()
 
 func jump_bonus(actor_id: String) -> float:
 	var prepared: Dictionary = state(actor_id).prepare(profile(actor_id).rules(),"jump",amount(actor_id))
@@ -230,7 +230,7 @@ func _fatigue_changed() -> bool:
 	if seen_fatigue == lab.athlete.fatigue_epoch:
 		return false
 	seen_fatigue = lab.athlete.fatigue_epoch
-	lab.athlete.flow = 0
+	lab.athlete.lose_flow()
 	return true
 
 func record(event: Dictionary) -> void:
@@ -265,7 +265,7 @@ func record(event: Dictionary) -> void:
 	var after := clampf(before+delta,0,CAP)
 	values[actor_id] = after
 	if actor_id == "player":
-		lab.athlete.flow = after
+		lab.athlete.set_flow(after)
 	last_changes[actor_id] = {"before":before,"after":after,"delta":after-before,"event":event}
 	if int(event.get("action",-1)) == 1 and event.get("rescue",false) and state(actor_id).clear_flow(profile(actor_id).rules(),"set_rescue"):
 		set_amount(actor_id,0)
@@ -314,7 +314,7 @@ func tick(dt: float) -> void:
 			var prepared: Dictionary = state(actor_id).prepare(eligible,"low_stamina",amount(actor_id))
 			commit_context(actor_id,prepared)
 			for rule in prepared.activations:
-				athlete.stamina = minf(athlete.max_stamina(),athlete.stamina+maxf(0,float(rule.get("restore_stamina",0)))*athlete.max_stamina())
+				athlete.restore(maxf(0,float(rule.get("restore_stamina",0)))*athlete.max_stamina())
 		var before := float(idle_seconds.get(actor_id,0))
 		var after := before+maxf(dt,0)
 		idle_seconds[actor_id] = after
@@ -324,7 +324,7 @@ func tick(dt: float) -> void:
 			value = 0.0
 		values[actor_id] = value
 		if actor_id == "player":
-			lab.athlete.flow = value
+			lab.athlete.set_flow(value)
 
 func tick_visuals() -> void:
 	_fatigue_changed()
@@ -353,7 +353,7 @@ func clear_actor(actor_id: String) -> void:
 	last_changes.erase(actor_id)
 	if auras.has(actor_id): auras[actor_id].hide()
 	if actor_id == "player":
-		lab.athlete.flow = 0.0
+		lab.athlete.lose_flow()
 		lab.athlete.jump_power_bonus = 0.0
 
 func clear() -> void:
@@ -367,7 +367,7 @@ func clear() -> void:
 	for actor_id in values:
 		values[actor_id] = 0.0
 		idle_seconds[actor_id] = 0.0
-	lab.athlete.flow = 0.0
+	lab.athlete.lose_flow()
 	seen_fatigue = lab.athlete.fatigue_epoch
 	for aura in auras.values():
 		aura.visible = false
@@ -412,7 +412,7 @@ func serve_consequences(actor_id: String,event: Dictionary) -> void:
 	if duration <= 0: return
 	var authored := float(effects.get("inflicted_recovery_duration",0))
 	if authored > 0: duration = authored
-	athlete.modifiers.add("serve-recovery",{"stats":{"transition_speed":-maxf(0,float(effects.get("transition_speed_penalty",0)))},"duration":duration})
+	athlete.add_modifier("serve-recovery",{"stats":{"transition_speed":-maxf(0,float(effects.get("transition_speed_penalty",0)))},"duration":duration})
 	var source := str(shot.get("actor",""))
 	if source == "player_serve": source = "player"
 	if actors.has(source): trigger(source,"inflicted_recovery",event)
@@ -447,7 +447,7 @@ func on_attack_charge(charging: String) -> void:
 			var spec := {"effects":effects,"source":owner}
 			if rule.has("duration"): spec["duration"] = rule.duration
 			if rule.has("until"): spec["until"] = rule.until
-			profile(recipient).modifiers.add("%s:%s"%[owner,id],spec)
+			profile(recipient).add_modifier("%s:%s"%[owner,id],spec)
 
 func shape_effects(actor_id: String,action: int) -> Dictionary:
 	var result: Dictionary = context(actor_id,action).effects.duplicate(true)

@@ -1,5 +1,6 @@
 extends "res://scripts/workout_drill.gd"
 ## Weighted Balancing (Stability): walk a narrow beam while a load drags you sideways. Stability sets how hard the drag is.
+const RngSeed := preload("res://scripts/rng_seed.gd")
 const BEAM_TOP := 0.4
 const BEAM_LENGTH := 10.0
 const BEAM_WIDTH := 0.7
@@ -11,6 +12,7 @@ var lean_speed := 0.0
 var gust := 0.0
 var gust_clock := 0.0
 var rng := RandomNumberGenerator.new()
+var rng_seed := -1
 var weights: Array[MeshInstance3D] = []
 
 func _init() -> void:
@@ -22,7 +24,7 @@ func _init() -> void:
 	zone = Rect2(-4, -13, 8, 17)
 
 func _build_course() -> void:
-	rng.randomize()
+	RngSeed.seed_generators({"weighted_balancing.sway": rng}, rng_seed)
 	for i in range(2):
 		var weight: MeshInstance3D = lab.world_builder.box(self, Vector3(0.22, 0.32, 0.22), anchor, Color("3b414c"))
 		weight.visible = false

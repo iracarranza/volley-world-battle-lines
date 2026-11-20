@@ -1,0 +1,730 @@
+{
+	"facts": {
+		"control": {
+			"events": [
+				{
+					"action": 4,
+					"actor": "player_serve",
+					"charge": 0.61,
+					"confirmation_age": 0.0,
+					"id": "player_serve:1",
+					"incoming": [
+						0.0,
+						5.1999998093,
+						-1.6000000238
+					],
+					"outgoing": [
+						0.0,
+						7.3010859489,
+						-6.9091072083
+					],
+					"quality": 0.75,
+					"rescue": false,
+					"simulation_time": 0.0,
+					"sweet": false,
+					"team": 0,
+					"zone": ""
+				}
+			],
+			"listener": {
+				"at_moc": {
+					"epoch": 0,
+					"exhausted": false,
+					"flow": 0.0,
+					"stamina": 95.0,
+					"winded": false
+				},
+				"flow_recorded": true
+			},
+			"post": {
+				"epoch": 0,
+				"exhausted": false,
+				"flow": 0.0,
+				"stamina": 95.0,
+				"winded": false
+			}
+		},
+		"depleting": {
+			"events": [
+				{
+					"action": 4,
+					"actor": "player_serve",
+					"charge": 0.4880406667,
+					"confirmation_age": 0.0,
+					"id": "player_serve:1",
+					"incoming": [
+						0.0,
+						5.1999998093,
+						-1.6000000238
+					],
+					"outgoing": [
+						0.0,
+						7.3010859489,
+						-6.6988172531
+					],
+					"quality": 0.75,
+					"rescue": false,
+					"simulation_time": 0.0,
+					"sweet": false,
+					"team": 0,
+					"zone": ""
+				}
+			],
+			"listener": {
+				"at_moc": {
+					"epoch": 1,
+					"exhausted": false,
+					"flow": 0.0,
+					"stamina": 50.0,
+					"winded": true
+				},
+				"flow_recorded": true
+			},
+			"post": {
+				"epoch": 1,
+				"exhausted": false,
+				"flow": 0.0,
+				"stamina": 50.0,
+				"winded": true
+			}
+		}
+	},
+	"trace": [
+		{
+			"extra": {},
+			"label": "before",
+			"state": {
+				"ball": {
+					"active": false,
+					"position": [
+						0.0,
+						0.1049999967,
+						-6.0
+					],
+					"shot_actor": "",
+					"shot_charge": -1.0,
+					"shot_kind": "",
+					"velocity": [
+						0.0,
+						0.0,
+						0.0
+					]
+				},
+				"flow": {
+					"epochs": {
+						"pepper_0": 0,
+						"pepper_1": 0,
+						"pepper_2": 0,
+						"player": 0,
+						"training_bot_0": 0,
+						"training_bot_1": 0,
+						"training_bot_10": 0,
+						"training_bot_11": 0,
+						"training_bot_12": 0,
+						"training_bot_13": 0,
+						"training_bot_14": 0,
+						"training_bot_15": 0,
+						"training_bot_16": 0,
+						"training_bot_17": 0,
+						"training_bot_18": 0,
+						"training_bot_19": 0,
+						"training_bot_2": 0,
+						"training_bot_20": 0,
+						"training_bot_21": 0,
+						"training_bot_22": 0,
+						"training_bot_23": 0,
+						"training_bot_24": 0,
+						"training_bot_25": 0,
+						"training_bot_26": 0,
+						"training_bot_27": 0,
+						"training_bot_3": 0,
+						"training_bot_4": 0,
+						"training_bot_5": 0,
+						"training_bot_6": 0,
+						"training_bot_7": 0,
+						"training_bot_8": 0,
+						"training_bot_9": 0
+					},
+					"last_changes": {},
+					"pending_attacks": [],
+					"values": {
+						"pepper_0": 0.0,
+						"pepper_1": 0.0,
+						"pepper_2": 0.0,
+						"player": 0.0,
+						"training_bot_0": 0.0,
+						"training_bot_1": 0.0,
+						"training_bot_10": 0.0,
+						"training_bot_11": 0.0,
+						"training_bot_12": 0.0,
+						"training_bot_13": 0.0,
+						"training_bot_14": 0.0,
+						"training_bot_15": 0.0,
+						"training_bot_16": 0.0,
+						"training_bot_17": 0.0,
+						"training_bot_18": 0.0,
+						"training_bot_19": 0.0,
+						"training_bot_2": 0.0,
+						"training_bot_20": 0.0,
+						"training_bot_21": 0.0,
+						"training_bot_22": 0.0,
+						"training_bot_23": 0.0,
+						"training_bot_24": 0.0,
+						"training_bot_25": 0.0,
+						"training_bot_26": 0.0,
+						"training_bot_27": 0.0,
+						"training_bot_3": 0.0,
+						"training_bot_4": 0.0,
+						"training_bot_5": 0.0,
+						"training_bot_6": 0.0,
+						"training_bot_7": 0.0,
+						"training_bot_8": 0.0,
+						"training_bot_9": 0.0
+					}
+				},
+				"locks": {
+					"armed": false,
+					"endlag": 0.0,
+					"roll_lock": 0.0
+				},
+				"moc": {
+					"active": false,
+					"ball_scale": 1.0,
+					"events": 0,
+					"player_scale": 1.0
+				},
+				"player": {
+					"epoch": 0,
+					"exhausted": false,
+					"flow_field": 0.0,
+					"hp": 100.0,
+					"stamina": 0.01,
+					"winded": false
+				},
+				"rally": {
+					"bot_contacts": 0,
+					"bot_last_action": -1,
+					"bot_last_was_block": false,
+					"contacts": 0,
+					"last_touch_side": -1,
+					"pepper_exchanges": 0,
+					"pepper_player_contacts": 0,
+					"side_contacts": [
+						0,
+						0
+					]
+				}
+			}
+		},
+		{
+			"extra": {},
+			"label": "after",
+			"state": {
+				"ball": {
+					"active": true,
+					"position": [
+						-63.717250824,
+						1.580313921,
+						6.860127449
+					],
+					"shot_actor": "player",
+					"shot_charge": 0.4880406667,
+					"shot_kind": "serve",
+					"velocity": [
+						0.0,
+						7.3010859489,
+						-6.6988172531
+					]
+				},
+				"flow": {
+					"epochs": {
+						"pepper_0": 0,
+						"pepper_1": 0,
+						"pepper_2": 0,
+						"player": 1,
+						"training_bot_0": 0,
+						"training_bot_1": 0,
+						"training_bot_10": 0,
+						"training_bot_11": 0,
+						"training_bot_12": 0,
+						"training_bot_13": 0,
+						"training_bot_14": 0,
+						"training_bot_15": 0,
+						"training_bot_16": 0,
+						"training_bot_17": 0,
+						"training_bot_18": 0,
+						"training_bot_19": 0,
+						"training_bot_2": 0,
+						"training_bot_20": 0,
+						"training_bot_21": 0,
+						"training_bot_22": 0,
+						"training_bot_23": 0,
+						"training_bot_24": 0,
+						"training_bot_25": 0,
+						"training_bot_26": 0,
+						"training_bot_27": 0,
+						"training_bot_3": 0,
+						"training_bot_4": 0,
+						"training_bot_5": 0,
+						"training_bot_6": 0,
+						"training_bot_7": 0,
+						"training_bot_8": 0,
+						"training_bot_9": 0
+					},
+					"last_changes": {
+						"player": {
+							"after": 0.0,
+							"before": 0.0,
+							"delta": 0.0,
+							"event": {
+								"action": 4,
+								"actor": "player_serve",
+								"block_response": {},
+								"charge": 0.4880406667,
+								"charge_match": {},
+								"confirmation_age": 0.0,
+								"directional_influence": {},
+								"gameplay": {},
+								"id": "player_serve:1",
+								"incoming_shot": {},
+								"incoming_velocity": [
+									0.0,
+									5.1999998093,
+									-1.6000000238
+								],
+								"intent": {},
+								"mechanics": [],
+								"outgoing_shot": {
+									"actor": "player",
+									"charge": 0.4880406667,
+									"kind": "serve",
+									"serve_effects": {
+										"inflicted_recovery_duration": 0.0,
+										"mismatch_knockback": 0.0,
+										"mismatch_stamina_drain": 0.0,
+										"transition_speed_penalty": 0.0
+									}
+								},
+								"outgoing_velocity": [
+									0.0,
+									7.3010859489,
+									-6.6988172531
+								],
+								"physical_hit": true,
+								"platform_band": "",
+								"platform_coord": [
+									0.0,
+									0.0,
+									0.0
+								],
+								"point": [
+									-63.717250824,
+									1.580313921,
+									6.860127449
+								],
+								"posture": "",
+								"quality": 0.75,
+								"receive_outcome": {},
+								"receive_response": {},
+								"recovery": "",
+								"recovery_penalty_seconds": 0.0,
+								"recovery_seconds": 0.0,
+								"rescue": false,
+								"simulation_time": 0.0,
+								"steering": {},
+								"sweet": false,
+								"team": 0,
+								"zone": ""
+							}
+						}
+					},
+					"pending_attacks": [],
+					"values": {
+						"pepper_0": 0.0,
+						"pepper_1": 0.0,
+						"pepper_2": 0.0,
+						"player": 0.0,
+						"training_bot_0": 0.0,
+						"training_bot_1": 0.0,
+						"training_bot_10": 0.0,
+						"training_bot_11": 0.0,
+						"training_bot_12": 0.0,
+						"training_bot_13": 0.0,
+						"training_bot_14": 0.0,
+						"training_bot_15": 0.0,
+						"training_bot_16": 0.0,
+						"training_bot_17": 0.0,
+						"training_bot_18": 0.0,
+						"training_bot_19": 0.0,
+						"training_bot_2": 0.0,
+						"training_bot_20": 0.0,
+						"training_bot_21": 0.0,
+						"training_bot_22": 0.0,
+						"training_bot_23": 0.0,
+						"training_bot_24": 0.0,
+						"training_bot_25": 0.0,
+						"training_bot_26": 0.0,
+						"training_bot_27": 0.0,
+						"training_bot_3": 0.0,
+						"training_bot_4": 0.0,
+						"training_bot_5": 0.0,
+						"training_bot_6": 0.0,
+						"training_bot_7": 0.0,
+						"training_bot_8": 0.0,
+						"training_bot_9": 0.0
+					}
+				},
+				"locks": {
+					"armed": false,
+					"endlag": 0.22,
+					"roll_lock": 0.0
+				},
+				"moc": {
+					"active": true,
+					"ball_scale": 1.0,
+					"events": 1,
+					"player_scale": 1.0
+				},
+				"player": {
+					"epoch": 1,
+					"exhausted": false,
+					"flow_field": 0.0,
+					"hp": 100.0,
+					"stamina": 50.0,
+					"winded": true
+				},
+				"rally": {
+					"bot_contacts": 0,
+					"bot_last_action": -1,
+					"bot_last_was_block": false,
+					"contacts": 0,
+					"last_touch_side": 0,
+					"pepper_exchanges": 0,
+					"pepper_player_contacts": 0,
+					"side_contacts": [
+						0,
+						0
+					]
+				}
+			}
+		},
+		{
+			"extra": {},
+			"label": "before",
+			"state": {
+				"ball": {
+					"active": false,
+					"position": [
+						0.0,
+						0.1049999967,
+						-6.0
+					],
+					"shot_actor": "",
+					"shot_charge": -1.0,
+					"shot_kind": "",
+					"velocity": [
+						0.0,
+						0.0,
+						0.0
+					]
+				},
+				"flow": {
+					"epochs": {
+						"pepper_0": 0,
+						"pepper_1": 0,
+						"pepper_2": 0,
+						"player": 0,
+						"training_bot_0": 0,
+						"training_bot_1": 0,
+						"training_bot_10": 0,
+						"training_bot_11": 0,
+						"training_bot_12": 0,
+						"training_bot_13": 0,
+						"training_bot_14": 0,
+						"training_bot_15": 0,
+						"training_bot_16": 0,
+						"training_bot_17": 0,
+						"training_bot_18": 0,
+						"training_bot_19": 0,
+						"training_bot_2": 0,
+						"training_bot_20": 0,
+						"training_bot_21": 0,
+						"training_bot_22": 0,
+						"training_bot_23": 0,
+						"training_bot_24": 0,
+						"training_bot_25": 0,
+						"training_bot_26": 0,
+						"training_bot_27": 0,
+						"training_bot_3": 0,
+						"training_bot_4": 0,
+						"training_bot_5": 0,
+						"training_bot_6": 0,
+						"training_bot_7": 0,
+						"training_bot_8": 0,
+						"training_bot_9": 0
+					},
+					"last_changes": {},
+					"pending_attacks": [],
+					"values": {
+						"pepper_0": 0.0,
+						"pepper_1": 0.0,
+						"pepper_2": 0.0,
+						"player": 0.0,
+						"training_bot_0": 0.0,
+						"training_bot_1": 0.0,
+						"training_bot_10": 0.0,
+						"training_bot_11": 0.0,
+						"training_bot_12": 0.0,
+						"training_bot_13": 0.0,
+						"training_bot_14": 0.0,
+						"training_bot_15": 0.0,
+						"training_bot_16": 0.0,
+						"training_bot_17": 0.0,
+						"training_bot_18": 0.0,
+						"training_bot_19": 0.0,
+						"training_bot_2": 0.0,
+						"training_bot_20": 0.0,
+						"training_bot_21": 0.0,
+						"training_bot_22": 0.0,
+						"training_bot_23": 0.0,
+						"training_bot_24": 0.0,
+						"training_bot_25": 0.0,
+						"training_bot_26": 0.0,
+						"training_bot_27": 0.0,
+						"training_bot_3": 0.0,
+						"training_bot_4": 0.0,
+						"training_bot_5": 0.0,
+						"training_bot_6": 0.0,
+						"training_bot_7": 0.0,
+						"training_bot_8": 0.0,
+						"training_bot_9": 0.0
+					}
+				},
+				"locks": {
+					"armed": false,
+					"endlag": 0.0,
+					"roll_lock": 0.0
+				},
+				"moc": {
+					"active": false,
+					"ball_scale": 1.0,
+					"events": 0,
+					"player_scale": 1.0
+				},
+				"player": {
+					"epoch": 0,
+					"exhausted": false,
+					"flow_field": 0.0,
+					"hp": 100.0,
+					"stamina": 100.0,
+					"winded": false
+				},
+				"rally": {
+					"bot_contacts": 0,
+					"bot_last_action": -1,
+					"bot_last_was_block": false,
+					"contacts": 0,
+					"last_touch_side": -1,
+					"pepper_exchanges": 0,
+					"pepper_player_contacts": 0,
+					"side_contacts": [
+						0,
+						0
+					]
+				}
+			}
+		},
+		{
+			"extra": {},
+			"label": "after",
+			"state": {
+				"ball": {
+					"active": true,
+					"position": [
+						-63.717250824,
+						1.580313921,
+						6.860127449
+					],
+					"shot_actor": "player",
+					"shot_charge": 0.61,
+					"shot_kind": "serve",
+					"velocity": [
+						0.0,
+						7.3010859489,
+						-6.9091072083
+					]
+				},
+				"flow": {
+					"epochs": {
+						"pepper_0": 0,
+						"pepper_1": 0,
+						"pepper_2": 0,
+						"player": 0,
+						"training_bot_0": 0,
+						"training_bot_1": 0,
+						"training_bot_10": 0,
+						"training_bot_11": 0,
+						"training_bot_12": 0,
+						"training_bot_13": 0,
+						"training_bot_14": 0,
+						"training_bot_15": 0,
+						"training_bot_16": 0,
+						"training_bot_17": 0,
+						"training_bot_18": 0,
+						"training_bot_19": 0,
+						"training_bot_2": 0,
+						"training_bot_20": 0,
+						"training_bot_21": 0,
+						"training_bot_22": 0,
+						"training_bot_23": 0,
+						"training_bot_24": 0,
+						"training_bot_25": 0,
+						"training_bot_26": 0,
+						"training_bot_27": 0,
+						"training_bot_3": 0,
+						"training_bot_4": 0,
+						"training_bot_5": 0,
+						"training_bot_6": 0,
+						"training_bot_7": 0,
+						"training_bot_8": 0,
+						"training_bot_9": 0
+					},
+					"last_changes": {
+						"player": {
+							"after": 14.4166666667,
+							"before": 0.0,
+							"delta": 14.4166666667,
+							"event": {
+								"action": 4,
+								"actor": "player_serve",
+								"block_response": {},
+								"charge": 0.61,
+								"charge_match": {},
+								"confirmation_age": 0.0,
+								"directional_influence": {},
+								"gameplay": {},
+								"id": "player_serve:1",
+								"incoming_shot": {},
+								"incoming_velocity": [
+									0.0,
+									5.1999998093,
+									-1.6000000238
+								],
+								"intent": {},
+								"mechanics": [],
+								"outgoing_shot": {
+									"actor": "player",
+									"charge": 0.61,
+									"kind": "serve",
+									"serve_effects": {
+										"inflicted_recovery_duration": 0.0,
+										"mismatch_knockback": 0.0,
+										"mismatch_stamina_drain": 0.0,
+										"transition_speed_penalty": 0.0
+									}
+								},
+								"outgoing_velocity": [
+									0.0,
+									7.3010859489,
+									-6.9091072083
+								],
+								"physical_hit": true,
+								"platform_band": "",
+								"platform_coord": [
+									0.0,
+									0.0,
+									0.0
+								],
+								"point": [
+									-63.717250824,
+									1.580313921,
+									6.860127449
+								],
+								"posture": "",
+								"quality": 0.75,
+								"receive_outcome": {},
+								"receive_response": {},
+								"recovery": "",
+								"recovery_penalty_seconds": 0.0,
+								"recovery_seconds": 0.0,
+								"rescue": false,
+								"simulation_time": 0.0,
+								"steering": {},
+								"sweet": false,
+								"team": 0,
+								"zone": ""
+							}
+						}
+					},
+					"pending_attacks": [],
+					"values": {
+						"pepper_0": 0.0,
+						"pepper_1": 0.0,
+						"pepper_2": 0.0,
+						"player": 14.4166666667,
+						"training_bot_0": 0.0,
+						"training_bot_1": 0.0,
+						"training_bot_10": 0.0,
+						"training_bot_11": 0.0,
+						"training_bot_12": 0.0,
+						"training_bot_13": 0.0,
+						"training_bot_14": 0.0,
+						"training_bot_15": 0.0,
+						"training_bot_16": 0.0,
+						"training_bot_17": 0.0,
+						"training_bot_18": 0.0,
+						"training_bot_19": 0.0,
+						"training_bot_2": 0.0,
+						"training_bot_20": 0.0,
+						"training_bot_21": 0.0,
+						"training_bot_22": 0.0,
+						"training_bot_23": 0.0,
+						"training_bot_24": 0.0,
+						"training_bot_25": 0.0,
+						"training_bot_26": 0.0,
+						"training_bot_27": 0.0,
+						"training_bot_3": 0.0,
+						"training_bot_4": 0.0,
+						"training_bot_5": 0.0,
+						"training_bot_6": 0.0,
+						"training_bot_7": 0.0,
+						"training_bot_8": 0.0,
+						"training_bot_9": 0.0
+					}
+				},
+				"locks": {
+					"armed": false,
+					"endlag": 0.22,
+					"roll_lock": 0.0
+				},
+				"moc": {
+					"active": true,
+					"ball_scale": 1.0,
+					"events": 1,
+					"player_scale": 1.0
+				},
+				"player": {
+					"epoch": 0,
+					"exhausted": false,
+					"flow_field": 14.4166666667,
+					"hp": 100.0,
+					"stamina": 95.0,
+					"winded": false
+				},
+				"rally": {
+					"bot_contacts": 0,
+					"bot_last_action": -1,
+					"bot_last_was_block": false,
+					"contacts": 0,
+					"last_touch_side": 0,
+					"pepper_exchanges": 0,
+					"pepper_player_contacts": 0,
+					"side_contacts": [
+						0,
+						0
+					]
+				}
+			}
+		}
+	]
+}

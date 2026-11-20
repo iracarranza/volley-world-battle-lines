@@ -96,7 +96,10 @@ func run() -> void:
 			lab.directional_input.sample(Vector3.LEFT, 0.08)
 			lab.camera_rig.rotate_view(Vector2(150, 20))
 			check(lab.ball_velocity == shot, "Input and camera cannot steer the ball after impact")
-		check(velocities[1].x > velocities[0].x, "Late right input affects actual Receive/Set/Attack flight")
+		if action == 0:
+			check(velocities[1].is_equal_approx(velocities[0]), "Precontact receive input is reserved for platform lean")
+		else:
+			check(velocities[1].x > velocities[0].x, "Late right input affects Set/Attack flight")
 	lab._reset()
 	check(lab.directional_input.value() == Vector3.ZERO, "Reset clears influence history")
 	print("DIRECTIONAL INFLUENCE: %d / %d passed" % [checks - failures, checks])

@@ -47,10 +47,12 @@ func run() -> void:
 	moc.clear()
 	moc.set_mode(Clock.Mode.TUNED_SLOWDOWN)
 	moc.affect_ball = false
-	moc.begin({"id":"actor-only","actor":"training_bot_0","action":2,"physical_hit":true})
-	check(is_equal_approx(moc.bot_scale("training_bot_0"),0.1) and moc.bot_scale("training_bot_1") == 1,"Actor-only toggle slows just the contacting bot")
+	moc.begin({"id":"actor-only-bot","actor":"training_bot_0","action":2,"physical_hit":true})
+	check(is_equal_approx(moc.bot_scale("training_bot_0"),0.1) and moc.bot_scale("training_bot_1") == 1,"Actor-only toggle slows just the contacting bot (G-04 keeps the bot's own slowdown)")
+	moc.begin({"id":"actor-only","actor":"player","action":2,"physical_hit":true})
+	check(is_equal_approx(moc.actor_scale("player"),0.1) and moc.bot_scale("training_bot_1") == 1,"Actor-only toggle slows just the contacting player")
 	moc.clear()
-	check(moc.bot_scale("training_bot_0") == 1,"Effect expiry restores bot speed")
+	check(moc.actor_scale("player") == 1,"Effect expiry restores speed")
 	lab.queue_free()
 	await process_frame
 	print("MOC BOT CLOCK: %d / %d passed"%[checks-failures,checks])

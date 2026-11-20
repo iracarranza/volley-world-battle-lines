@@ -1,15 +1,21 @@
 extends RefCounted
 
+const Settings := preload("res://scripts/session_settings.gd")
+
 # Precision windows are doubled around their original midpoints.
-# The nominal 200 ms preparation lead remains the bot/preview reference.
+# Set/receive retain their nominal 200 ms preparation lead; spikes use their own peak.
 const SWEET_DELAY := 0.20
 const SWEET_SECONDS := 0.18
 const SWEET_CENTER := 0.245
 const CONTACT_SECONDS := 0.55
 # Spike timing is independent of Set/Receive/Block and the serve clock.
 # Session-wide tuning shared by collision, animation, previews and bots.
-static var spike_windup_enabled := true
-static var spike_windup_seconds := 0.4
+static var spike_windup_enabled: bool:
+	get: return Settings.shared.spike_windup_enabled
+	set(value): Settings.shared.spike_windup_enabled = value
+static var spike_windup_seconds: float:
+	get: return Settings.shared.spike_windup_seconds
+	set(value): Settings.shared.spike_windup_seconds = value
 static var SPIKE_WINDUP: float:
 	get: return clampf(spike_windup_seconds, 0.0, 1.0) if spike_windup_enabled else 0.0
 const SPIKE_SWEEP_SECONDS := 0.2

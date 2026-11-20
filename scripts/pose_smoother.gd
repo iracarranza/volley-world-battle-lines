@@ -54,10 +54,18 @@ func update(raw: Dictionary, source: String, dt: float) -> Dictionary:
 		_duration = float(Blender.transition(_source, source).seconds)
 	_source = source
 	_elapsed += dt
-	var out := {}
+	# Transition weights are shared by every joint. Steady poses need no decay math.
+	var out := raw.duplicate()
 	var s := 1.0 if _duration <= 0.0 else clampf(_elapsed / _duration, 0.0, 1.0)
-	for key in raw:
-		out[key] = float(raw[key]) + _decayed(float(_offset.get(key, 0.0)), float(_offset_speed.get(key, 0.0)), s)
+	if s < 1.0:
+		var s2 := s * s
+		var s3 := s2 * s
+		var s4 := s3 * s
+		var s5 := s4 * s
+		var position_weight := 1.0 - 10.0 * s3 + 15.0 * s4 - 6.0 * s5
+		var velocity_weight := (s - 6.0 * s3 + 8.0 * s4 - 3.0 * s5) * _duration
+		for key in raw:
+			out[key] = float(raw[key]) + position_weight * float(_offset.get(key, 0.0)) + velocity_weight * float(_offset_speed.get(key, 0.0))
 	if dt > 0.0:
 		for key in out:
 			_shown_speed[key] = (float(out[key]) - float(_shown.get(key, out[key]))) / dt
@@ -65,12 +73,3 @@ func update(raw: Dictionary, source: String, dt: float) -> Dictionary:
 	_previous_raw = raw.duplicate()
 	return out
 
-# An offset of p0 moving at v0 brought to rest at zero by fraction s of the transition.
-func _decayed(p0: float, v0: float, s: float) -> float:
-	if s >= 1.0 or (p0 == 0.0 and v0 == 0.0):
-		return 0.0
-	var s2 := s * s
-	var s3 := s2 * s
-	var s4 := s3 * s
-	var s5 := s4 * s
-	return (1.0 - 10.0 * s3 + 15.0 * s4 - 6.0 * s5) * p0 + (s - 6.0 * s3 + 8.0 * s4 - 3.0 * s5) * v0 * _duration

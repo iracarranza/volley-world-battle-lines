@@ -813,15 +813,15 @@ func _commit() -> bool:
 
 func _save() -> void:
 	if _commit():
-		Store.save_roster()
-		status.text = "Saved %s." % draft.name
+		var result: Dictionary = Store.save_roster()
+		status.text = "Saved %s." % draft.name if result.ok else "Not saved: %s" % result.error
 		_refresh_roster()
 
 func _save_and_select() -> void:
 	if _commit():
 		Store.selected = editing
-		Store.save_roster()
-		status.text = "%s selected for the lab." % draft.name
+		var result: Dictionary = Store.save_roster()
+		status.text = "%s selected for the lab." % draft.name if result.ok else "Not saved: %s" % result.error
 		_refresh_roster()
 
 func _delete_athlete() -> void:
@@ -832,8 +832,8 @@ func _delete_athlete() -> void:
 		Store.selected = -1
 	elif Store.selected > editing:
 		Store.selected -= 1
-	Store.save_roster()
-	status.text = "Deleted."
+	var result: Dictionary = Store.save_roster()
+	status.text = "Deleted." if result.ok else "Deleted here, not saved: %s" % result.error
 	editing = -1
 	draft = Store.blank()
 	draft["picks"] = []

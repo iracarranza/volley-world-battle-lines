@@ -32,11 +32,11 @@ def discover_suites(workspace, requested):
     return suites
 
 
-def run_suite(command, log_path, timeout):
+def run_suite(command, log_path, timeout, env=None):
     """Keep failures readable while a suite runs; a script error cannot recover."""
     with log_path.open('wb') as log:
         try:
-            process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)
+            process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, env=env)
         except OSError as error:
             log.write(f'PROCESS ERROR: {error}\n'.encode())
             return False, -1
@@ -101,14 +101,20 @@ def main():
             parser.error(str(error))
         # Godot derives user:// from the project name. Use a unique identity so
         # even tests that instantiate the title cannot read the user's roster.
+        # custom_user_dir_name is relative to the platform data directory, so
+        # point that directory at the temp folder too: Godot reads HOME on macOS
+        # and XDG_DATA_HOME on Linux. Nothing is written to the real data directory.
         config = workspace / 'project.godot'
-        config.write_text(config.read_text().replace('[application]', '[application]\nconfig/use_custom_user_dir=true\nconfig/custom_user_dir="' + temp + '/userdata"'))
+        config.write_text(config.read_text().replace('[application]', '[application]\nconfig/use_custom_user_dir=true\nconfig/custom_user_dir_name="volley-checks"'))
+        home = Path(temp) / 'home'
+        home.mkdir()
+        env = dict(os.environ, HOME=str(home), XDG_DATA_HOME=str(home / 'data'))
         (workspace / 'artifacts').mkdir()
         command = [args.godot, '--path', str(workspace)]
         start = time.monotonic()
         passed, code = run_suite(
             command + ['--headless', '--editor', '--import'],
-            args.logs / 'import.log', args.timeout,
+            args.logs / 'import.log', args.timeout, env,
         )
         if not passed:
             write_results(args.logs, [dict(
@@ -121,7 +127,7 @@ def main():
             start = time.monotonic()
             passed, code = run_suite(
                 command + ([] if args.render else ['--headless']) + ['--script', 'res://tests/' + suite.name],
-                args.logs / (suite.stem + '.log'), args.timeout,
+                args.logs / (suite.stem + '.log'), args.timeout, env,
             )
             seconds = round(time.monotonic() - start, 2)
             results.append(dict(suite=suite.stem, passed=passed, seconds=seconds, exit_code=code))

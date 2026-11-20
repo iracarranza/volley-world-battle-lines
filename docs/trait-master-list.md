@@ -65,7 +65,7 @@ Order of effects: multipliers first (Swing Power on charge, Stamina output), add
 | Recovery | % faster get-up | Fast Recovery 12 | 12 |
 | Stamina Recovery | % regeneration | Stamina Recovery 15 | 15 |
 | Exertion Efficiency | % less Stamina cost | Exertion Efficiency 12 | 12 |
-| Second Wind | % of max Stamina on Winded, 30 s cooldown | Second Wind 23 | 23 |
+| Second Wind | flat Stamina on Winded, 30 s cooldown | Second Wind 10 | 10 |
 | Jump Power (armed) | points | Revenger +10 | 10 |
 | Jump stamina floor | % Stamina | Never Stay Down 15 | 15 |
 | Flow | resource | gained on quality contacts, lost on poor ones; spent or scaled by Rhythm Hitter, Revenger | n/a |
@@ -112,7 +112,7 @@ Reach cost in AP. `needs` shows the primary requirement first; other attributes 
 | Node | Tier | Needs | AP | Parent | Effect |
 |---|---|---|---:|---|---|
 | Rolling Receive | intro | END 68 | 3 | root | dive receive that rolls out, cheaper recovery |
-| Second Wind | intro | END 68 | 3 | root | on Winded, regain 23% of max Stamina (30 s cooldown) |
+| Second Wind | intro | END 68 | 3 | root | on Winded, regain 10 Stamina (30 s cooldown) |
 | Charge Tolerance | intro | END 68 | 3 | root | mismatch severity develops 10% more slowly |
 | Soft Platform | mid | END 70 | 5 | Charge Tolerance | +12% Receive Absorption |
 | Fast Recovery | root at mid price | END 70 | 5 | root | 12% faster get-up |

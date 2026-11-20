@@ -60,12 +60,12 @@ players present; then the serving team just earns the Point.
 
 ## 6. Points, sets and Nets falling
 
-**Sets.** Win by two applies at every Net in every set. Points reset when a set ends. A set's size and the wins needed depend on the Net:
+**Sets.** Win by two applies at every Net in every set. Points reset when a set ends. A set's size and the wins needed depend on the Net. Targets are those of the 2026-10-21 net-target decision ([ball-economy rework review](ball-economy-rework-review.md)); the match layer is not implemented (`scripts/rally_rules.gd` attributes points only):
 
 | Net | To fall | Rewarded with (global AP to **each** member of the winning team) |
 |---|---|---|
-| Primary (one per lane) | 2 set wins of 15 (best of 3) | 2 |
-| Secondary (one per lane, closer to the losing base) | 1 set win of 21 | 3 |
+| Primary (one per lane) | 2 set wins of 11 (best of 3, first to 11, win by two) | 2 |
+| Secondary (one per lane, closer to the losing base) | 1 set win of 15 (win by two) | 3 |
 | Tertiary | 3 set wins of 21 at first. Each *additional* secondary that falls (the first one is what exposes it) lowers it by one, to 2 and then 1 | 4 |
 | Coach | not yet designed | not yet designed |
 

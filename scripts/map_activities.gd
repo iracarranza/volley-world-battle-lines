@@ -120,7 +120,7 @@ func consume_nearby() -> bool:
 		lab._message("Stamina full / Energy Drink remains available")
 	else:
 		var restored: float = minf(DRINK_STAMINA,lab.athlete.max_stamina()-lab.athlete.stamina)
-		lab.athlete.stamina += restored
+		lab.athlete.add_stamina(restored)
 		drink.remaining = DRINK_RESPAWN
 		lab._message("Energy Drink / +%.0f Stamina"%restored)
 	return true

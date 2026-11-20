@@ -1,0 +1,34 @@
+{
+	"athlete_vitals": {},
+	"ball_active": {
+		"contact_lab.gd": 1,
+		"interactive_serve.gd": 1
+	},
+	"ball_position": {
+		"ball_carts.gd": 1,
+		"bot_pads.gd": 2,
+		"contact_lab.gd": 6,
+		"interactive_serve.gd": 3,
+		"pepper_partners.gd": 1,
+		"setup_rack.gd": 1,
+		"training_bots.gd": 1
+	},
+	"ball_shot": {
+		"contact_lab.gd": 2,
+		"interactive_serve.gd": 5
+	},
+	"ball_velocity": {
+		"bot_pads.gd": 3,
+		"contact_lab.gd": 3,
+		"interactive_serve.gd": 4,
+		"map_bot_roster.gd": 1,
+		"pepper_partners.gd": 4,
+		"training_bots.gd": 4
+	},
+	"contacts": {},
+	"last_touch": {
+		"rally_rules.gd": 2
+	},
+	"lifecycle_fields": {},
+	"side_contacts": {}
+}

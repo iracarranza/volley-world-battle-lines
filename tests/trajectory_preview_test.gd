@@ -99,6 +99,18 @@ func run() -> void:
 	lab.hud.toggle_debug_volumes()
 	lab._update_preview()
 	check(lab.preview.mesh != null, "Contact hint remains with debug hurtboxes hidden")
+	ready(lab,0)
+	lab.rotate_hurtboxes = true
+	lab.camera_rig.view_pitch = 0.6
+	lab._confirm_action()
+	lab.receive_plant.lean = Vector2(0.7,0.8)
+	var platform: Dictionary = lab._hurtbox_definition(0)
+	lab.ball.position = lab.player.position + lab.hurtbox_center_local(platform.center).rotated(Vector3.UP,lab._contact_yaw())
+	var leaned := Hint.predict(lab)
+	var local_point: Vector3 = lab.local_contact_position_at(lab.ball.position)
+	var expected: Dictionary = lab.Geometry.evaluate(platform,local_point)
+	check(not leaned.is_empty() and leaned.contact_ready, "Preview recognizes the tilted, leaned receive volume")
+	check(Vector3(leaned.assessment.platform_coord).distance_to(expected.platform_coord) < 0.0001, "Preview grades the same lean-relative intersection as live contact")
 	lab.bench.enter()
 	check(Hint.predict(lab).is_empty(), "Benched athlete has no action preview")
 	print("TRAJECTORY PREVIEW: %d / %d passed" % [checks-failures,checks])

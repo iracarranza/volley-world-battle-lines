@@ -9,6 +9,7 @@ const SpikeDirection := preload("res://scripts/spike_direction.gd")
 const Geometry = preload("res://scripts/contact_geometry.gd")
 const Pose := preload("res://scripts/athlete_pose.gd")
 const DiveStage := preload("res://scripts/dive_stage.gd")
+const LockData := preload("res://scripts/lock_data.gd")
 const DiveRecovery := preload("res://scripts/dive_recovery.gd")
 const FloorRecovery := preload("res://scripts/floor_recovery.gd")
 const PoseLibrary := preload("res://scripts/pose_library.gd")
@@ -20,7 +21,7 @@ const Locomotion := preload("res://scripts/lab/athlete_locomotion.gd")
 const SpineRig := preload("res://scripts/spine_rig.gd")
 const Approach = preload("res://scripts/approach_run.gd")
 const ViewMode = LabCamera.ViewMode
-const ROLL_TIME := 0.9
+const ROLL_TIME := LockData.ROLL_TIME
 
 var lab: LabSession
 var contact_age := -1.0
@@ -95,7 +96,7 @@ func tick_action_clocks(dt: float) -> void:
 	spike_air_time = spike_air_time + dt if lab.motion.jumped and lab.motion.airborne_action == 2 else 0.0
 	if lab.motion.jumped and lab.motion.airborne_action == 2 and spike_swing_time >= 0.0:
 		spike_swing_time += dt*(lab.athlete.transition_rate() if spike_hit_time >= 0 else 1.0)
-		# The swing waits at contact for the ball; if the window closes without a hit it carries on regardless.
+		# Complete recovery after an empty sweep once the contact window closes.
 		if spike_hit_time < 0.0 and spike_swing_time > SpikeStage.STRIKE_SECONDS and lab.confirm_window <= 0.0:
 			spike_hit_time = spike_swing_time
 	set_air_time = set_air_time + dt if lab.motion.jumped and lab.motion.airborne_action == 1 else 0.0
@@ -119,6 +120,8 @@ func update() -> void:
 	var direction := lab.aim - lab.player.position
 	if direction.length_squared() > 0.1:
 		lab.body.rotation.y = lab.camera_rig.facing_yaw if lab.camera_rig.camera_mode == ViewMode.BALL and lab.ball_active else atan2(-direction.x, -direction.z)
+	if lab.receive_plant.active() and lab.locked_action == 0:
+		lab.body.rotation.y = lab.receive_plant.yaw
 	dive_base_yaw = lab.body.rotation.y
 	dive_applied_yaw = dive_turn_offset()
 	lab.body.rotation.y += dive_applied_yaw
@@ -171,6 +174,8 @@ func update() -> void:
 	if loco_on and loco_weight > 0.001:
 		apply_locomotion_spine(locomotion_state)
 	_apply_contact_response(diving_now, preparing_dive)
+	if lab.receive_plant.active() and not lab.receive_plant.contacted and not lab.motion.jumped and floor_recovery_time < 0 and dive_recovery_time < 0:
+		lab.receive_plant.pose(lab.body)
 	smooth_pose(pose_source(diving_now, preparing_dive, receive_ready or follow_receive))
 	_finish_pose(diving_now, preparing_dive)
 
@@ -361,6 +366,9 @@ func _apply_contact_response(diving_now: bool, preparing_dive: bool) -> void:
 
 
 func _finish_pose(diving_now: bool, preparing_dive: bool) -> void:
+	if lab.receive_plant.active() and not lab.motion.jumped and floor_recovery_time < 0 and dive_recovery_time < 0:
+		var shift := Vector3(lab.receive_plant.lean.x * 0.18, 0, 0).rotated(Vector3.UP, lab.receive_plant.yaw)
+		lab.body.position += shift * (1.0 - smoothstep(0.55, lab.receive_plant.DURATION, lab.receive_plant.age))
 	var wing_pose := "tucked"
 	var wing_weight := 0.0
 	if diving_now or preparing_dive:
@@ -476,7 +484,7 @@ func smooth_pose(source: String) -> void:
 	PoseLibrary.apply(lab.body, PoseLibrary.from_flat(shown, false), 1.0)
 
 func dive_input_locked() -> bool:
-	return dive_recovery_time >= 0.0 and dive_recovery_time < DiveRecovery.lock_seconds(dive_quality_value)
+	return LockData.dive_locked(dive_recovery_time, dive_quality_value)
 
 # How far the hips have turned toward a backward dive at this moment, in radians. The upper body turns ahead of
 # them (dive_turn_spine, dive_turn_neck in degrees), so the torso leads and the hips and feet follow.
@@ -560,7 +568,7 @@ func tick_dive_recovery(dt: float) -> void:
 		return
 	var step := dt
 	if not dive_input_locked() and (Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_D)):
-		step *= 1.6
+		step *= LockData.RELEASE_SPEEDUP
 	dive_recovery_time += step
 	if dive_recovery_time >= DiveRecovery.duration(dive_quality_value):
 		end_dive_recovery()
@@ -595,7 +603,7 @@ func on_receive_resolved(event: Dictionary) -> void:
 	floor_recovery_time = 0.0
 	var total := floor_recovery_total()
 	# Input comes back at the rise (the penalty budget for a shrug, whose gameplay budget is shorter than its animation).
-	floor_recovery_lock = float(event.get("recovery_penalty_seconds", total)) if recovery == "shrug" else FloorRecovery.lock_seconds(recovery) * floor_recovery_scale
+	floor_recovery_lock = LockData.floor_lock_seconds(recovery, floor_recovery_scale, event, total)
 	var plan := FloorRecovery.plan(recovery)
 	var forward := Vector3(-sin(lab.camera_rig.facing_yaw), 0, -cos(lab.camera_rig.facing_yaw))
 	var right := Vector3(cos(lab.camera_rig.facing_yaw), 0, -sin(lab.camera_rig.facing_yaw))
@@ -619,7 +627,7 @@ func floor_recovery_total() -> float:
 	return FloorRecovery.duration(floor_recovery_name) * floor_recovery_scale
 
 func floor_input_locked() -> bool:
-	return floor_recovery_time >= 0.0 and floor_recovery_time < floor_recovery_lock
+	return LockData.floor_locked(floor_recovery_time, floor_recovery_lock)
 
 func tick_floor_recovery(dt: float) -> void:
 	dt *= lab.athlete.transition_rate()*lab.athlete.recovery_rate()
@@ -627,7 +635,7 @@ func tick_floor_recovery(dt: float) -> void:
 		return
 	var step := dt
 	if not floor_input_locked() and (Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_D)):
-		step *= 1.6
+		step *= LockData.RELEASE_SPEEDUP
 	floor_recovery_time += step
 	if floor_recovery_time >= floor_recovery_total():
 		floor_recovery_time = -1.0

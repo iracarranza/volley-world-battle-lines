@@ -4,6 +4,9 @@ extends Node3D
 @export var camera_tuning: LabCameraTuning = preload("res://resources/lab_camera.tres")
 
 signal receive_resolved(event: Dictionary)
+const PlayerLocks := preload("res://scripts/player_locks.gd")
+const LockData := preload("res://scripts/lock_data.gd")
+const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
 const ContactEvent := preload("res://scripts/contact/contact_event.gd")
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
@@ -11,6 +14,10 @@ const Action := preload("res://scripts/contact/action.gd").Type
 
 
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
+const RallyLedger := preload("res://scripts/rally_ledger.gd")
+const BallLease := preload("res://scripts/ball_lease.gd")
+const LiveBall := preload("res://scripts/live_ball.gd")
+const ContactCommit := preload("res://scripts/contact_commit.gd")
 var ball_shot: Dictionary = {}
 var last_receive_match: Dictionary = {}
 const ReceivePlatform := preload("res://scripts/receive_platform.gd")
@@ -65,8 +72,9 @@ var rotate_hurtboxes := true
 var back_set := false
 var perf_meter: CanvasLayer # F3
 var vision: CanvasLayer # vision focus (a prototype; off unless switched on in the Esc menu)
-const BACK_SET_TRAIT := "accuracy_back_set"
-const FLOAT_SERVE_TRAIT := "acc_float_serve"
+const TechniqueUnlocks := preload("res://scripts/technique_unlocks.gd")
+const BACK_SET_TRAIT := TechniqueUnlocks.TABLE.back_set.trait
+const FLOAT_SERVE_TRAIT := TechniqueUnlocks.TABLE.float_serve.trait
 const NEUTRAL_VIEW_PITCH := -0.12 # the resting view: boxes tilt by how far the aim has moved from it
 const MAX_HURTBOX_PITCH := 0.6
 const BallFraming := preload("res://scripts/ball_camera_framing.gd")
@@ -122,6 +130,7 @@ var hurtbox_view: LabHurtboxView
 var hurtbox_root: Node3D
 var hurtbox_mesh: MeshInstance3D
 var hurtbox_label: Label3D
+var receive_plant := preload("res://scripts/receive_plant.gd").new()
 var confirmed_geometry: Dictionary = {}
 var hurtbox_action := -1
 var hurtbox_linger := 0.0
@@ -133,6 +142,7 @@ var locked_action := 0
 var charging := false
 var armed := false
 const AutoCharge := preload("res://scripts/auto_charge.gd")
+const ShoulderFrame := preload("res://scripts/shoulder_frame.gd")
 var auto_preparation := AutoCharge.new()
 var charge := 0.0
 var locked_charge := 0.0
@@ -161,10 +171,11 @@ var trail_points: Array[Vector3] = []
 const ViewMode = LabCamera.ViewMode
 var cursor_release_click := false
 var action_endlag := 0.0
-const ROLL_TIME := 0.9
+const ROLL_TIME := LockData.ROLL_TIME
 var contact_memory: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var body_collision_view: MeshInstance3D
 var arms: Array[Node3D] = []
+var idle_shoulder := Vector2(-1.0, -1.0)  # MS-19: ShoulderFrame.idle of the current rig
 var legs: Array[Node3D] = []
 
 
@@ -299,7 +310,7 @@ func _build_activities() -> void:
 	drills.setup(self)
 
 func _process(dt: float) -> void:
-	animation.pose_frame_dt = dt * moc.actor_scale("player")
+	animation.pose_frame_dt = dt * moc.clock_record().actor("player")
 	var now := Time.get_ticks_usec()
 	var real_dt := minf(float(now - camera_rig._camera_frame_usec) / 1000000.0, 0.1) if camera_rig._camera_frame_usec > 0 else dt
 	camera_rig._camera_frame_usec = now
@@ -355,6 +366,7 @@ func _rebuild_visual() -> void:
 	var rig := VoliVisual.build(self, player, body_type, appearance, athlete.build)
 	body = rig.body
 	arms = rig.arms
+	idle_shoulder = ShoulderFrame.idle(arms)
 	legs = rig.legs
 	visual_rig_height = rig.rig_height
 	visual_hip_x = rig.hip_x
@@ -377,6 +389,9 @@ func apply_created_athlete(config: Dictionary) -> void:
 	build["offsets"] = config.get("offsets", {}).duplicate(true)
 	build["statistics"] = config.get("statistics",{}).duplicate(true)
 	build["stat_version"] = config.get("stat_version",2)
+	# G-14 (MS-20): earned growth saved at completion comes back with the athlete.
+	if not config.get("workout_counts",{}).is_empty(): build["workout_counts"] = config.workout_counts.duplicate(true)
+	if config.has("drill_auxiliaries"): build["drill_auxiliaries"] = config.drill_auxiliaries.duplicate(true)
 	if config.has("picks"):
 		build["picks"] = config.picks.duplicate()
 	build["stat_names"] = config.get("stat_names",preload("res://scripts/athlete_store.gd").STATS).duplicate(true)
@@ -395,8 +410,9 @@ func _hurtbox_definition(action: int) -> Dictionary:
 func _raw_hurtbox_definition(action: int) -> Dictionary:
 	var height: float = athlete.body_height()
 	var scale_to_world: float = height / visual_rig_height
-	var shoulder := arms[1].position.y * scale_to_world if arms.size() > 1 else height * 0.815
-	var shoulder_x := absf(arms[1].position.x) * scale_to_world if arms.size() > 1 else height * 0.17
+	var frame: Vector2 = ShoulderFrame.scaled(idle_shoulder, scale_to_world)
+	var shoulder: float = frame.x if frame.x >= 0.0 else height * 0.815
+	var shoulder_x: float = frame.y if frame.x >= 0.0 else height * 0.17
 	var shape := Geometry.definition(action, height, athlete.reach(), motion.jumped and motion.airborne_action == 0, -1.0 if dominant_hand == "Left" else 1.0, shoulder, shoulder_x, athlete.ball_control(), Geometry.arm_length(arms[0 if dominant_hand == "Left" else 1], scale_to_world),athlete.build)
 	if action == 0:
 		shape["platform_quality"] = athlete.trait_effect("platform_quality")
@@ -407,6 +423,7 @@ func _raw_hurtbox_definition(action: int) -> Dictionary:
 	return shape
 
 func _contact_yaw() -> float:
+	if receive_plant.active() and locked_action == 0: return receive_plant.yaw
 	var facing := motion.airborne_aim if motion.jumped else Vector3(-sin(camera_rig.facing_yaw), 0, -cos(camera_rig.facing_yaw))
 	return atan2(-facing.x, -facing.z)
 
@@ -416,19 +433,29 @@ func _build_hurtbox() -> void:
 	hurtbox_root.hide()
 	hurtbox_view = LabHurtboxView.new(hurtbox_root, world_builder)
 
+func receive_planted() -> bool:
+	return receive_plant.active() and not receive_plant.contacted and locked_action == 0 and confirm_window > 0 and player.is_on_floor() and not motion.jumped
+
 func _confirm_action(window: float = -1.0) -> void:
 	if block_state.active and locked_action == 3 and not block_state.confirm(): return
 	if _check_bench():
 		return
+	receive_plant.clear()
 	if locked_action == 0:
 		motion.cancel_receive_preparation()
+		receive_plant.begin(_contact_yaw(), hurtbox_pitch())
+		if player.is_on_floor() and not motion.jumped:
+			player.velocity.x = 0
+			player.velocity.z = 0
+			motion.quick_step_time = 0
 	# The click is what starts the strike. Until then the spiker only loads.
 	if motion.jumped and motion.airborne_action == 2 and locked_action == 2 and animation.spike_swing_time < 0.0:
 		animation.spike_swing_time = 0.0
 	_capture_contact_intent()
 	confirmed_geometry = {}
-	confirm_window = minf(window, Execution.contact_seconds(locked_action)) if window > 0 else Execution.contact_seconds(locked_action)
+	PlayerLifecycle.set_window(self, minf(window, Execution.contact_seconds(locked_action)) if window > 0 else Execution.contact_seconds(locked_action))
 	confirm_duration = confirm_window
+	hud.athlete_hud.timeline.begin(locked_action)
 	sweet_visual_expired = false
 	sweet_visual_phase = ""
 	hurtbox_action = locked_action
@@ -476,6 +503,7 @@ func _update_hurtbox_visual(dt: float) -> void:
 
 # The tilt of every hurtbox from its neutral orientation: how far the aim is raised (positive) or lowered from the neutral view.
 func hurtbox_pitch() -> float:
+	if receive_plant.active() and locked_action == 0: return receive_plant.pitch
 	if not rotate_hurtboxes or camera_rig == null:
 		return 0.0
 	return clampf(camera_rig.view_pitch - NEUTRAL_VIEW_PITCH, -MAX_HURTBOX_PITCH, MAX_HURTBOX_PITCH)
@@ -486,6 +514,7 @@ func hurtbox_pivot() -> Vector3:
 
 # Where a hurtbox's centre is, relative to the athlete before the yaw: the shape's own centre, tilted about the shoulder.
 func hurtbox_center_local(center: Vector3) -> Vector3:
+	if receive_plant.active() and locked_action == 0: center += receive_plant.offset()
 	var pitch := hurtbox_pitch()
 	if pitch == 0.0:
 		return center
@@ -499,10 +528,11 @@ func _local_contact_position() -> Vector3:
 func local_contact_position_at(world_point: Vector3) -> Vector3:
 	var point := (world_point - player.position).rotated(Vector3.UP, -_contact_yaw())
 	var pitch := hurtbox_pitch()
-	if pitch == 0.0:
-		return point
-	var pivot := hurtbox_pivot()
-	return pivot + (point - pivot).rotated(Vector3.RIGHT, -pitch)
+	if pitch != 0.0:
+		var pivot := hurtbox_pivot()
+		point = pivot + (point - pivot).rotated(Vector3.RIGHT, -pitch)
+	if receive_plant.active() and locked_action == 0: point -= receive_plant.offset()
+	return point
 
 func _overlaps_contact(action: int) -> bool:
 	return Geometry.contains(_hurtbox_definition(action), _local_contact_position())
@@ -528,7 +558,7 @@ func contact_request(action: int) -> ContactRequest:
 	request.remembered = not Geometry.contains(request.shape, request.local_point) and contact_memory[action] > 0
 	request.facing = Vector3.FORWARD.rotated(Vector3.UP, _contact_yaw())
 	request.intent_direction = _intent_direction(action, committed_intent.get("direction", request.facing))
-	request.directional_input = Vector3.ZERO if moc.enabled and moc.steering_duration > 0 and moc.mode == moc.Mode.TRAJECTORY_STEERING else directional_input.value()
+	request.directional_input = Vector3.ZERO if action == 0 or moc.enabled and moc.steering_duration > 0 and moc.mode == moc.Mode.TRAJECTORY_STEERING else directional_input.value()
 	request.movement_speed = Vector2(player.velocity.x, player.velocity.z).length()
 	request.flow = athlete.flow
 	request.gravity = GRAVITY
@@ -582,7 +612,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	if is_instance_valid(creator) and creator.visible:
 		return
-	if (animation.roll_lock > 0.0 or animation.dive_input_locked() or animation.floor_input_locked()) and not (event is InputEventKey and event.keycode in [KEY_O, KEY_M, KEY_P, KEY_T, KEY_H, KEY_F3, KEY_F8, KEY_F9, KEY_K]):
+	if PlayerLocks.input_locked(self) and not (event is InputEventKey and event.keycode in [KEY_O, KEY_M, KEY_P, KEY_T, KEY_H, KEY_F3, KEY_F8, KEY_F9, KEY_K]):
 		return
 	if not paused and drills.has_method("drill_input") and drills.drill_input(event):
 		return
@@ -656,11 +686,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			cursor_release_click = false
 			return
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed and player.is_on_floor():
+			hud.athlete_hud.timeline.clear()
 			charging = false
-			armed = false
+			PlayerLifecycle.disarm(self)
 			auto_preparation.clear()
 			committed_intent = {}
-			confirm_window = 0.0
+			PlayerLifecycle.set_window(self, 0.0)
 			if motion.jump_charge >= 0.0:
 				motion.jump_charge = -1.0
 				motion.approach_action = -1
@@ -677,49 +708,73 @@ func _unhandled_input(event: InputEvent) -> void:
 					charge = 0.0
 			elif charging:
 				charging = false
-				armed = true
+				PlayerLifecycle.arm(self)
 				locked_action = selected if player.is_on_floor() else motion.airborne_action
 				finish_charge_preparation()
 				_message("AUTO ready. Click to confirm." if auto_preparation.active else "Power ready. Click again when the ball is in reach.")
 
+## MS-11: the physics step as a numbered order (scripts/tick_order.gd is the written list; scheduler_order_test pins this body against it).
 func _physics_process(dt: float) -> void:
+	if _tick_pause(): return
+	var world_dt := dt
+	var motion_scale: float = moc.clock_record().actor("player")
+	dt *= motion_scale
+	elapsed += world_dt
+	_tick_pre_motion(world_dt)
+	if _tick_bench_gate(world_dt): return
+	_tick_player(dt, motion_scale)
+	_tick_activities(world_dt, dt)
+	_tick_ball_or_feed(world_dt)
+	_tick_idle_actors(world_dt)
+	_tick_confirm_window(dt)
+	_tick_present()
+
+func _tick_pause() -> bool:
 	if paused:
 		directional_input.clear()
 		hud.update()
-		return
-	var world_dt := dt
-	var motion_scale: float = moc.actor_scale("player")
-	dt *= motion_scale
-	elapsed += world_dt
+		return true
+	return false
+
+func _tick_pre_motion(world_dt: float) -> void:
 	if auto_preparation.active and armed:
-		auto_preparation.tick(world_dt,athlete,ball_shot,ball_velocity)
+		auto_preparation.tick(world_dt*moc.clock_record().actor("player"),athlete,ball_shot,ball_velocity)
 	contact_flow.tick(world_dt)
 	ground_balls.tick(self,world_dt)
 	serve.tick_toss_charge(world_dt)
 	if ball_active:
 		ball.show()
 		shadow.show()
+
+func _tick_bench_gate(world_dt: float) -> bool:
 	_check_bench()
 	if is_benched():
 		_tick_benched(world_dt)
-		return
+		return true
+	return false
+
+func _tick_player(dt: float, motion_scale: float) -> void:
 	var previous_player_position := player.position
 	block_state.tick(dt)
 	motion.tick(dt, motion_scale)
-	var rally_live: bool = ball_active and not station.running() and not drills.running() and not pepper.active()
+	var rally_live: bool = ball_active and BallLease.ledger_open(self)
 	if rally_live and athlete_touches_net(previous_player_position,player.position):
 		_finish_fault("NET FAULT / Athlete touched the net",side_index(previous_player_position.z))
 	elif not rally_live:
 		_hold_midline_off_net(previous_player_position)
 	camera_rig.update_aim()
 	animation.update()
+
+func _tick_activities(world_dt: float, dt: float) -> void:
 	station.tick(world_dt)
 	drills.tick(world_dt)
 	_remember_contacts(dt)
+
+func _tick_ball_or_feed(world_dt: float) -> void:
 	if ball_active:
 		_tick_ball(world_dt)
 		_remember_contacts(0.0)
-		if ball_active and not station.running() and not drills.running() and not pepper.active():
+		if ball_active and BallLease.ledger_open(self):
 			for slot in range(training_bots.actors.size()):
 				var actor: Node3D = training_bots.actors[slot]
 				if training_bots.slot_enabled(slot) and athlete_touches_net(actor.position,actor.position,training_bots.physique.body_height()):
@@ -729,21 +784,27 @@ func _physics_process(dt: float) -> void:
 		feed_timer -= world_dt
 		if feed_timer <= 0:
 			_feed()
+
+func _tick_idle_actors(world_dt: float) -> void:
 	if not ball_active:
 		training_bots.tick_motion(world_dt)
 		pepper.tick(world_dt)
+
+func _tick_confirm_window(dt: float) -> void:
 	if block_state.active:
-		confirm_window = 0
+		PlayerLifecycle.set_window(self, 0)
 	elif confirm_window > 0:
-		confirm_window = maxf(0, confirm_window - dt)
+		PlayerLifecycle.set_window(self, maxf(0, confirm_window - dt))
 		if confirm_window > 0 and ball_active and elapsed - last_contact > 0.22/athlete.transition_rate() and _can_contact():
 			_contact()
 		elif confirm_window <= 0:
 			committed_intent = {}
-			armed = false
+			PlayerLifecycle.disarm(self)
 			auto_preparation.clear()
 			athlete.spend_resolved(float(athlete.stamina_quote("timing_miss").total))
 			_message("Missed timing / reach. Move under the ball and try again.")
+
+func _tick_present() -> void:
 	_check_bench()
 	if not is_benched():
 		_update_preview(false)
@@ -813,12 +874,11 @@ func _feed() -> void:
 	ball.position = Vector3(court_center.x+(target.x-court_center.x)*0.6,3.6,-7.5)
 	var duration := 2.0
 	ball_velocity = (target - ball.position) / duration + Vector3.UP * (GRAVITY * duration * 0.5)
-	rally_rules.begin(1)
+	RallyLedger.begin_rally(self, 1)
 	ball_shot = ReceiveCharge.shot("serve", 0.60, "debug_feed")
 	ball_active = true
 	outgoing = false
-	contacts = 0
-	side_contacts = [0, 0]
+	RallyLedger.clear_all(self)
 	training_bots.last_was_block = false
 	training_bots.incoming_action = -1
 	contact_memory = [0.0, 0.0, 0.0, 0.0]
@@ -835,6 +895,8 @@ func _can_contact() -> bool:
 		return false
 	if pepper.active() and (pepper.npc_turn or locked_action != pepper.required_player_action()):
 		return false
+	if locked_action == 0 and receive_plant.active():
+		return _overlaps_contact(0)
 	if locked_action == 0 and _local_contact_position().z > 0:
 		return false
 	if locked_action == 2:
@@ -895,7 +957,8 @@ func _loft_velocity(origin: Vector3, action: int, power: float, direction: Vecto
 		if not motion.jumped:
 			distance *= GROUND_SET_RANGE_FACTOR
 			peak = origin.y + (peak - origin.y) * GROUND_SET_RISE_FACTOR
-	peak = origin.y + (peak - origin.y) * _contact_loft_factor(action == 1 and back_set)
+	if action != 0:
+		peak = origin.y + (peak - origin.y) * _contact_loft_factor(action == 1 and back_set)
 	var upward := sqrt(2.0 * GRAVITY * maxf(peak - origin.y, 0.1))
 	var duration := (upward + sqrt(upward * upward + 2.0 * GRAVITY * maxf(origin.y - 0.105, 0.0))) / GRAVITY
 	return direction * distance / maxf(duration, 0.01) + Vector3.UP * upward
@@ -967,18 +1030,16 @@ func _impact_event(actor_id: String, action: int, incoming: Vector3, assessment:
 	return event
 
 func _publish_impact(event: Dictionary) -> void:
-	if not station.running() and not drills.running() and not pepper.active():
-		var touching_side := int(event.team)
+	hud.athlete_hud.timeline.contact(event)
+	if BallLease.ledger_open(self):
 		# An opponent's touch renews the team's allowance even when a block
 		# reverses the ball before it fully clears the net's crossing plane.
-		side_contacts[1 - touching_side] = 0
-		if touching_side != side_index(player.position.z):
-			contacts = 0
-		rally_rules.touch(touching_side)
+		RallyLedger.renew_opponent(self, int(event.team))
 	clear_net_responses()
 	net_bounce_pending = false
 	net_response.clear_side = signf(ball.position.z)
 	if event.action == Action.RECEIVE:
+		if event.actor == "player": receive_plant.contacted = true
 		receive_resolved.emit(event)
 	animation.on_contact(event)
 	contact_flow.record(event)
@@ -1004,7 +1065,7 @@ func _emit_external_impact(actor_id: String, action: int, incoming: Vector3, ass
 		event.team = int(training_bots.slot_away(slot))
 	if actor_id == "player_serve":
 		event.team = side_index(player.position.z)
-		rally_rules.begin(event.team)
+		RallyLedger.begin_rally(self, event.team)
 		action_endlag = 0.22
 	_publish_impact(event.publish())
 
@@ -1062,16 +1123,12 @@ func _contact() -> void:
 		animation.spike_hit_time = animation.spike_swing_time
 		animation.spike_contacted = true
 	var is_block := locked_action == 3
-	if not is_block:
-		contacts += 1
+	RallyLedger.count_player_touch(self, is_block)
 	var side := side_index(player.position.z)
-	if not is_block and (pepper.player_contacts >= 3 if pepper.active() else (contacts > 3 or side_contacts[side] >= 3)):
+	if RallyLedger.player_fault(self, is_block, side):
 		_finish_fault("Three-contact fault. Return the ball across the Net earlier.",side)
 		return
-	if pepper.active():
-		pepper.player_contacts += 1
-	elif not is_block:
-		side_contacts[side] += 1
+	RallyLedger.record_player_touch(self, is_block, side)
 	training_bots.last_was_block = locked_action == 3
 	training_bots.incoming_action = locked_action
 	var request := contact_request(locked_action)
@@ -1084,7 +1141,7 @@ func _contact() -> void:
 			animation.receive_pose_remaining = 0.42
 	var quality: float = assessment.quality if assessment.hit else 0.35
 	last_quality = assessment.zone if assessment.hit or assessment.get("rescue", false) else "STRETCHED"
-	var rolled: bool = locked_action == 0 and athlete.has_trait("endurance_rolling_receive") and assessment.hit and assessment.get("edge", false) and not assessment.get("rescue", false) and assessment.get("charge_match", {}).get("matched", true)
+	var rolled: bool = locked_action == 0 and athlete.has_trait(TechniqueUnlocks.TABLE.rolling_receive.trait) and assessment.hit and assessment.get("edge", false) and not assessment.get("rescue", false) and assessment.get("charge_match", {}).get("matched", true)
 	if committed_intent.is_empty() or int(committed_intent.action) != locked_action or (not auto_preparation.active and not is_equal_approx(float(committed_intent.charge), locked_charge)):
 		_capture_contact_intent()
 	ball_velocity = _shot_velocity(ball.position, locked_action, request.charge, committed_intent.target, assessment)
@@ -1101,39 +1158,37 @@ func _contact() -> void:
 	request.rolling_receive = rolled
 	request.intent_direction = _intent_direction(locked_action, committed_intent.direction)
 	var result := ContactResolver.resolve(request, assessment)
-	ball_velocity = result.velocity
-	ball.position += result.separation_offset
+	LiveBall.commit_contact(self, result)
 	assessment = result.assessment
 	last_directional_influence = result.influence
 	if locked_action == Action.ATTACK:
 		animation.spike_swing_yaw = result.influence.shot_yaw_radians
-	ball_shot = ReceiveCharge.shot(["receive", "set", "attack", "block"][locked_action], contact_flow.attack_charge(request.charge,"player",ball.position,assessment) if locked_action == 2 else request.charge, "player")
-	if not result.outgoing_shot.is_empty():
-		ball_shot = result.outgoing_shot
-	ball_shot = contact_flow.decorate_shot(ball_shot,request.incoming_shot,"player",locked_action,assessment)
-	if locked_action == 2 and assessment.hit:
-		contact_flow.consume_attack("player")
-	var cost: Vector2 = request.athlete.contact_cost(locked_action, contacts,assessment,incoming_shot)
-	athlete.last_stamina_cost = request.athlete.last_stamina_cost
-	athlete.spend_resolved(cost.x)
-	contact_memory = [0.0, 0.0, 0.0, 0.0]
-	last_contact = elapsed
-	if locked_action == 1:
-		back_set = false
-	outgoing = true
-	if locked_action == 3 and block_state.active:
-		block_state.latched = true
-	else:
-		armed = false
-		auto_preparation.clear()
-	_update_hurtbox_visual(0.0)
-	confirm_window = 0
-	trail_points.clear()
-	if pepper.active():
-		pepper.on_player_contact(locked_action, quality)
-	else:
-		training_bots.replan()
-	_emit_contact_impact(incoming_velocity, assessment, incoming_shot)
+	ContactCommit.outgoing_shot(self, request, result, "player", locked_action, request.charge)
+	ContactCommit.run(self, ContactCommit.PLAYER, {
+		"spend": func() -> void:
+			var cost: Vector2 = request.athlete.contact_cost(locked_action, contacts,assessment,incoming_shot)
+			athlete.last_stamina_cost = request.athlete.last_stamina_cost
+			athlete.spend_resolved(cost.x),
+		"prepare": func() -> void:
+			contact_memory = [0.0, 0.0, 0.0, 0.0]
+			last_contact = elapsed
+			if locked_action == 1:
+				back_set = false
+			outgoing = true
+			if locked_action == 3 and block_state.active:
+				block_state.latched = true
+			else:
+				PlayerLifecycle.disarm(self)
+				auto_preparation.clear()
+			_update_hurtbox_visual(0.0)
+			PlayerLifecycle.set_window(self, 0)
+			trail_points.clear()
+			if pepper.active():
+				pepper.on_player_contact(locked_action, quality)
+			else:
+				training_bots.replan(),
+		"publish": func() -> void: _emit_contact_impact(incoming_velocity, assessment, incoming_shot),
+	})
 	_message("%s %s   /   contact %d of 3" % [last_quality, ACTIONS[locked_action], contacts])
 	if station.running():
 		station.on_contact(locked_action, assessment.get("charge_match", {}).get("matched", true))
@@ -1164,24 +1219,22 @@ func _try_swept_player_block(previous: Vector3, dt: float) -> bool:
 		var local := (point-player.position).rotated(Vector3.UP,-_contact_yaw())
 		if Geometry.contains(shape,local) and Geometry.block_approaching(shape,local,ball_velocity.rotated(Vector3.UP,-_contact_yaw())):
 			ball.position = point
-			confirm_window = initial_window - dt * fraction
+			PlayerLifecycle.set_window(self, initial_window - dt * fraction)
 			var event_before := _contact_event_serial
 			_contact()
 			if _contact_event_serial > event_before:
 				return true
 	ball.position = endpoint
-	confirm_window = initial_window
+	PlayerLifecycle.set_window(self, initial_window)
 	return false
 
 func _tick_ball(dt: float) -> void:
 	var world_dt := dt
-	dt *= moc.simulation_scale()
+	dt *= moc.clock_record().ball()
 	if drills.holding_ball():
 		return
 	var previous := ball.position
-	ball.position += ball_velocity * dt + Vector3.DOWN * (GRAVITY * dt * dt * 0.5)
-	ball_velocity.y -= GRAVITY * dt
-	ball.rotate_x(dt * 4)
+	LiveBall.integrate(self, dt)
 	serve.tick(dt, previous)
 	if not serve.tossing() and not inventory.free_ball and not station.running() and not drills.running():
 		pepper.try_start(previous)
@@ -1198,11 +1251,10 @@ func _tick_ball(dt: float) -> void:
 	elif net_bounce_pending and not bool(net_result.pocket):
 		net_bounce_pending = false
 		training_bots.replan_after_net()
-	ball.position = net_result.position
-	ball_velocity = net_result.velocity
+	LiveBall.commit_step(self, net_result)
 	if previous.z*ball.position.z < 0 and not bool(net_result.pocket) and net_result.contact == "":
 		var crossing := previous.lerp(ball.position,previous.z/(previous.z-ball.position.z))
-		if not station.running() and not drills.running() and not pepper.active() and (serve.state != serve.State.FLIGHT or serve.main_court) and absf(crossing.x-court_center.x)+Geometry.VISUAL_BALL_RADIUS > net_response.web_half_width:
+		if BallLease.ledger_open(self) and (serve.state != serve.State.FLIGHT or serve.main_court) and absf(crossing.x-court_center.x)+Geometry.VISUAL_BALL_RADIUS > net_response.web_half_width:
 			_finish_fault("OUTSIDE-ANTENNA FAULT / Ball crossed outside the net",rally_rules.last_touch_side)
 			return
 		if absf(crossing.x-Vector3(net_result.net_origin).x) <= float(net_result.net_half_width) and crossing.y < float(net_result.net_bottom)-NetResponse.RADIUS:
@@ -1213,8 +1265,7 @@ func _tick_ball(dt: float) -> void:
 		training_bots.net_rebound = false
 	if net_result.crossed and absf(ball.position.x-court_center.x) <= net_response.web_half_width+0.1:
 		if not pepper.active():
-			side_contacts[side_index(ball.position.z)] = 0
-			contacts = 0
+			RallyLedger.reset_on_crossing(self)
 		if training_bots.active_action < 0:
 			training_bots.replan()
 
@@ -1281,7 +1332,7 @@ func _finish(message: String,point_result: Dictionary = {}) -> void:
 	inventory.landed_free = inventory.free_ball
 	if inventory.free_ball:
 		message = "Free ball down / pick it up (I) before it despawns"
-	elif not station.running() and not drills.running() and not pepper.active():
+	elif BallLease.ledger_open(self):
 		rally_rules.record(point_result)
 		if not rally_rules.label().is_empty(): message += " / "+rally_rules.label()
 	inventory.free_ball = false
@@ -1290,14 +1341,14 @@ func _finish(message: String,point_result: Dictionary = {}) -> void:
 	clear_net_responses()
 	net_bounce_pending = false
 	action_endlag = 0.0
-	confirm_window = 0.0
+	PlayerLifecycle.set_window(self, 0.0)
 	committed_intent = {}
-	armed = false
+	PlayerLifecycle.disarm(self)
 	auto_preparation.clear()
 	serve.clear()
 	pepper.stop()
 	moc.clear()
-	ball_active = false
+	LiveBall.release(self)
 	training_bots.on_rally_end()
 	feed_timer = 3.0
 	_message(message)
@@ -1355,7 +1406,7 @@ func _update_preview(draw_trajectory: bool = true) -> void:
 
 func _reset() -> void:
 	back_set = false
-	rally_rules.begin()
+	RallyLedger.begin_rally(self)
 	block_state.land()
 	ground_balls.clear()
 	if is_instance_valid(ball): ball.show()
@@ -1375,6 +1426,7 @@ func _reset() -> void:
 		pepper.refresh_for_rally()
 	camera_rig.ball_camera_offset_ready = false
 	camera_rig.ball_movement_yaw = 0.0
+	receive_plant.clear()
 	animation.receive_posture = "planted"
 	animation.receive_pose_remaining = 0
 	animation.carry.reset()
@@ -1397,8 +1449,7 @@ func _reset() -> void:
 	motion.quick_step_cooldown = 0.0
 	motion.tap_times.clear()
 	motion.generic_jump = false
-	athlete.hp = 100
-	athlete.stamina = athlete.max_stamina()
+	athlete.refill()
 	athlete.reset_fatigue()
 	player.position = start_position
 	player.velocity = Vector3.ZERO
@@ -1409,11 +1460,11 @@ func _reset() -> void:
 	camera_rig.view_pitch = -0.12
 	camera_rig.ball_orbit = 0.0
 	ball.position = Vector3(0, 0.105, -6)
-	ball_active = false
+	LiveBall.release(self)
 	ball_shot = {}
 	last_receive_match = {}
 	charging = false
-	armed = false
+	PlayerLifecycle.disarm(self)
 	auto_preparation.clear()
 	motion.jumped = false
 	motion.jump_charge = -1
@@ -1426,16 +1477,16 @@ func _reset() -> void:
 	hurtbox_linger = 0
 	rescue_swing_remaining = 0
 	hurtbox_action = -1
+	hud.athlete_hud.timeline.clear()
 	confirm_duration = 0.0
 	confirmed_geometry = {}
 	hurtbox_root.hide()
-	confirm_window = 0
+	PlayerLifecycle.set_window(self, 0)
 	contact_memory = [0.0, 0.0, 0.0, 0.0]
 	feed_timer = 2.0
 	attempts = 0
 	returns = 0
-	contacts = 0
-	side_contacts = [0, 0]
+	RallyLedger.clear_all(self)
 	last_quality = "—"
 	action_endlag = 0.0
 	last_contact = -10.0
@@ -1470,7 +1521,7 @@ func _build_ui() -> void:
 func begin_passive_block() -> void:
 	block_state.start()
 	locked_action = 3
-	armed = true
+	PlayerLifecycle.arm(self)
 	hurtbox_action = 3
 	confirmed_geometry = {}
 	var presentation := hurtbox_view.present(_raw_hurtbox_definition(3),3)
@@ -1482,9 +1533,9 @@ func begin_passive_block() -> void:
 func end_passive_block() -> void:
 	if not block_state.active: return
 	block_state.land()
-	armed = false
+	PlayerLifecycle.disarm(self)
 	charging = false
 	auto_preparation.clear()
-	confirm_window = 0
+	PlayerLifecycle.set_window(self, 0)
 	confirmed_geometry = {}
 	hurtbox_linger = 0

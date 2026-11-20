@@ -1,5 +1,9 @@
 extends Node3D
 
+const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
+const LiveBall := preload("res://scripts/live_ball.gd")
+const RallyLedger := preload("res://scripts/rally_ledger.gd")
+const GrowthSave := preload("res://scripts/growth_save.gd")
 const CENTER := Vector3(16, 0, 6.5)
 const SERVE_BASELINE_Z := -10.0
 const SERVE_CONTACT_HEIGHT := 3.60
@@ -200,12 +204,12 @@ func start() -> void:
 	last_points = 0
 	feed_bag.clear()
 	timer = 1.5
-	lab.ball_active = false
+	LiveBall.release(lab)
 	lab.training_bots.active_action = -1
-	lab.armed = false
+	PlayerLifecycle.disarm(lab)
 	lab.charging = false
 	lab.selected = 0
-	lab.confirm_window = 0
+	PlayerLifecycle.set_window(lab, 0)
 	detail = "Get ready / receive into the scoring half / reach 8 points. Move + Space to dive."
 	lab._message(detail)
 
@@ -229,16 +233,16 @@ func _interact_setup() -> void:
 
 # One sent serve has been used: a scoring receive is a rep, anything else an error.
 func _serve_used(success: bool, reason: String) -> void:
-	lab.ball_active = false
+	LiveBall.release(lab)
 	state = State.IDLE
 	var result: String = distributor.record(success, "player")
 	match result:
 		"complete":
 			earned_xp += 25
 			var grant: Dictionary = preload("res://scripts/setup_grants.gd").grant(lab.athlete, "SERVE MACHINE")
-			lab.athlete.hp = minf(100, lab.athlete.hp + 20)
-			lab.athlete.stamina = minf(lab.athlete.max_stamina(), lab.athlete.stamina + 15)
-			detail = "SERVE MACHINE COMPLETE / %d reward balls to claim (I) / +25 lab XP / +%d platform quality access / reactivates in %ds" % [distributor.pile, int(grant.get("amount", 0)), ceili(distributor.cooldown)]
+			lab.athlete.heal(20)
+			lab.athlete.restore(15)
+			detail = "SERVE MACHINE COMPLETE / %d reward balls to claim (I) / +25 lab XP / +%d platform quality access / reactivates in %ds%s" % [distributor.pile, int(grant.get("amount", 0)), ceili(distributor.cooldown), GrowthSave.at_completion(lab) if not grant.is_empty() else ""]
 			lab._message(detail)
 		"failed":
 			detail = "SERVE MACHINE FAILED / out of balls / reactivates in %ds" % ceili(distributor.cooldown)
@@ -262,7 +266,7 @@ func tick_setup(dt: float) -> void:
 
 func stop() -> void:
 	state = State.IDLE
-	lab.ball_active = false
+	LiveBall.release(lab)
 	lab.training_bots.active_action = -1
 	detail = "Drill stopped. I to restart while in the station."
 
@@ -287,7 +291,7 @@ func tick(dt: float) -> void:
 		striker.position.y = lerpf(4.5, SERVE_CONTACT_HEIGHT - 0.3, feed_follow / 0.18)
 	var inside := in_zone()
 	if inside and not zone_was_entered and not running():
-		lab.ball_active = false
+		LiveBall.release(lab)
 		lab.training_bots.active_action = -1
 		lab._message("Serve Receive station / press I to begin / receive into the scoring half for 8 points.")
 	zone_was_entered = inside
@@ -349,17 +353,14 @@ func next_feed() -> int:
 func serve() -> void:
 	if economy() and not distributor.send():
 		state = State.IDLE
-		lab.ball_active = false
+		LiveBall.release(lab)
 		detail = "SERVE MACHINE / out of balls"
 		lab._message(detail)
 		return
 	state = State.TOSS
 	feed_index = next_feed()
 	toss_elapsed = 0
-	lab.ball.position = to_world(Vector3(16 + sin(feed_index * 1.5), TOSS_HEIGHT, SERVE_BASELINE_Z))
-	lab.ball_velocity = Vector3.UP * ((SERVE_CONTACT_HEIGHT - TOSS_HEIGHT) / TOSS_SECONDS + lab.GRAVITY * TOSS_SECONDS * 0.5)
-	lab.ball_shot = {}
-	lab.ball_active = true
+	LiveBall.launch(lab, to_world(Vector3(16 + sin(feed_index * 1.5), TOSS_HEIGHT, SERVE_BASELINE_Z)), Vector3.UP * ((SERVE_CONTACT_HEIGHT - TOSS_HEIGHT) / TOSS_SECONDS + lab.GRAVITY * TOSS_SECONDS * 0.5), {})
 	lab.outgoing = false
 	lab.trail_points.clear()
 	lab.contact_memory.fill(0.0)
@@ -375,19 +376,15 @@ func strike_feed() -> void:
 	var feed := feed_index
 	serves_sent += 1
 	lab.attempts += 1
-	lab.ball.position = to_world(Vector3(16 + sin(feed * 1.5) * 1.0, SERVE_CONTACT_HEIGHT, SERVE_BASELINE_Z))
+	var strike_point := to_world(Vector3(16 + sin(feed * 1.5) * 1.0, SERVE_CONTACT_HEIGHT, SERVE_BASELINE_Z))
 	var target: Vector3 = to_world(TARGETS[feed])
-	var horizontal_distance := Vector2(target.x - lab.ball.position.x, target.z - lab.ball.position.z).length()
+	var horizontal_distance := Vector2(target.x - strike_point.x, target.z - strike_point.z).length()
 	var duration := horizontal_distance / (22.0 + feed * 0.6)
 	serve_duration = duration
-	lab.ball_velocity = (target - lab.ball.position) / duration + Vector3.UP * float(lab.GRAVITY) * duration * 0.5
-	lab.ball_shot = lab.ReceiveCharge.shot("serve", CHARGES[feed], "serve_receive_drill")
-	lab.ball_active = true
+	LiveBall.launch(lab, strike_point, (target - strike_point) / duration + Vector3.UP * float(lab.GRAVITY) * duration * 0.5, lab.ReceiveCharge.shot("serve", CHARGES[feed], "serve_receive_drill"))
 	lab._emit_external_impact("drill_serve", 4, incoming, {"hit": true, "sweet": false})
 	lab.outgoing = false
-	lab.contacts = 0
-	lab.side_contacts[0] = 0
-	lab.side_contacts[1] = 0
+	RallyLedger.clear_all(lab)
 	for action in range(4):
 		lab.contact_memory[action] = 0.0
 	lab.trail_points.clear()
@@ -442,12 +439,12 @@ func on_ball_down(landing: Vector3 = Vector3.INF) -> void:
 		advance()
 
 func advance() -> void:
-	lab.ball_active = false
+	LiveBall.release(lab)
 	if points >= GOAL:
 		state = State.COMPLETE
 		earned_xp += 25
-		lab.athlete.hp = minf(100, lab.athlete.hp + 20)
-		lab.athlete.stamina = minf(100, lab.athlete.stamina + 15)
+		lab.athlete.heal(20)
+		lab.athlete.restore(15)  # G-15 (MS-21): capped at max_stamina(), not the literal 100
 		detail = "COMPLETE / %d points / +25 lab XP, +20 HP, +15 STA. I to repeat." % points
 	else:
 		state = State.WAITING
@@ -457,7 +454,7 @@ func advance() -> void:
 
 func fail(reason: String) -> void:
 	state = State.FAILED
-	lab.ball_active = false
+	LiveBall.release(lab)
 	streak = 0
 	points = 0
 	serves_sent = 0

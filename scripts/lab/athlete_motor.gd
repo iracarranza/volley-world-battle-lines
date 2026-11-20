@@ -2,6 +2,9 @@ class_name AthleteMotor
 extends RefCounted
 
 ## Owns motion state. LabSession schedules updates and composes peers.
+const PlayerLocks := preload("res://scripts/player_locks.gd")
+const TechniqueUnlocks := preload("res://scripts/technique_unlocks.gd")
+const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
 const Approach = preload("res://scripts/approach_run.gd")
 const Flight = preload("res://vendor/vwm/ball_flight_model.gd")
 const GRAVITY = Flight.DEFAULT_GRAVITY_MPS2
@@ -50,14 +53,15 @@ func tick(dt: float, motion_scale: float) -> void:
 	quick_step_time = maxf(0.0, quick_step_time - dt)
 	quick_step_cooldown = maxf(0.0, quick_step_cooldown - dt)
 	var local_move := Vector3(float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A)), 0, float(Input.is_physical_key_pressed(KEY_S)) - float(Input.is_physical_key_pressed(KEY_W))).normalized()
-	if lab.animation.roll_lock > 0.0 or lab.animation.dive_input_locked() or lab.animation.floor_input_locked():
+	if PlayerLocks.input_locked(lab):
 		local_move = Vector3.ZERO
+	lab.receive_plant.tick(dt, local_move, lab.receive_planted())
 	var move := lab.camera_rig.movement_direction(local_move)
 	lab.directional_input.sample(move, dt / motion_scale)
 	lab.athlete.terrain_stamina_multiplier = 1.0
 	if lab.drills.has_method("drill_motion") and lab.drills.drill_motion(dt, move):
 		return
-	var locomotion := move
+	var locomotion := Vector3.ZERO if lab.receive_planted() else move
 	# Sprinting is possible while loading a set or block jump (it buys back the speed the load costs), not while charging an approach or a plain jump.
 	var loading_jump := jump_charge >= 0 and not jumped and not generic_jump and approach_action in [1, 3]
 	var sprint := Input.is_physical_key_pressed(KEY_SHIFT) and locomotion.length() > 0 and lab.athlete.stamina > 0 and (jump_charge < 0 or loading_jump)
@@ -67,7 +71,10 @@ func tick(dt: float, motion_scale: float) -> void:
 	if lab.animation.dive_recovery_time >= 0.0:
 		desired *= 0.55
 	var acceleration := lab.athlete.acceleration()
-	if (generic_jump or approach_action in [1,3]) and jump_charge >= 0 and not jumped:
+	if lab.receive_planted():
+		lab.player.velocity.x = 0
+		lab.player.velocity.z = 0
+	elif (generic_jump or approach_action in [1,3]) and jump_charge >= 0 and not jumped:
 		jump_charge = minf(1.0, jump_charge + dt * (1.0 if generic_jump else lab.athlete.explosiveness_rate()) / 0.8)
 		approach_direction = move
 		approach_phase_name = "TRAVEL JUMP / CHARGING" if generic_jump else ("JUMP SET / LOADING" if approach_action == 1 else "BLOCK JUMP / LOADING")
@@ -183,7 +190,7 @@ func note_direction_tap(event: InputEventKey) -> void:
 		tap_times[code] = now
 
 func quick_step(tapped: Vector3 = Vector3(0, 0, -1)) -> void:
-	if lab.paused or not lab.athlete.has_trait("speed_quick_step") or not (lab.armed or lab.charging) or jumped or jump_charge >= 0.0 or not lab.player.is_on_floor() or lab.animation.roll_lock > 0.0:
+	if lab.receive_planted() or lab.paused or not lab.athlete.has_trait(TechniqueUnlocks.TABLE.quick_step.trait) or not (lab.armed or lab.charging) or jumped or jump_charge >= 0.0 or not lab.player.is_on_floor() or lab.animation.roll_lock > 0.0:
 		return
 	if quick_step_cooldown > 0.0:
 		lab._message("Quick Step ready in %.1fs" % quick_step_cooldown)
@@ -204,13 +211,14 @@ func quick_step(tapped: Vector3 = Vector3(0, 0, -1)) -> void:
 	lab._message("QUICK STEP / cooldown %ds" % int(quick_step_cooldown))
 
 func begin_jump() -> void:
+	if lab.receive_planted(): return
 	if lab.is_benched():
 		return
 	if lab.charging:
 		lab.locked_action = lab.selected
 		lab.finish_charge_preparation()
 		lab.charging = false
-		lab.armed = true
+		PlayerLifecycle.arm(lab)
 	if lab.armed or lab.ball_active or lab.station.running() or lab.drills.running():
 		begin_approach()
 	else:
@@ -236,7 +244,7 @@ func travel_takeoff() -> void:
 	airborne_action = -1
 	airborne_aim = Vector3(-sin(lab.camera_rig.facing_yaw), 0, -cos(lab.camera_rig.facing_yaw))
 	jumped = true
-	lab.armed = false
+	PlayerLifecycle.disarm(lab)
 	lab.charging = false
 	lab.contact_flow.consume_jump("player")
 	lab.athlete.spend_resolved(float(lab.athlete.stamina_quote("travel_jump").total))
@@ -322,7 +330,7 @@ func takeoff() -> void:
 		lab.player.velocity.z = dive_direction.z * dive_speed
 		if not lab.armed:
 			lab.begin_auto_preparation(0)
-		lab.armed = true
+		PlayerLifecycle.arm(lab)
 		lab.locked_action = 0
 		lab._message("DIVE / " + ("TIMED FIRST STEP" if quality > 0.7 else "EARLY / LATE RELEASE"))
 	elif airborne_action == 2:

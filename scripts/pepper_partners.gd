@@ -1,8 +1,13 @@
 extends Node3D
 
 # Dependencies and fixed configuration.
+const LiveBall := preload("res://scripts/live_ball.gd")
+const ContactCommit := preload("res://scripts/contact_commit.gd")
+const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const Settings := preload("res://scripts/bot_settings.gd")
+const RngSeed := preload("res://scripts/rng_seed.gd")
 const Vitals := preload("res://scripts/bot_vitals.gd")
+const ShoulderFrame := preload("res://scripts/shoulder_frame.gd")
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
@@ -11,6 +16,7 @@ const Visual := preload("res://scripts/voli_visual.gd")
 const BotAnimation :=  preload("res://scripts/bot_animation.gd")
 const Pose := preload("res://scripts/athlete_pose.gd")
 const Execution := preload("res://scripts/contact_execution.gd")
+const Table := preload("res://scripts/action_table.gd")
 const Influence := preload("res://scripts/directional_influence.gd")
 const Geometry := preload("res://scripts/contact_geometry.gd")
 const SPOTS := [Vector3(-29, 3.5, 3), Vector3(8, 0, 5), Vector3(0, 0, 27)]
@@ -30,10 +36,13 @@ var spots: Array = SPOTS.duplicate()
 var home_rings: Array[MeshInstance3D] = []
 var home_labels: Array[Label3D] = []
 var aim_random := RandomNumberGenerator.new()
+# Optional base seed for reproducible rallies; -1 draws fresh seeds (the default).
+var rng_seed := -1
 var last_aim: Dictionary = {}
 var lab: Node3D
 var actors: Array[Node3D] = []
 var rigs: Array[Dictionary] = []
+var idle_shoulders: Array[Vector2] = []  # MS-19: ShoulderFrame.idle per rig, captured at build
 var volumes: Array[Node3D] = []
 var partner := -1
 var stage := 0
@@ -54,11 +63,13 @@ var approach_yaw := 0.0
 var attack_facing_locked := false
 var movement_cycle := 0.0
 
+func reseed(base_seed: int = -1) -> void:
+	RngSeed.seed_generators({"pepper.aim": aim_random, "pepper.charge": charge_random}, base_seed)
+
 func setup(owner_lab: Node3D) -> void:
 	lab = owner_lab
 	spots = lab.pepper_spots()
-	aim_random.randomize()
-	charge_random.randomize()
+	reseed(rng_seed)
 	for index in range(3):
 		athletes.append(Vitals.create(lab.training_bots.physique))
 		var actor := Node3D.new()
@@ -68,6 +79,7 @@ func setup(owner_lab: Node3D) -> void:
 		actor.position = spots[index]
 		var rig := Visual.build(lab, actor, "Avi" if index == 0 else "Feli", {"palette_index": index, "marking": "none"}, athletes[index].build)
 		rigs.append(rig)
+		idle_shoulders.append(ShoulderFrame.idle(rig.arms))
 		var volume := Node3D.new()
 		actor.add_child(volume)
 		volumes.append(volume)
@@ -89,8 +101,8 @@ func athlete_for(index: int) -> LabAthlete:
 func refresh_for_rally() -> void:
 	for athlete in athletes: Vitals.refresh(athlete)
 
-func spend_stamina(cost: float,resolved: bool = false) -> void:
-	Vitals.spend(athlete_for(partner),cost,lab.contact_flow,"pepper_%d" % partner,resolved)
+func spend_stamina(cost: float,resolved: bool = false,contact_spend: bool = false) -> void:
+	Vitals.spend(athlete_for(partner),cost,lab.contact_flow,"pepper_%d" % partner,resolved,contact_spend)
 
 func set_charge_accuracy(index: int, value: float) -> void:
 	settings[index].charge_accuracy = clampf(value, 0, 100)
@@ -136,8 +148,7 @@ func try_start(previous: Vector3) -> bool:
 			exchanges = 0
 			npc_turn = true
 			lab.training_bots.active_action = -1
-			lab.contacts = 0
-			lab.side_contacts.fill(0)
+			RallyLedger.clear_all(lab)
 			lab.selected = 0
 			plan()
 			lab._message(LABELS[index] + " / PEPPER START / receive, set, attack back to your partner")
@@ -148,7 +159,7 @@ func shape() -> Dictionary:
 	var rig := rigs[partner]
 	var physique = athlete_for(partner)
 	var scale: float = physique.body_height() / rig.rig_height
-	var definition := Geometry.definition(stage, physique.body_height(), physique.reach(), false, 1, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
+	var definition := Geometry.definition(stage, physique.body_height(), physique.reach(), false, 1, idle_shoulders[partner].x * scale, idle_shoulders[partner].y * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
 	if stage == 0:
 		definition["platform_quality"] = physique.trait_effect("platform_quality")
 	var effects: Dictionary = lab.contact_flow.shape_effects("pepper_%d"%partner,stage)
@@ -256,10 +267,10 @@ func on_player_contact(action: int, quality: float) -> void:
 
 func tick(dt: float) -> bool:
 	for index in range(athletes.size()):
-		if not (active() and index == partner): athletes[index].recover(dt*lab.moc.bot_scale("pepper_%d"%index),actors[index].position.y <= spots[index].y+0.01)
+		if not (active() and index == partner): athletes[index].recover(dt*lab.moc.clock_record().bot("pepper_%d"%index),actors[index].position.y <= spots[index].y+0.01)
 	for index in range(3):
-		preparation.tick(index,dt*lab.moc.bot_scale("pepper_%d"%index))
-	dt *= lab.moc.bot_scale("pepper_%d" % partner)
+		preparation.tick(index,dt*lab.moc.clock_record().bot("pepper_%d"%index))
+	dt *= lab.moc.clock_record().bot("pepper_%d" % partner)
 	if not active():
 		return false
 	var actor := actors[partner]
@@ -300,13 +311,13 @@ func tick(dt: float) -> bool:
 
 	if remaining > 0:
 		return false
-	if remaining < -Execution.contact_seconds(stage):
+	if remaining < -Table.row(stage).live_end:
 		planned = false
 		return false
 	var prepared := preparation.state_for(partner)
 	if prepared.phase != "confirmed":
 		return false
-	if float(prepared.confirmation_age) > Execution.contact_seconds(stage):
+	if float(prepared.confirmation_age) > Table.row(stage).live_end:
 		planned = false
 		preparation.finish(partner)
 		return false
@@ -320,7 +331,7 @@ func tick(dt: float) -> bool:
 			hit = true
 			break
 	if not hit:
-		if remaining < -Execution.contact_seconds(stage):
+		if remaining < -Table.row(stage).live_end:
 			planned = false
 		return false
 	player_contacts = 0
@@ -368,32 +379,29 @@ func tick(dt: float) -> bool:
 		lab.ball_velocity = Influence.constrain_attack(lab.ball_velocity, actor.rotation.y,athlete_for(partner).trait_effect("court_vision"))
 	request.base_velocity = lab.ball_velocity
 	var result := ContactResolver.resolve(request, assessment)
-	lab.ball_velocity = result.velocity
-	lab.ball.position += result.separation_offset
+	LiveBall.commit_contact(lab, result)
 	assessment = result.assessment
 	last_aim = result.aiming
-	lab.ball_shot = ReceiveCharge.shot(["receive", "set", "attack"][stage], lab.contact_flow.attack_charge(float(prepared.locked_charge),"pepper_%d"%partner,lab.ball.position,assessment) if stage == 2 else float(prepared.locked_charge), "pepper_%d" % partner)
-	if not result.outgoing_shot.is_empty():
-		lab.ball_shot = result.outgoing_shot
-	lab.ball_shot = lab.contact_flow.decorate_shot(lab.ball_shot,request.incoming_shot,"pepper_%d"%partner,stage,assessment)
-	if stage == 2 and assessment.hit:
-		lab.contact_flow.consume_attack("pepper_%d"%partner)
-	lab._emit_external_impact("pepper_%d" % partner, stage, incoming, assessment,incoming_shot)
-	var local_contact: Vector3 = (lab.ball.position - actor.position).rotated(Vector3.UP, -actor.rotation.y)
-	var posture := Geometry.ReceivePlatform.posture(definition, local_contact, MOVE_SPEED if travelled > 0.001 else 0.0) if stage == 0 else "planted"
-	var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actor.rotation.y, -PI, PI) if stage == 2 else 0.0
-	animation.contact(rig, stage, local_contact, posture, swing_yaw, assessment.get("rescue", false), assessment)
-	_animate(0, 0)
-	var contact_cost: float = request.athlete.contact_cost(stage,1,assessment,incoming_shot).x
-	athlete_for(partner).last_stamina_cost = request.athlete.last_stamina_cost
-	spend_stamina(contact_cost,true)
-	last_delivery = {"action": stage, "quality": assessment.quality, "required_action": player_action, "target": target, "origin": origin, "velocity": lab.ball_velocity, "duration": duration, "aim": last_aim, "preparation": preparation.evidence(partner), "incoming_shot": incoming_shot, "charge_match": assessment.get("charge_match", {}), "receive_outcome":assessment.get("receive_outcome",{})}
-	last_delivery.make_read_only()
-	preparation.finish(partner)
-	lab.trail_points.clear()
-	lab.contacts = 0
-	lab.side_contacts.fill(0)
-	lab.contact_memory.fill(0.0)
+	ContactCommit.outgoing_shot(lab, request, result, "pepper_%d" % partner, stage, float(prepared.locked_charge))
+	ContactCommit.run(lab, ContactCommit.PEPPER, {
+		"publish": func() -> void: lab._emit_external_impact("pepper_%d" % partner, stage, incoming, assessment,incoming_shot),
+		"present": func() -> void:
+			var local_contact: Vector3 = (lab.ball.position - actor.position).rotated(Vector3.UP, -actor.rotation.y)
+			var posture := Geometry.ReceivePlatform.posture(definition, local_contact, MOVE_SPEED if travelled > 0.001 else 0.0) if stage == 0 else "planted"
+			var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actor.rotation.y, -PI, PI) if stage == 2 else 0.0
+			animation.contact(rig, stage, local_contact, posture, swing_yaw, assessment.get("rescue", false), assessment)
+			_animate(0, 0),
+		"spend": func() -> void:
+			var contact_cost: float = request.athlete.contact_cost(stage,1,assessment,incoming_shot).x
+			athlete_for(partner).last_stamina_cost = request.athlete.last_stamina_cost
+			spend_stamina(contact_cost,true,true),
+		"settle": func() -> void:
+			last_delivery = {"action": stage, "quality": assessment.quality, "required_action": player_action, "target": target, "origin": origin, "velocity": lab.ball_velocity, "duration": duration, "aim": last_aim, "preparation": preparation.evidence(partner), "incoming_shot": incoming_shot, "charge_match": assessment.get("charge_match", {}), "receive_outcome":assessment.get("receive_outcome",{})}
+			last_delivery.make_read_only()
+			preparation.finish(partner)
+			lab.trail_points.clear()
+			lab.contact_memory.fill(0.0),
+	})
 	exchanges += 1
 	npc_turn = false
 	planned = false

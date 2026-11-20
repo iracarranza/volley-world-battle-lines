@@ -2,7 +2,7 @@ extends RefCounted
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
 const ReceiveOutcome := preload("res://scripts/receive_outcome.gd")
 const Geometry := preload("res://scripts/contact_geometry.gd")
-const Execution := preload("res://scripts/contact_execution.gd")
+const Table := preload("res://scripts/action_table.gd")
 const Influence := preload("res://scripts/directional_influence.gd")
 const Spike := preload("res://scripts/spike_direction.gd")
 const NEAR_METERS := 3.5
@@ -26,8 +26,7 @@ static func predict(lab: Node3D) -> Dictionary:
 	var nearby: Vector3 = lab.player.position + Vector3.UP * float(lab.athlete.body_height()) * 0.8
 	if origin.distance_to(nearby) > NEAR_METERS:
 		return {}
-	var yaw: float = lab._contact_yaw()
-	var local: Vector3 = (origin-lab.player.position).rotated(Vector3.UP,-yaw)
+	var local: Vector3 = lab.local_contact_position_at(origin)
 	if action == 0 and local.z > 0:
 		return {} # A receiving platform cannot reach behind the athlete.
 	var shape: Dictionary = lab._hurtbox_definition(action)
@@ -38,7 +37,7 @@ static func predict(lab: Node3D) -> Dictionary:
 		return {}
 	var request = lab.contact_request(action)
 	request.local_point = sample
-	request.confirmation_age = Execution.ideal_age(action)
+	request.confirmation_age = Table.row(action).ideal
 	request.remembered = false
 	request.ideal_charge_match = true
 	request.apply_set_spread = false

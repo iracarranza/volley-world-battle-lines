@@ -24,6 +24,7 @@ var hp_bar: ProgressBar
 var sta_bar: ProgressBar
 var hp_value: Label
 var sta_value: Label
+var timeline: Control
 var resources: VBoxContainer
 var xp_fraction := 0.0
 var portrait_revision := 0
@@ -93,6 +94,9 @@ func setup(owner_lab: Node3D) -> void:
 	hp_bar.value = 100
 	resources.add_child(hp_bar)
 	hp_value = _bar_label(hp_bar)
+	timeline = preload("res://scripts/action_timeline.gd").new()
+	timeline.lab = lab
+	add_child(timeline)
 	resized.connect(_layout)
 	_layout()
 	refresh_portrait()
@@ -149,6 +153,9 @@ func _layout() -> void:
 	xp_label.position = origin + Vector2(4, 211)
 	resources.position = Vector2(size.x * 0.5 - 220, size.y - 101)
 	resources.size = Vector2(440, 76)
+	if is_instance_valid(timeline):
+		timeline.position = resources.position - Vector2(0, 50)
+		timeline.size = Vector2(440, 43)
 	queue_redraw()
 
 func refresh_portrait() -> void:

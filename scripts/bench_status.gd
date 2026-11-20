@@ -1,4 +1,6 @@
 extends Node3D
+const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
+const LiveBall := preload("res://scripts/live_ball.gd")
 const Pose := preload("res://scripts/athlete_pose.gd")
 const DURATION := 5.0
 const RETURN_SECONDS := 1.0
@@ -73,36 +75,10 @@ func enter() -> void:
 	lab.player.collision_layer = 0
 	lab.player.collision_mask = 0
 	lab.player.velocity = Vector3.ZERO
-	lab.armed = false
-	lab.charging = false
-	lab.confirm_window = 0
-	lab.confirm_duration = 0
-	lab.committed_intent = {}
-	lab.contact_memory.fill(0.0)
-	lab.directional_input.clear()
-	lab.motion.jump_charge = -1
-	lab.motion.jumped = false
-	lab.motion.airborne_action = -1
-	lab.motion.generic_jump = false
-	lab.motion.approach_bound = false
-	lab.motion.approach_release_pending = false
-	lab.motion.quick_step_time = 0
-	lab.animation.roll_lock = 0
-	lab.animation.dive_recovery_time = -1
-	lab.animation.dive_launched = false
-	lab.animation.receive_pose_remaining = 0
-	lab.rescue_swing_remaining = 0
-	lab.hurtbox_linger = 0
-	lab.hurtbox_root.hide()
-	lab.preview.mesh = null
-	lab.landing_marker.hide()
-	lab.aim_marker.hide()
-	lab.reach_ring.hide()
-	lab.serve.clear()
-	lab.moc.clear()
+	PlayerLifecycle.cancel(lab)
 	if lab.pepper.active():
 		lab.pepper.stop()
-		lab.ball_active = false
+		LiveBall.release(lab)
 	lab.camera_rig.camera_anchor_ready = false
 	lab._message("BENCHED / Exhausted in live play / returning to Home Base")
 	refresh_ui()

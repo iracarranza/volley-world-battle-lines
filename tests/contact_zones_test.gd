@@ -60,8 +60,9 @@ func run() -> void:
 		lab._confirm_action()
 		# The strike sweeps through the envelope from behind to ahead; a ball is hittable when the sweep reaches it.
 		var struck_at := 0.5
+		# The sweep is live from the end of the windup to SPIKE_END (0.2 s of slices at 0.005 s steps).
 		for step in range(41):
-			var age := 0.4 + step * 0.005
+			var age: float = lab.Execution.SPIKE_WINDUP + step * 0.005
 			if lab.Geometry.spike_active(sector, point, age):
 				struck_at = age
 				break

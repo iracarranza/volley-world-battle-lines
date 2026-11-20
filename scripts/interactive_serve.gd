@@ -1,6 +1,10 @@
 extends Node3D
 
 enum State { IDLE, TOSS, SWING, FLIGHT, CHANNEL, TOSS_CHARGE }
+const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
+const LiveBall := preload("res://scripts/live_ball.gd")
+const ContactCommit := preload("res://scripts/contact_commit.gd")
+const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const HOLD_THRESHOLD := 0.18
 const CHANNEL_SECONDS := 1.0
 var input_held := false
@@ -132,7 +136,7 @@ func release() -> void:
 	input_held = false
 	if state == State.CHANNEL:
 		clear()
-		lab.ball_active = false
+		LiveBall.release(lab)
 		lab._message("Serve channel cancelled / hold E to complete, or tap E to toss")
 
 func channeling() -> bool:
@@ -203,11 +207,10 @@ func _begin_toss(up_speed: float) -> void:
 	toss_time = 0
 	evidence = {}
 	main_court = absf(lab.player.position.x-lab.court_center.x) <= lab.court_half_width+1.5 and absf(lab.player.position.z) > 0.35 and absf(lab.player.position.z) <= lab.court_half_depth+6
-	lab.armed = false
+	PlayerLifecycle.disarm(lab)
 	lab.auto_preparation.clear()
 	lab.charging = false
-	lab.contacts = 0
-	lab.side_contacts.fill(0)
+	RallyLedger.clear_all(lab)
 	lab.training_bots.active_action = -1
 	lab.training_bots.incoming_action = -1
 	lab.training_bots.last_was_block = false
@@ -265,7 +268,7 @@ func contacts_allowed() -> bool:
 func tick(dt: float, previous_ball: Vector3) -> void:
 	if tossing() and (lab.athlete.exhausted or lab.is_benched()):
 		clear()
-		lab.ball_active = false
+		LiveBall.release(lab)
 		lab._message("Serve cancelled / Exhausted or Benched")
 		return
 	follow_time = maxf(0, follow_time - dt*lab.athlete.transition_rate())
@@ -399,12 +402,16 @@ func _finish_strike(incoming: Vector3, sweet: bool) -> void:
 	follow_time = 0.22
 	lab.outgoing = true
 	lab.attempts += 1
-	lab.athlete.spend_resolved(float(lab.athlete.stamina_quote("serve").total))
-	if main_court:
-		if not lab.training_bots.is_enabled(0,-lab.player.position.z):
-			lab.training_bots.ensure_receiver(lab.player.position.z < 0)
-		lab._resize_court()
-		lab.training_bots.replan()
-	lab._emit_external_impact("player_serve", 4, incoming, {"hit": true, "sweet": sweet})
+	# Serve is a partial commit (SADR-16): spend and publish only; it builds its own velocity and shot before this point.
+	ContactCommit.run(lab, ContactCommit.SERVE, {
+		"spend": func() -> void: lab.athlete.spend_resolved(float(lab.athlete.stamina_quote("serve").total)),
+		"prepare": func() -> void:
+			if main_court:
+				if not lab.training_bots.is_enabled(0,-lab.player.position.z):
+					lab.training_bots.ensure_receiver(lab.player.position.z < 0)
+				lab._resize_court()
+				lab.training_bots.replan(),
+		"publish": func() -> void: lab._emit_external_impact("player_serve", 4, incoming, {"hit": true, "sweet": sweet}),
+	})
 	if evidence.get("mode", "") == "tap":
 		lab._message("SERVE / physical hand contact / %.0f° launch / aim at a Pepper opponent" % evidence.angle_degrees)

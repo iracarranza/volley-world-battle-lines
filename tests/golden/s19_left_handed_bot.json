@@ -1,0 +1,17 @@
+{
+	"facts": {
+		"Left": {
+			"bot_attack_x": 0.2818049788,
+			"bot_slot": 2,
+			"pepper_attack_x": 0.2818049788,
+			"player_attack_x": -0.2827509046
+		},
+		"Right": {
+			"bot_attack_x": 0.2818049788,
+			"bot_slot": 2,
+			"pepper_attack_x": 0.2818049788,
+			"player_attack_x": 0.2827509046
+		}
+	},
+	"trace": []
+}

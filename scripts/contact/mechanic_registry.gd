@@ -41,6 +41,13 @@ const EXTENSIONS := {
  "di_cost_reduction":["DI Cost Reduction","%","consequences",[],"Reduces configured DI costs."],
 }
 
+## MS-14 reader sites for keys no script names by a quoted literal (the contract test requires every other key to appear quoted in a reader).
+const READER_SITES := {
+	"di_stamina_cost": "legacy compatibility key: ignored (DI spends HP only), no reader by design",
+	"explosiveness_band": "athlete.gd:75 (name plus _band)", "jump_power_band": "athlete.gd:75 (name plus _band)", "swing_power_band": "athlete.gd:75 (name plus _band)",
+	"explosiveness_band_cap": "athlete.gd:76 (name plus _band_cap)", "jump_power_band_cap": "athlete.gd:76 (name plus _band_cap)", "swing_power_band_cap": "athlete.gd:76 (name plus _band_cap)",
+}
+
 static func registered(key: String) -> bool:
 	return EFFECTS.has(key) or EXTENSIONS.has(key) or key in preload("res://scripts/stat_tuning.gd").PARENTS or key in ["power","speed","accuracy","endurance"] or key in ["explosiveness_band","jump_power_band","swing_power_band","explosiveness_band_cap","jump_power_band_cap","swing_power_band_cap"]
 

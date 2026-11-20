@@ -1,6 +1,9 @@
 extends Node3D
 
 # Provisional, world-space drills using the same movement and action contacts.
+const PlayerLifecycle := preload("res://scripts/player_lifecycle.gd")
+const LiveBall := preload("res://scripts/live_ball.gd")
+const RallyLedger := preload("res://scripts/rally_ledger.gd")
 const Footprints := preload("res://scripts/drill_layout.gd")
 const BOX_START := Vector3(-36, 0, 13)
 # The ball hangs half a metre from the Net on the home side, in line with the approach; the runway ends beneath it.
@@ -72,6 +75,7 @@ var box_root: Node3D
 var spike_root: Node3D
 const Distributor := preload("res://scripts/setup_distributor.gd")
 const SetupGrants := preload("res://scripts/setup_grants.gd")
+const GrowthSave := preload("res://scripts/growth_save.gd")
 var distributor := Distributor.new() # the Spike Trainer as a Setup (map ball economy)
 var setup_label: Label3D
 var rack: Node3D
@@ -268,18 +272,18 @@ func interact() -> void:
 	elif in_spike_zone():
 		if running():
 			spike_state = State.IDLE
-			lab.ball_active = false
+			LiveBall.release(lab)
 			detail = "Spike Trainer stopped / I to retry"
 		else:
 			start_spike()
 	lab._message(detail)
 
 func clear_preparation() -> void:
-	lab.ball_active = false
+	LiveBall.release(lab)
 	lab.training_bots.active_action = -1
-	lab.armed = false
+	PlayerLifecycle.disarm(lab)
 	lab.charging = false
-	lab.confirm_window = 0
+	PlayerLifecycle.set_window(lab, 0)
 	lab.motion.jump_charge = -1
 	lab.motion.approach_bound = false
 	lab.motion.approach_release_pending = false
@@ -318,18 +322,14 @@ func load_spike(preserve_preparation: bool = false) -> void:
 	timer = 20.0
 	lab.selected = 2
 	if not preserve_preparation:
-		lab.armed = false
+		PlayerLifecycle.disarm(lab)
 		lab.charging = false
-		lab.confirm_window = 0
-	lab.contacts = 0
-	lab.side_contacts.assign([0, 0])
+		PlayerLifecycle.set_window(lab, 0)
+	RallyLedger.clear_all(lab)
 	lab.contact_memory.assign([0.0, 0.0, 0.0, 0.0])
-	lab.ball.position = spike_to_world(Vector3(-16 + [0.0, -0.6, 0.6][spike_progress % 3], lab.athlete.reach() + SPIKE_HEIGHT_OFFSET, SPIKE_BALL_Z))
+	LiveBall.launch(lab, spike_to_world(Vector3(-16 + [0.0, -0.6, 0.6][spike_progress % 3], lab.athlete.reach() + SPIKE_HEIGHT_OFFSET, SPIKE_BALL_Z)), Vector3.ZERO, {})
 	move_bonus_circle()
-	lab.ball_velocity = Vector3.ZERO
-	lab.ball_shot = {}
 	lab.shadow.position = Vector3(lab.ball.position.x, 0.03, lab.ball.position.z)
-	lab.ball_active = true
 	lab.outgoing = false
 	lab.trail_points.clear()
 	detail = "SPIKE %d / 3 / %d points / jump, confirm Attack, land in the gold circle (+1 more in the small one)" % [spike_progress + 1, spike_points]
@@ -412,8 +412,8 @@ func on_ball_down() -> void:
 	spike_progress += 1
 	var in_bonus := offset.distance_to(spike_bonus_center - Vector2(SPIKE_GOAL.x, SPIKE_GOAL.z)) <= BONUS_RADIUS
 	spike_points += 2 if in_bonus else 1
-	lab.ball_active = false
-	lab.athlete.hp = minf(100, lab.athlete.hp + 5)
+	LiveBall.release(lab)
+	lab.athlete.heal(5)
 	if spike_progress == SPIKES_REQUIRED:
 		spike_state = State.COMPLETE
 		reward(30, 20, 10)
@@ -461,7 +461,7 @@ func _park() -> void:
 	parked_mesh.global_position = lab.ball.global_position
 	parked = true
 	spike_state = State.IDLE
-	lab.ball_active = false
+	LiveBall.release(lab)
 	detail = "SPIKE TRAINER / ball parked at the spot / return to hit it"
 
 func _resume() -> void:
@@ -469,7 +469,7 @@ func _resume() -> void:
 	if is_instance_valid(parked_mesh):
 		parked_mesh.visible = false
 	load_spike(true)
-	lab.ball.position = parked_mesh.global_position if is_instance_valid(parked_mesh) else lab.ball.position
+	LiveBall.place(lab, parked_mesh.global_position if is_instance_valid(parked_mesh) else lab.ball.position)
 
 func _interact_setup() -> void:
 	if distributor.pile > 0 and distributor.pile_owner == "player" and not lab.inventory.held:
@@ -508,7 +508,7 @@ func _launch_setup_ball() -> void:
 func _send_next_ball() -> void:
 	if not distributor.send():
 		spike_state = State.IDLE
-		lab.ball_active = false
+		LiveBall.release(lab)
 		detail = "%s / out of balls / reactivates in %ds" % [setup_name(), ceili(distributor.cooldown)]
 		lab._message(detail)
 		return
@@ -516,16 +516,17 @@ func _send_next_ball() -> void:
 
 # A sent ball has been used, counted as a rep or not. Whoever lands the final rep takes the reward (only the player is modelled so far).
 func _spike_used(success: bool, actor: String, reason: String) -> void:
-	lab.ball_active = false
+	LiveBall.release(lab)
 	spike_state = State.IDLE
 	var result: String = distributor.record(success, actor)
 	if success:
-		lab.athlete.hp = minf(100, lab.athlete.hp + 5)
+		lab.athlete.heal(5)
 	match result:
 		"complete":
 			reward(30, 20, 10)
 			var grant: Dictionary = SetupGrants.grant(lab.athlete, setup_name())
 			var gained: String = " / +%d %s access" % [int(grant.amount), String(grant.key).replace("_", " ")] if not grant.is_empty() else ""
+			if not grant.is_empty(): gained += GrowthSave.at_completion(lab)
 			detail = "%s COMPLETE / %d reward balls to claim (I) / +30 lab XP%s / reactivates in %ds" % [setup_name(), distributor.pile, gained, ceili(distributor.cooldown)]
 			lab._message(detail)
 		"failed":
@@ -552,14 +553,14 @@ func _economy_ball_down() -> void:
 
 func fail_spike(reason: String) -> void:
 	spike_state = State.FAILED
-	lab.ball_active = false
+	LiveBall.release(lab)
 	detail = reason
 	lab._message(reason)
 
 func reward(xp: int, hp: float, stamina: float) -> void:
 	earned_xp += xp
-	lab.athlete.hp = minf(100, lab.athlete.hp + hp)
-	lab.athlete.stamina = minf(lab.athlete.max_stamina(), lab.athlete.stamina + stamina)
+	lab.athlete.heal(hp)
+	lab.athlete.restore(stamina)
 
 func reset() -> void:
 	box_state = State.IDLE

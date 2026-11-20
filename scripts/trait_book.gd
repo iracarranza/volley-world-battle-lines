@@ -38,6 +38,7 @@ extends RefCounted
 # Reach cost: ratings are thresholds, not purchases, so owning a node needs the highest requirement in each Attribute along its path
 # from the root, and the cost is those maxima above the base rating, summed, in AP.
 const Store := preload("res://scripts/athlete_store.gd")
+const MechanicRegistry := preload("res://scripts/contact/mechanic_registry.gd")
 const PATH := "res://data/trait_tree.json"
 const KINDS := ["trait", "innate", "planned"]
 const SHORT := {"power": "POW", "speed": "SPD", "accuracy": "ACC", "endurance": "END"}
@@ -100,7 +101,8 @@ static func _numbers(value) -> Dictionary:
 
 # What the gameplay runtime accepts (docs/gameplay-runtime-contract.md). Anything else in a rule is flagged, not silently dropped.
 const GAMEPLAY_TRIGGERS := ["receive", "set", "attack", "block", "jump", "attack_receive_flow_loss", "inflicted_recovery", "low_stamina", "ally_attack_charge"]
-const GAMEPLAY_KEYS := ["explosiveness", "jump_power", "swing_power", "acceleration", "reaction_speed", "transition_speed", "ball_control", "timing", "stability", "resistance", "work_rate", "core_strength", "power", "speed", "accuracy", "endurance", "explosiveness_band", "jump_power_band", "swing_power_band", "explosiveness_band_cap", "jump_power_band_cap", "swing_power_band_cap", "spike_velocity", "serve_velocity", "receive_charge_bonus", "back_attack_velocity", "platform_quality", "broad_range", "vertical_reach", "court_vision", "receive_control", "receive_absorption", "receive_redirection", "charge_tolerance", "recovery", "stamina_recovery", "exertion_efficiency", "stride_speed", "flow_state", "placement", "ally_attack_charge_tolerance", "mismatch_knockback", "mismatch_stamina_drain", "transition_speed_penalty", "inflicted_recovery_duration", "charge_aim_variance", "di_stamina_cost", "di_hp_cost", "di_cost_reduction", "flow_attack_velocity", "revenge_spike_velocity", "revenge_jump_power", "second_wind", "jump_stamina_threshold"]
+## MS-14: one key list. The registry owns the legal keys; this alias keeps the old name for readers and tests.
+const GAMEPLAY_KEYS := MechanicRegistry.EFFECT_KEYS
 
 static func _rules(value) -> Array:
 	var out := []

@@ -48,7 +48,7 @@ func tick(bots: Node3D,dt: float) -> void:
 		if not bots.settings[slot].enabled:
 			release(slot)
 			continue
-		var step: float = dt*bots.lab.moc.bot_scale("training_bot_%d"%slot)
+		var step: float = dt*bots.lab.moc.clock_record().bot("training_bot_%d"%slot)
 		var actor: Node3D = bots.actors[slot]
 		var home: Vector3 = bots.settings[slot].fixed_position
 		var speed := maxf(3.0,float(bots.settings[slot].move_speed))

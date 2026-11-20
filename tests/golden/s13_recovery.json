@@ -1,0 +1,1989 @@
+{
+	"facts": {
+		"blown_away": {
+			"floor_input_locked": true,
+			"floor_recovery_lock": 1.107,
+			"floor_recovery_name": "blown_away",
+			"floor_recovery_time": 0.0,
+			"floor_recovery_total": 1.35,
+			"outcome": "blown_away",
+			"player_velocity": [
+				0.0,
+				0.0,
+				0.7588075995
+			],
+			"recovery": "blown_away",
+			"recovery_penalty_seconds": 1.35,
+			"recovery_seconds": 1.35,
+			"roll_lock": 0.0
+		},
+		"bot_undercharged": {
+			"floor_input_locked": false,
+			"floor_recovery_lock": 0.0,
+			"floor_recovery_name": "",
+			"floor_recovery_time": -1.0,
+			"floor_recovery_total": 0.0,
+			"outcome": "",
+			"player_velocity": [
+				0.0,
+				0.0,
+				0.0
+			],
+			"recovery": "",
+			"recovery_penalty_seconds": 0.0,
+			"recovery_seconds": 0.0,
+			"roll_lock": 0.0
+		},
+		"clean": {
+			"floor_input_locked": false,
+			"floor_recovery_lock": 0.0,
+			"floor_recovery_name": "",
+			"floor_recovery_time": -1.0,
+			"floor_recovery_total": 0.0,
+			"outcome": "",
+			"player_velocity": [
+				0.0,
+				0.0,
+				0.0
+			],
+			"recovery": "",
+			"recovery_penalty_seconds": 0.0,
+			"recovery_seconds": 0.0,
+			"roll_lock": 0.0
+		},
+		"shrug_event": {
+			"floor_recovery_name": "shrug",
+			"lock": 0.25,
+			"locked": true,
+			"total": 0.7
+		},
+		"shrug_input_back_in_lab": {
+			"floor_input_locked": false,
+			"floor_recovery_lock": 0.0,
+			"floor_recovery_name": "",
+			"floor_recovery_time": -1.0,
+			"floor_recovery_total": 0.0,
+			"outcome": "",
+			"player_velocity": [
+				0.0,
+				0.0,
+				0.0
+			],
+			"recovery": "",
+			"recovery_penalty_seconds": 0.0,
+			"recovery_seconds": 0.0,
+			"roll_lock": 0.0
+		}
+	},
+	"trace": [
+		{
+			"extra": {},
+			"label": "blown_away",
+			"state": {
+				"ball": {
+					"active": true,
+					"position": [
+						0.0,
+						0.8323419094,
+						4.3109869957
+					],
+					"shot_actor": "player",
+					"shot_charge": 0.0971149881,
+					"shot_kind": "receive",
+					"velocity": [
+						0.3362436295,
+						7.8362131119,
+						0.0087884665
+					]
+				},
+				"flow": {
+					"epochs": {
+						"pepper_0": 0,
+						"pepper_1": 0,
+						"pepper_2": 0,
+						"player": 0,
+						"training_bot_0": 0,
+						"training_bot_1": 0,
+						"training_bot_10": 0,
+						"training_bot_11": 0,
+						"training_bot_12": 0,
+						"training_bot_13": 0,
+						"training_bot_14": 0,
+						"training_bot_15": 0,
+						"training_bot_16": 0,
+						"training_bot_17": 0,
+						"training_bot_18": 0,
+						"training_bot_19": 0,
+						"training_bot_2": 0,
+						"training_bot_20": 0,
+						"training_bot_21": 0,
+						"training_bot_22": 0,
+						"training_bot_23": 0,
+						"training_bot_24": 0,
+						"training_bot_25": 0,
+						"training_bot_26": 0,
+						"training_bot_27": 0,
+						"training_bot_3": 0,
+						"training_bot_4": 0,
+						"training_bot_5": 0,
+						"training_bot_6": 0,
+						"training_bot_7": 0,
+						"training_bot_8": 0,
+						"training_bot_9": 0
+					},
+					"last_changes": {
+						"player": {
+							"after": 0.0,
+							"before": 0.0,
+							"delta": 0.0,
+							"event": {
+								"action": 0,
+								"actor": "player",
+								"block_response": {},
+								"charge": 0.4,
+								"charge_match": {
+									"cushioning": 0.0,
+									"gap": 0.2,
+									"incoming_charge": 0.6,
+									"input_charge": 0.4,
+									"matched": false,
+									"maximum": 0.75,
+									"minimum": 0.6,
+									"raw_severity": 0.6064139942,
+									"receive_charge": 0.4,
+									"required": true,
+									"severity": 0.6064139942,
+									"status": "undercharged",
+									"tolerance": 0.0
+								},
+								"confirmation_age": 0.22,
+								"directional_influence": {
+									"authority": 0.5451895044,
+									"axes": [
+										0.0,
+										0.0
+									],
+									"pitch_degrees": 0.0,
+									"range_factor": 1.0,
+									"velocity": [
+										0.0,
+										9.6214542389,
+										-1.4731504917
+									],
+									"world_input": [
+										0.0,
+										0.0,
+										0.0
+									],
+									"yaw_degrees": 0.0
+								},
+								"gameplay": {
+									"effects": {}
+								},
+								"id": "player:1",
+								"incoming_shot": {
+									"actor": "test",
+									"charge": 0.6,
+									"kind": "attack"
+								},
+								"incoming_velocity": [
+									0.0,
+									-3.0,
+									20.0
+								],
+								"intent": {
+									"action": 0,
+									"actor": "player",
+									"charge": 0.4,
+									"charge_mode": "manual",
+									"direction": [
+										0.0,
+										0.0,
+										-1.0
+									],
+									"directional_influence": {
+										"authority": 1.0,
+										"axes": [
+											0.0,
+											0.0
+										],
+										"pitch_degrees": 0.0,
+										"range_factor": 1.0,
+										"velocity": [
+											0.0,
+											9.6451950073,
+											-1.4617930651
+										],
+										"world_input": [
+											0.0,
+											0.0,
+											0.0
+										],
+										"yaw_degrees": 0.0
+									},
+									"option_id": "neutral",
+									"origin": [
+										0.0,
+										0.948376298,
+										5.0
+									],
+									"preview_velocity": [
+										0.0,
+										9.6451950073,
+										-1.4617930651
+									],
+									"simulation_time": 0.0,
+									"target": [
+										0.0,
+										0.0,
+										-4.0
+									],
+									"team": 0
+								},
+								"mechanics": [
+									{
+										"evidence": {
+											"hit": true,
+											"intersection": [
+												0.0,
+												0.802341938,
+												-0.6890130043
+											],
+											"platform_quality": 0.0,
+											"quality": 1.0,
+											"zone": "CLEAN"
+										},
+										"id": "geometry",
+										"label": "Contact Geometry"
+									},
+									{
+										"evidence": {
+											"confirmation_age": 0.22,
+											"early": 0.0,
+											"late": 0.0,
+											"sweet_eligible": true,
+											"timing": 65.0
+										},
+										"id": "timing",
+										"label": "Contact Timing"
+									},
+									{
+										"evidence": {
+											"action_charge": 0.4,
+											"auto_charge": {},
+											"available_output": 1.0,
+											"cushioning": 0.0,
+											"effective_receive_charge": 0.4,
+											"runtime_effects": {}
+										},
+										"id": "potency",
+										"label": "Action Potency"
+									},
+									{
+										"evidence": {
+											"block_response": {},
+											"charge_match": {
+												"cushioning": 0.0,
+												"gap": 0.2,
+												"incoming_charge": 0.6,
+												"input_charge": 0.4,
+												"matched": false,
+												"maximum": 0.75,
+												"minimum": 0.6,
+												"raw_severity": 0.6064139942,
+												"receive_charge": 0.4,
+												"required": true,
+												"severity": 0.6064139942,
+												"status": "undercharged",
+												"tolerance": 0.0
+											},
+											"incoming_velocity": [
+												0.0,
+												-3.0,
+												20.0
+											],
+											"model": "receive_response",
+											"profile": "Receive Conditioning",
+											"set_isolation": {}
+										},
+										"id": "handling",
+										"label": "Incoming Handling"
+									},
+									{
+										"evidence": {
+											"absorption": 0.0,
+											"control": 0.0,
+											"retention": 0.45,
+											"uncontrolled_fraction": 0.6064139942
+										},
+										"id": "pressure_control",
+										"label": "Pressure Control"
+									},
+									{
+										"evidence": {
+											"directional_input": [
+												0.0,
+												0.0,
+												0.0
+											],
+											"facing": [
+												0.0,
+												0.0,
+												-1.0
+											],
+											"redirection": 0.0,
+											"scatter_radians": 0.0776209913,
+											"seed": 1
+										},
+										"id": "redirection",
+										"label": "Redirection"
+									},
+									{
+										"evidence": {
+											"delivery_quality": 0.2145789594,
+											"intended_velocity": [
+												0.0,
+												9.6214542389,
+												-1.4731503725
+											],
+											"outgoing_velocity": [
+												0.3362436295,
+												7.8362131119,
+												0.0087884665
+											]
+										},
+										"id": "intent_transfer",
+										"label": "Intent Transfer"
+									},
+									{
+										"evidence": {
+											"body_guard": false,
+											"outgoing_shot": {
+												"action_charge": 0.4,
+												"actor": "player",
+												"charge": 0.0971149881,
+												"delivered_contribution": 0.0068665267,
+												"delivery_quality": 0.2145789594,
+												"incoming_charge": 0.6,
+												"kind": "receive",
+												"reference_speed": 7.8434286118,
+												"response_seed": 1,
+												"retained_pressure": 0.0902484614,
+												"source_action": "attack"
+											},
+											"quality": 0.5451895044,
+											"recovery": "blown_away",
+											"separation_offset": [
+												0.0,
+												0.0,
+												0.0
+											],
+											"sweet": false
+										},
+										"id": "consequences",
+										"label": "Contact Consequences"
+									}
+								],
+								"outgoing_shot": {
+									"action_charge": 0.4,
+									"actor": "player",
+									"charge": 0.0971149881,
+									"delivered_contribution": 0.0068665267,
+									"delivery_quality": 0.2145789594,
+									"incoming_charge": 0.6,
+									"kind": "receive",
+									"reference_speed": 7.8434286118,
+									"response_seed": 1,
+									"retained_pressure": 0.0902484614,
+									"source_action": "attack"
+								},
+								"outgoing_velocity": [
+									0.3362436295,
+									7.8362131119,
+									0.0087884665
+								],
+								"physical_hit": true,
+								"platform_band": "PLANTED",
+								"platform_coord": [
+									0.0,
+									0.0,
+									-0.0000001319
+								],
+								"point": [
+									0.0,
+									0.8323419094,
+									4.3109869957
+								],
+								"posture": "planted",
+								"quality": 0.5451895044,
+								"receive_outcome": {
+									"bottom_third": false,
+									"central": true,
+									"charge_severity": 0.6064139942,
+									"correction": [
+										0.0,
+										-1.0
+									],
+									"di_alignment": 0.0,
+									"di_axes": [
+										0.0,
+										0.0
+									],
+									"height_fraction": 0.5,
+									"outcome": "blown_away",
+									"penalty_factor": 1.0,
+									"platform_coord": [
+										0.0,
+										0.0,
+										-0.0000001319
+									],
+									"posture": "planted",
+									"raw_charge_severity": 0.6064139942,
+									"recovery_penalty_seconds": 1.35,
+									"recovery_seconds": 1.35
+								},
+								"receive_response": {
+									"body_guard": false,
+									"delivery_quality": 0.2145789594,
+									"early": 0.0,
+									"effective_normal": [
+										0.0560358725,
+										0.6912226677,
+										-0.7204660177
+									],
+									"height_fraction": 0.5,
+									"impact": 0.842656215,
+									"late": 0.0,
+									"mismatch_severity": 0.6064139942,
+									"passive_velocity": [
+										0.5544786453,
+										6.6775226593,
+										0.9706238508
+									],
+									"reach": 0.3811905602,
+									"receive_absorption": 0.0,
+									"receive_control": 0.0,
+									"receive_redirection": 0.0,
+									"restitution": 0.23,
+									"retention": 0.45,
+									"scatter_radians": 0.0776209913,
+									"seed": 1,
+									"separation_offset": [
+										0.0,
+										0.0,
+										0.0
+									],
+									"side": 0.0,
+									"uncontrolled_fraction": 0.6064139942,
+									"velocity": [
+										0.3362436295,
+										7.8362131119,
+										0.0087884665
+									]
+								},
+								"recovery": "blown_away",
+								"recovery_penalty_seconds": 1.35,
+								"recovery_seconds": 1.35,
+								"rescue": false,
+								"simulation_time": 0.0,
+								"steering": {
+									"facing": [
+										0.0,
+										0.0,
+										-1.0
+									],
+									"lateral_offset": 0
+								},
+								"sweet": false,
+								"team": 0,
+								"zone": "UNDERCHARGED SHANK"
+							}
+						}
+					},
+					"pending_attacks": [],
+					"values": {
+						"pepper_0": 0.0,
+						"pepper_1": 0.0,
+						"pepper_2": 0.0,
+						"player": 0.0,
+						"training_bot_0": 0.0,
+						"training_bot_1": 0.0,
+						"training_bot_10": 0.0,
+						"training_bot_11": 0.0,
+						"training_bot_12": 0.0,
+						"training_bot_13": 0.0,
+						"training_bot_14": 0.0,
+						"training_bot_15": 0.0,
+						"training_bot_16": 0.0,
+						"training_bot_17": 0.0,
+						"training_bot_18": 0.0,
+						"training_bot_19": 0.0,
+						"training_bot_2": 0.0,
+						"training_bot_20": 0.0,
+						"training_bot_21": 0.0,
+						"training_bot_22": 0.0,
+						"training_bot_23": 0.0,
+						"training_bot_24": 0.0,
+						"training_bot_25": 0.0,
+						"training_bot_26": 0.0,
+						"training_bot_27": 0.0,
+						"training_bot_3": 0.0,
+						"training_bot_4": 0.0,
+						"training_bot_5": 0.0,
+						"training_bot_6": 0.0,
+						"training_bot_7": 0.0,
+						"training_bot_8": 0.0,
+						"training_bot_9": 0.0
+					}
+				},
+				"locks": {
+					"armed": false,
+					"endlag": 0.16,
+					"roll_lock": 0.0
+				},
+				"moc": {
+					"active": false,
+					"ball_scale": 1.0,
+					"events": 1,
+					"player_scale": 1.0
+				},
+				"player": {
+					"epoch": 0,
+					"exhausted": false,
+					"flow_field": 0.0,
+					"hp": 100.0,
+					"stamina": 84.4623651505,
+					"winded": false
+				},
+				"rally": {
+					"bot_contacts": 0,
+					"bot_last_action": -1,
+					"bot_last_was_block": false,
+					"contacts": 1,
+					"last_touch_side": 0,
+					"pepper_exchanges": 0,
+					"pepper_player_contacts": 0,
+					"side_contacts": [
+						1,
+						0
+					]
+				}
+			}
+		},
+		{
+			"extra": {},
+			"label": "shrug_input_back_in_lab",
+			"state": {
+				"ball": {
+					"active": true,
+					"position": [
+						0.0,
+						0.8323419094,
+						4.3109869957
+					],
+					"shot_actor": "player",
+					"shot_charge": 0.1739123971,
+					"shot_kind": "receive",
+					"velocity": [
+						0.0028441064,
+						9.4653196335,
+						-1.3428175449
+					]
+				},
+				"flow": {
+					"epochs": {
+						"pepper_0": 0,
+						"pepper_1": 0,
+						"pepper_2": 0,
+						"player": 0,
+						"training_bot_0": 0,
+						"training_bot_1": 0,
+						"training_bot_10": 0,
+						"training_bot_11": 0,
+						"training_bot_12": 0,
+						"training_bot_13": 0,
+						"training_bot_14": 0,
+						"training_bot_15": 0,
+						"training_bot_16": 0,
+						"training_bot_17": 0,
+						"training_bot_18": 0,
+						"training_bot_19": 0,
+						"training_bot_2": 0,
+						"training_bot_20": 0,
+						"training_bot_21": 0,
+						"training_bot_22": 0,
+						"training_bot_23": 0,
+						"training_bot_24": 0,
+						"training_bot_25": 0,
+						"training_bot_26": 0,
+						"training_bot_27": 0,
+						"training_bot_3": 0,
+						"training_bot_4": 0,
+						"training_bot_5": 0,
+						"training_bot_6": 0,
+						"training_bot_7": 0,
+						"training_bot_8": 0,
+						"training_bot_9": 0
+					},
+					"last_changes": {
+						"player": {
+							"after": 20.3722315248,
+							"before": 0.0,
+							"delta": 20.3722315248,
+							"event": {
+								"action": 0,
+								"actor": "player",
+								"block_response": {},
+								"charge": 0.55,
+								"charge_match": {
+									"cushioning": 0.0,
+									"gap": 0.05,
+									"incoming_charge": 0.6,
+									"input_charge": 0.55,
+									"matched": false,
+									"maximum": 0.75,
+									"minimum": 0.6,
+									"raw_severity": 0.055393586,
+									"receive_charge": 0.55,
+									"required": true,
+									"severity": 0.055393586,
+									"status": "undercharged",
+									"tolerance": 0.0
+								},
+								"confirmation_age": 0.22,
+								"directional_influence": {
+									"authority": 0.9584548105,
+									"axes": [
+										0.0,
+										0.0
+									],
+									"pitch_degrees": 0.0,
+									"range_factor": 1.0,
+									"velocity": [
+										0.0,
+										9.6214542389,
+										-1.4731504917
+									],
+									"world_input": [
+										0.0,
+										0.0,
+										0.0
+									],
+									"yaw_degrees": 0.0
+								},
+								"gameplay": {
+									"effects": {}
+								},
+								"id": "player:1",
+								"incoming_shot": {
+									"actor": "test",
+									"charge": 0.6,
+									"kind": "attack"
+								},
+								"incoming_velocity": [
+									0.0,
+									-3.0,
+									20.0
+								],
+								"intent": {
+									"action": 0,
+									"actor": "player",
+									"charge": 0.55,
+									"charge_mode": "manual",
+									"direction": [
+										0.0,
+										0.0,
+										-1.0
+									],
+									"directional_influence": {
+										"authority": 1.0,
+										"axes": [
+											0.0,
+											-1.0
+										],
+										"pitch_degrees": 0.0,
+										"range_factor": 1.0,
+										"velocity": [
+											0.0,
+											14.9422721863,
+											-0.9662215114
+										],
+										"world_input": [
+											0.0,
+											0.0,
+											1.0
+										],
+										"yaw_degrees": 0.0
+									},
+									"option_id": "neutral",
+									"origin": [
+										0.0,
+										0.948376298,
+										5.0
+									],
+									"preview_velocity": [
+										0.0,
+										14.9422721863,
+										-0.9662215114
+									],
+									"simulation_time": 0.0,
+									"target": [
+										0.0,
+										0.0,
+										-4.0
+									],
+									"team": 0
+								},
+								"mechanics": [
+									{
+										"evidence": {
+											"hit": true,
+											"intersection": [
+												0.0,
+												0.802341938,
+												-0.6890130043
+											],
+											"platform_quality": 0.0,
+											"quality": 1.0,
+											"zone": "CLEAN"
+										},
+										"id": "geometry",
+										"label": "Contact Geometry"
+									},
+									{
+										"evidence": {
+											"confirmation_age": 0.22,
+											"early": 0.0,
+											"late": 0.0,
+											"sweet_eligible": true,
+											"timing": 65.0
+										},
+										"id": "timing",
+										"label": "Contact Timing"
+									},
+									{
+										"evidence": {
+											"action_charge": 0.55,
+											"auto_charge": {},
+											"available_output": 1.0,
+											"cushioning": 0.0,
+											"effective_receive_charge": 0.55,
+											"runtime_effects": {}
+										},
+										"id": "potency",
+										"label": "Action Potency"
+									},
+									{
+										"evidence": {
+											"block_response": {},
+											"charge_match": {
+												"cushioning": 0.0,
+												"gap": 0.05,
+												"incoming_charge": 0.6,
+												"input_charge": 0.55,
+												"matched": false,
+												"maximum": 0.75,
+												"minimum": 0.6,
+												"raw_severity": 0.055393586,
+												"receive_charge": 0.55,
+												"required": true,
+												"severity": 0.055393586,
+												"status": "undercharged",
+												"tolerance": 0.0
+											},
+											"incoming_velocity": [
+												0.0,
+												-3.0,
+												20.0
+											],
+											"model": "receive_response",
+											"profile": "Receive Conditioning",
+											"set_isolation": {}
+										},
+										"id": "handling",
+										"label": "Incoming Handling"
+									},
+									{
+										"evidence": {
+											"absorption": 0.0,
+											"control": 0.0,
+											"retention": 0.45,
+											"uncontrolled_fraction": 0.055393586
+										},
+										"id": "pressure_control",
+										"label": "Pressure Control"
+									},
+									{
+										"evidence": {
+											"directional_input": [
+												0.0,
+												0.0,
+												0.0
+											],
+											"facing": [
+												0.0,
+												0.0,
+												-1.0
+											],
+											"redirection": 0.0,
+											"scatter_radians": 0.007090379,
+											"seed": 1
+										},
+										"id": "redirection",
+										"label": "Redirection"
+									},
+									{
+										"evidence": {
+											"delivery_quality": 0.9053625615,
+											"intended_velocity": [
+												0.0,
+												9.6214542389,
+												-1.4731503725
+											],
+											"outgoing_velocity": [
+												0.0028441064,
+												9.4653196335,
+												-1.3428175449
+											]
+										},
+										"id": "intent_transfer",
+										"label": "Intent Transfer"
+									},
+									{
+										"evidence": {
+											"body_guard": false,
+											"outgoing_shot": {
+												"action_charge": 0.55,
+												"actor": "player",
+												"charge": 0.1739123971,
+												"delivered_contribution": 0.0398359527,
+												"delivery_quality": 0.9053625615,
+												"incoming_charge": 0.6,
+												"kind": "receive",
+												"reference_speed": 9.5600967407,
+												"response_seed": 1,
+												"retained_pressure": 0.1340764444,
+												"source_action": "attack"
+											},
+											"quality": 0.9584548105,
+											"recovery": "",
+											"separation_offset": [
+												0.0,
+												0.0,
+												0.0
+											],
+											"sweet": false
+										},
+										"id": "consequences",
+										"label": "Contact Consequences"
+									}
+								],
+								"outgoing_shot": {
+									"action_charge": 0.55,
+									"actor": "player",
+									"charge": 0.1739123971,
+									"delivered_contribution": 0.0398359527,
+									"delivery_quality": 0.9053625615,
+									"incoming_charge": 0.6,
+									"kind": "receive",
+									"reference_speed": 9.5600967407,
+									"response_seed": 1,
+									"retained_pressure": 0.1340764444,
+									"source_action": "attack"
+								},
+								"outgoing_velocity": [
+									0.0028441064,
+									9.4653196335,
+									-1.3428175449
+								],
+								"physical_hit": true,
+								"platform_band": "PLANTED",
+								"platform_coord": [
+									0.0,
+									0.0,
+									-0.0000001319
+								],
+								"point": [
+									0.0,
+									0.8323419094,
+									4.3109869957
+								],
+								"posture": "planted",
+								"quality": 0.9584548105,
+								"receive_outcome": {
+									"bottom_third": false,
+									"central": true,
+									"charge_severity": 0.055393586,
+									"correction": [
+										0.0,
+										-1.0
+									],
+									"di_alignment": 0.0,
+									"di_axes": [
+										0.0,
+										0.0
+									],
+									"height_fraction": 0.5,
+									"outcome": "",
+									"penalty_factor": 1.0,
+									"platform_coord": [
+										0.0,
+										0.0,
+										-0.0000001319
+									],
+									"posture": "planted",
+									"raw_charge_severity": 0.055393586,
+									"recovery_penalty_seconds": 0.0,
+									"recovery_seconds": 0.0
+								},
+								"receive_response": {
+									"body_guard": false,
+									"delivery_quality": 0.9053625615,
+									"early": 0.0,
+									"effective_normal": [
+										0.0,
+										0.9884806275,
+										-0.1513472646
+									],
+									"height_fraction": 0.5,
+									"impact": 0.842656215,
+									"late": 0.0,
+									"mismatch_severity": 0.055393586,
+									"passive_velocity": [
+										0.0513436049,
+										6.8028063774,
+										0.8797026873
+									],
+									"reach": 0.3811905602,
+									"receive_absorption": 0.0,
+									"receive_control": 0.0,
+									"receive_redirection": 0.0,
+									"restitution": 0.23,
+									"retention": 0.45,
+									"scatter_radians": 0.007090379,
+									"seed": 1,
+									"separation_offset": [
+										0.0,
+										0.0,
+										0.0
+									],
+									"side": 0.0,
+									"uncontrolled_fraction": 0.055393586,
+									"velocity": [
+										0.0028441064,
+										9.4653196335,
+										-1.3428175449
+									]
+								},
+								"recovery": "",
+								"recovery_penalty_seconds": 0.0,
+								"recovery_seconds": 0.0,
+								"rescue": false,
+								"simulation_time": 0.0,
+								"steering": {
+									"facing": [
+										0.0,
+										0.0,
+										-1.0
+									],
+									"lateral_offset": 0
+								},
+								"sweet": false,
+								"team": 0,
+								"zone": "UNDERCHARGED / MILD"
+							}
+						}
+					},
+					"pending_attacks": [],
+					"values": {
+						"pepper_0": 0.0,
+						"pepper_1": 0.0,
+						"pepper_2": 0.0,
+						"player": 20.3722315248,
+						"training_bot_0": 0.0,
+						"training_bot_1": 0.0,
+						"training_bot_10": 0.0,
+						"training_bot_11": 0.0,
+						"training_bot_12": 0.0,
+						"training_bot_13": 0.0,
+						"training_bot_14": 0.0,
+						"training_bot_15": 0.0,
+						"training_bot_16": 0.0,
+						"training_bot_17": 0.0,
+						"training_bot_18": 0.0,
+						"training_bot_19": 0.0,
+						"training_bot_2": 0.0,
+						"training_bot_20": 0.0,
+						"training_bot_21": 0.0,
+						"training_bot_22": 0.0,
+						"training_bot_23": 0.0,
+						"training_bot_24": 0.0,
+						"training_bot_25": 0.0,
+						"training_bot_26": 0.0,
+						"training_bot_27": 0.0,
+						"training_bot_3": 0.0,
+						"training_bot_4": 0.0,
+						"training_bot_5": 0.0,
+						"training_bot_6": 0.0,
+						"training_bot_7": 0.0,
+						"training_bot_8": 0.0,
+						"training_bot_9": 0.0
+					}
+				},
+				"locks": {
+					"armed": false,
+					"endlag": 0.16,
+					"roll_lock": 0.0
+				},
+				"moc": {
+					"active": false,
+					"ball_scale": 1.0,
+					"events": 1,
+					"player_scale": 1.0
+				},
+				"player": {
+					"epoch": 0,
+					"exhausted": false,
+					"flow_field": 20.3722315248,
+					"hp": 100.0,
+					"stamina": 84.4623651505,
+					"winded": false
+				},
+				"rally": {
+					"bot_contacts": 0,
+					"bot_last_action": -1,
+					"bot_last_was_block": false,
+					"contacts": 1,
+					"last_touch_side": 0,
+					"pepper_exchanges": 0,
+					"pepper_player_contacts": 0,
+					"side_contacts": [
+						1,
+						0
+					]
+				}
+			}
+		},
+		{
+			"extra": {},
+			"label": "clean",
+			"state": {
+				"ball": {
+					"active": true,
+					"position": [
+						0.0,
+						0.8323419094,
+						4.3109869957
+					],
+					"shot_actor": "player",
+					"shot_charge": 0.1929866215,
+					"shot_kind": "receive",
+					"velocity": [
+						0.0,
+						9.6214542389,
+						-1.4731503725
+					]
+				},
+				"flow": {
+					"epochs": {
+						"pepper_0": 0,
+						"pepper_1": 0,
+						"pepper_2": 0,
+						"player": 0,
+						"training_bot_0": 0,
+						"training_bot_1": 0,
+						"training_bot_10": 0,
+						"training_bot_11": 0,
+						"training_bot_12": 0,
+						"training_bot_13": 0,
+						"training_bot_14": 0,
+						"training_bot_15": 0,
+						"training_bot_16": 0,
+						"training_bot_17": 0,
+						"training_bot_18": 0,
+						"training_bot_19": 0,
+						"training_bot_2": 0,
+						"training_bot_20": 0,
+						"training_bot_21": 0,
+						"training_bot_22": 0,
+						"training_bot_23": 0,
+						"training_bot_24": 0,
+						"training_bot_25": 0,
+						"training_bot_26": 0,
+						"training_bot_27": 0,
+						"training_bot_3": 0,
+						"training_bot_4": 0,
+						"training_bot_5": 0,
+						"training_bot_6": 0,
+						"training_bot_7": 0,
+						"training_bot_8": 0,
+						"training_bot_9": 0
+					},
+					"last_changes": {
+						"player": {
+							"after": 25.0,
+							"before": 0.0,
+							"delta": 25.0,
+							"event": {
+								"action": 0,
+								"actor": "player",
+								"block_response": {},
+								"charge": 0.675,
+								"charge_match": {
+									"cushioning": 0.0,
+									"gap": 0.0,
+									"incoming_charge": 0.6,
+									"input_charge": 0.675,
+									"matched": true,
+									"maximum": 0.75,
+									"minimum": 0.6,
+									"raw_severity": 0.0,
+									"receive_charge": 0.675,
+									"required": true,
+									"severity": 0.0,
+									"status": "matched",
+									"tolerance": 0.0
+								},
+								"confirmation_age": 0.22,
+								"directional_influence": {
+									"authority": 1.0,
+									"axes": [
+										0.0,
+										0.0
+									],
+									"pitch_degrees": 0.0,
+									"range_factor": 1.0,
+									"velocity": [
+										0.0,
+										9.6214542389,
+										-1.4731504917
+									],
+									"world_input": [
+										0.0,
+										0.0,
+										0.0
+									],
+									"yaw_degrees": 0.0
+								},
+								"gameplay": {
+									"effects": {}
+								},
+								"id": "player:1",
+								"incoming_shot": {
+									"actor": "test",
+									"charge": 0.6,
+									"kind": "attack"
+								},
+								"incoming_velocity": [
+									0.0,
+									-3.0,
+									20.0
+								],
+								"intent": {
+									"action": 0,
+									"actor": "player",
+									"charge": 0.675,
+									"charge_mode": "manual",
+									"direction": [
+										0.0,
+										0.0,
+										-1.0
+									],
+									"directional_influence": {
+										"authority": 1.0,
+										"axes": [
+											0.0,
+											0.0
+										],
+										"pitch_degrees": 0.0,
+										"range_factor": 1.0,
+										"velocity": [
+											0.0,
+											9.6451950073,
+											-1.4617930651
+										],
+										"world_input": [
+											0.0,
+											0.0,
+											0.0
+										],
+										"yaw_degrees": 0.0
+									},
+									"option_id": "neutral",
+									"origin": [
+										0.0,
+										0.948376298,
+										5.0
+									],
+									"preview_velocity": [
+										0.0,
+										9.6451950073,
+										-1.4617930651
+									],
+									"simulation_time": 0.0,
+									"target": [
+										0.0,
+										0.0,
+										-4.0
+									],
+									"team": 0
+								},
+								"mechanics": [
+									{
+										"evidence": {
+											"hit": true,
+											"intersection": [
+												0.0,
+												0.802341938,
+												-0.6890130043
+											],
+											"platform_quality": 0.0,
+											"quality": 1.0,
+											"zone": "CLEAN"
+										},
+										"id": "geometry",
+										"label": "Contact Geometry"
+									},
+									{
+										"evidence": {
+											"confirmation_age": 0.22,
+											"early": 0.0,
+											"late": 0.0,
+											"sweet_eligible": true,
+											"timing": 65.0
+										},
+										"id": "timing",
+										"label": "Contact Timing"
+									},
+									{
+										"evidence": {
+											"action_charge": 0.675,
+											"auto_charge": {},
+											"available_output": 1.0,
+											"cushioning": 0.0,
+											"effective_receive_charge": 0.675,
+											"runtime_effects": {}
+										},
+										"id": "potency",
+										"label": "Action Potency"
+									},
+									{
+										"evidence": {
+											"block_response": {},
+											"charge_match": {
+												"cushioning": 0.0,
+												"gap": 0.0,
+												"incoming_charge": 0.6,
+												"input_charge": 0.675,
+												"matched": true,
+												"maximum": 0.75,
+												"minimum": 0.6,
+												"raw_severity": 0.0,
+												"receive_charge": 0.675,
+												"required": true,
+												"severity": 0.0,
+												"status": "matched",
+												"tolerance": 0.0
+											},
+											"incoming_velocity": [
+												0.0,
+												-3.0,
+												20.0
+											],
+											"model": "receive_response",
+											"profile": "Receive Conditioning",
+											"set_isolation": {}
+										},
+										"id": "handling",
+										"label": "Incoming Handling"
+									},
+									{
+										"evidence": {
+											"absorption": 0.0,
+											"control": 0.0,
+											"retention": 0.45,
+											"uncontrolled_fraction": 0.0
+										},
+										"id": "pressure_control",
+										"label": "Pressure Control"
+									},
+									{
+										"evidence": {
+											"directional_input": [
+												0.0,
+												0.0,
+												0.0
+											],
+											"facing": [
+												0.0,
+												0.0,
+												-1.0
+											],
+											"redirection": 0.0,
+											"scatter_radians": 0.0,
+											"seed": 1
+										},
+										"id": "redirection",
+										"label": "Redirection"
+									},
+									{
+										"evidence": {
+											"delivery_quality": 1.0,
+											"intended_velocity": [
+												0.0,
+												9.6214542389,
+												-1.4731503725
+											],
+											"outgoing_velocity": [
+												0.0,
+												9.6214542389,
+												-1.4731503725
+											]
+										},
+										"id": "intent_transfer",
+										"label": "Intent Transfer"
+									},
+									{
+										"evidence": {
+											"body_guard": false,
+											"outgoing_shot": {
+												"action_charge": 0.675,
+												"actor": "player",
+												"charge": 0.1929866215,
+												"delivered_contribution": 0.054,
+												"delivery_quality": 1.0,
+												"incoming_charge": 0.6,
+												"kind": "receive",
+												"reference_speed": 9.7335786819,
+												"response_seed": 1,
+												"retained_pressure": 0.1389866215,
+												"source_action": "attack"
+											},
+											"quality": 1.0,
+											"recovery": "",
+											"separation_offset": [
+												0.0,
+												0.0,
+												0.0
+											],
+											"sweet": true
+										},
+										"id": "consequences",
+										"label": "Contact Consequences"
+									}
+								],
+								"outgoing_shot": {
+									"action_charge": 0.675,
+									"actor": "player",
+									"charge": 0.1929866215,
+									"delivered_contribution": 0.054,
+									"delivery_quality": 1.0,
+									"incoming_charge": 0.6,
+									"kind": "receive",
+									"reference_speed": 9.7335786819,
+									"response_seed": 1,
+									"retained_pressure": 0.1389866215,
+									"source_action": "attack"
+								},
+								"outgoing_velocity": [
+									0.0,
+									9.6214542389,
+									-1.4731503725
+								],
+								"physical_hit": true,
+								"platform_band": "PLANTED",
+								"platform_coord": [
+									0.0,
+									0.0,
+									-0.0000001319
+								],
+								"point": [
+									0.0,
+									0.8323419094,
+									4.3109869957
+								],
+								"posture": "planted",
+								"quality": 1.0,
+								"receive_outcome": {
+									"bottom_third": false,
+									"central": true,
+									"charge_severity": 0.0,
+									"correction": [
+										0.0,
+										0.0
+									],
+									"di_alignment": 0.0,
+									"di_axes": [
+										0.0,
+										0.0
+									],
+									"height_fraction": 0.5,
+									"outcome": "",
+									"penalty_factor": 1.0,
+									"platform_coord": [
+										0.0,
+										0.0,
+										-0.0000001319
+									],
+									"posture": "planted",
+									"raw_charge_severity": 0.0,
+									"recovery_penalty_seconds": 0.0,
+									"recovery_seconds": 0.0
+								},
+								"receive_response": {
+									"body_guard": false,
+									"delivery_quality": 1.0,
+									"early": 0.0,
+									"effective_normal": [
+										0.0,
+										0.9884806275,
+										-0.1513472497
+									],
+									"height_fraction": 0.5,
+									"impact": 0.842656215,
+									"late": 0.0,
+									"mismatch_severity": 0.0,
+									"passive_velocity": [
+										0.0,
+										6.8904771805,
+										0.878932476
+									],
+									"reach": 0.3811905602,
+									"receive_absorption": 0.0,
+									"receive_control": 0.0,
+									"receive_redirection": 0.0,
+									"restitution": 0.23,
+									"retention": 0.45,
+									"scatter_radians": 0.0,
+									"seed": 1,
+									"separation_offset": [
+										0.0,
+										0.0,
+										0.0
+									],
+									"side": 0.0,
+									"uncontrolled_fraction": 0.0,
+									"velocity": [
+										0.0,
+										9.6214542389,
+										-1.4731503725
+									]
+								},
+								"recovery": "",
+								"recovery_penalty_seconds": 0.0,
+								"recovery_seconds": 0.0,
+								"rescue": false,
+								"simulation_time": 0.0,
+								"steering": {
+									"facing": [
+										0.0,
+										0.0,
+										-1.0
+									],
+									"lateral_offset": 0
+								},
+								"sweet": true,
+								"team": 0,
+								"zone": "CLEAN"
+							}
+						}
+					},
+					"pending_attacks": [],
+					"values": {
+						"pepper_0": 0.0,
+						"pepper_1": 0.0,
+						"pepper_2": 0.0,
+						"player": 25.0,
+						"training_bot_0": 0.0,
+						"training_bot_1": 0.0,
+						"training_bot_10": 0.0,
+						"training_bot_11": 0.0,
+						"training_bot_12": 0.0,
+						"training_bot_13": 0.0,
+						"training_bot_14": 0.0,
+						"training_bot_15": 0.0,
+						"training_bot_16": 0.0,
+						"training_bot_17": 0.0,
+						"training_bot_18": 0.0,
+						"training_bot_19": 0.0,
+						"training_bot_2": 0.0,
+						"training_bot_20": 0.0,
+						"training_bot_21": 0.0,
+						"training_bot_22": 0.0,
+						"training_bot_23": 0.0,
+						"training_bot_24": 0.0,
+						"training_bot_25": 0.0,
+						"training_bot_26": 0.0,
+						"training_bot_27": 0.0,
+						"training_bot_3": 0.0,
+						"training_bot_4": 0.0,
+						"training_bot_5": 0.0,
+						"training_bot_6": 0.0,
+						"training_bot_7": 0.0,
+						"training_bot_8": 0.0,
+						"training_bot_9": 0.0
+					}
+				},
+				"locks": {
+					"armed": false,
+					"endlag": 0.16,
+					"roll_lock": 0.0
+				},
+				"moc": {
+					"active": false,
+					"ball_scale": 1.0,
+					"events": 1,
+					"player_scale": 1.0
+				},
+				"player": {
+					"epoch": 0,
+					"exhausted": false,
+					"flow_field": 25.0,
+					"hp": 100.0,
+					"stamina": 84.4623651505,
+					"winded": false
+				},
+				"rally": {
+					"bot_contacts": 0,
+					"bot_last_action": -1,
+					"bot_last_was_block": false,
+					"contacts": 1,
+					"last_touch_side": 0,
+					"pepper_exchanges": 0,
+					"pepper_player_contacts": 0,
+					"side_contacts": [
+						1,
+						0
+					]
+				}
+			}
+		},
+		{
+			"extra": {},
+			"label": "bot_undercharged",
+			"state": {
+				"ball": {
+					"active": true,
+					"position": [
+						0.0,
+						1.0,
+						5.0
+					],
+					"shot_actor": "training_bot_0",
+					"shot_charge": 0.0952145855,
+					"shot_kind": "receive",
+					"velocity": [
+						0.3362436295,
+						7.7517561913,
+						0.1454081535
+					]
+				},
+				"flow": {
+					"epochs": {
+						"pepper_0": 0,
+						"pepper_1": 0,
+						"pepper_2": 0,
+						"player": 0,
+						"training_bot_0": 0,
+						"training_bot_1": 0,
+						"training_bot_10": 0,
+						"training_bot_11": 0,
+						"training_bot_12": 0,
+						"training_bot_13": 0,
+						"training_bot_14": 0,
+						"training_bot_15": 0,
+						"training_bot_16": 0,
+						"training_bot_17": 0,
+						"training_bot_18": 0,
+						"training_bot_19": 0,
+						"training_bot_2": 0,
+						"training_bot_20": 0,
+						"training_bot_21": 0,
+						"training_bot_22": 0,
+						"training_bot_23": 0,
+						"training_bot_24": 0,
+						"training_bot_25": 0,
+						"training_bot_26": 0,
+						"training_bot_27": 0,
+						"training_bot_3": 0,
+						"training_bot_4": 0,
+						"training_bot_5": 0,
+						"training_bot_6": 0,
+						"training_bot_7": 0,
+						"training_bot_8": 0,
+						"training_bot_9": 0
+					},
+					"last_changes": {
+						"training_bot_0": {
+							"after": 0.0,
+							"before": 0.0,
+							"delta": 0.0,
+							"event": {
+								"action": 0,
+								"actor": "training_bot_0",
+								"block_response": {},
+								"charge": 0.0952145855,
+								"charge_match": {
+									"cushioning": 0.0,
+									"gap": 0.2,
+									"incoming_charge": 0.6,
+									"input_charge": 0.4,
+									"matched": false,
+									"maximum": 0.75,
+									"minimum": 0.6,
+									"raw_severity": 0.6064139942,
+									"receive_charge": 0.4,
+									"required": true,
+									"severity": 0.6064139942,
+									"status": "undercharged",
+									"tolerance": 0.0
+								},
+								"confirmation_age": 0.2,
+								"directional_influence": {},
+								"gameplay": {
+									"effects": {}
+								},
+								"id": "training_bot_0:1",
+								"incoming_shot": {
+									"actor": "test",
+									"charge": 0.6,
+									"kind": "attack"
+								},
+								"incoming_velocity": [
+									0.0,
+									-3.0,
+									20.0
+								],
+								"intent": {},
+								"mechanics": [
+									{
+										"evidence": {
+											"hit": true,
+											"intersection": [
+												0.0,
+												0.7964795828,
+												-0.6898860931
+											],
+											"platform_quality": 0.0,
+											"quality": 1.0,
+											"zone": "CLEAN"
+										},
+										"id": "geometry",
+										"label": "Contact Geometry"
+									},
+									{
+										"evidence": {
+											"confirmation_age": 0.2,
+											"early": 0.0,
+											"late": 0.0,
+											"sweet_eligible": true,
+											"timing": 65.0
+										},
+										"id": "timing",
+										"label": "Contact Timing"
+									},
+									{
+										"evidence": {
+											"action_charge": 0.4,
+											"auto_charge": {},
+											"available_output": 1.0,
+											"cushioning": 0.0,
+											"effective_receive_charge": 0.4,
+											"runtime_effects": {}
+										},
+										"id": "potency",
+										"label": "Action Potency"
+									},
+									{
+										"evidence": {
+											"block_response": {},
+											"charge_match": {
+												"cushioning": 0.0,
+												"gap": 0.2,
+												"incoming_charge": 0.6,
+												"input_charge": 0.4,
+												"matched": false,
+												"maximum": 0.75,
+												"minimum": 0.6,
+												"raw_severity": 0.6064139942,
+												"receive_charge": 0.4,
+												"required": true,
+												"severity": 0.6064139942,
+												"status": "undercharged",
+												"tolerance": 0.0
+											},
+											"incoming_velocity": [
+												0.0,
+												-3.0,
+												20.0
+											],
+											"model": "receive_response",
+											"profile": "Receive Conditioning",
+											"set_isolation": {}
+										},
+										"id": "handling",
+										"label": "Incoming Handling"
+									},
+									{
+										"evidence": {
+											"absorption": 0.0,
+											"control": 0.0,
+											"retention": 0.45,
+											"uncontrolled_fraction": 0.6064139942
+										},
+										"id": "pressure_control",
+										"label": "Pressure Control"
+									},
+									{
+										"evidence": {
+											"directional_input": [
+												0.0,
+												0.0,
+												0.0
+											],
+											"facing": [
+												0.0,
+												0.0,
+												-1.0
+											],
+											"redirection": 0.0,
+											"scatter_radians": 0.0776209913,
+											"seed": 1
+										},
+										"id": "redirection",
+										"label": "Redirection"
+									},
+									{
+										"evidence": {
+											"delivery_quality": 0.2145789594,
+											"intended_velocity": [
+												0.0,
+												9.4068717957,
+												-1.1260356903
+											],
+											"outgoing_velocity": [
+												0.3362436295,
+												7.7517561913,
+												0.1454081535
+											]
+										},
+										"id": "intent_transfer",
+										"label": "Intent Transfer"
+									},
+									{
+										"evidence": {
+											"body_guard": false,
+											"outgoing_shot": {
+												"action_charge": 0.4,
+												"actor": "training_bot_0",
+												"charge": 0.0952145855,
+												"delivered_contribution": 0.0068665267,
+												"delivery_quality": 0.2145789594,
+												"incoming_charge": 0.6,
+												"kind": "receive",
+												"reference_speed": 7.7604079247,
+												"response_seed": 1,
+												"retained_pressure": 0.0883480588,
+												"source_action": "attack"
+											},
+											"quality": 0.5451895044,
+											"recovery": "blown_away",
+											"separation_offset": [
+												0.0,
+												0.0,
+												0.0
+											],
+											"sweet": false
+										},
+										"id": "consequences",
+										"label": "Contact Consequences"
+									}
+								],
+								"outgoing_shot": {
+									"action_charge": 0.4,
+									"actor": "training_bot_0",
+									"charge": 0.0952145855,
+									"delivered_contribution": 0.0068665267,
+									"delivery_quality": 0.2145789594,
+									"incoming_charge": 0.6,
+									"kind": "receive",
+									"reference_speed": 7.7604079247,
+									"response_seed": 1,
+									"retained_pressure": 0.0883480588,
+									"source_action": "attack"
+								},
+								"outgoing_velocity": [
+									0.3362436295,
+									7.7517561913,
+									0.1454081535
+								],
+								"physical_hit": true,
+								"platform_band": "PLANTED",
+								"platform_coord": [
+									0.0,
+									0.0,
+									-0.0000000661
+								],
+								"point": [
+									0.0,
+									1.0,
+									5.0
+								],
+								"posture": "planted",
+								"quality": 0.5451895044,
+								"receive_outcome": {
+									"bottom_third": false,
+									"central": true,
+									"charge_severity": 0.6064139942,
+									"correction": [
+										0.0,
+										-1.0
+									],
+									"di_alignment": 0.0,
+									"di_axes": [
+										0.0,
+										0.0
+									],
+									"height_fraction": 0.5,
+									"outcome": "blown_away",
+									"penalty_factor": 1.0,
+									"platform_coord": [
+										0.0,
+										0.0,
+										-0.0000000661
+									],
+									"posture": "planted",
+									"raw_charge_severity": 0.6064139942,
+									"recovery_penalty_seconds": 1.35,
+									"recovery_seconds": 1.35
+								},
+								"receive_response": {
+									"body_guard": false,
+									"delivery_quality": 0.2145789594,
+									"early": 0.0,
+									"effective_normal": [
+										0.0560358725,
+										0.6912226677,
+										-0.7204660177
+									],
+									"height_fraction": 0.5,
+									"impact": 0.842656215,
+									"late": 0.0,
+									"mismatch_severity": 0.6064139942,
+									"passive_velocity": [
+										0.5544786453,
+										6.6775226593,
+										0.9706238508
+									],
+									"reach": 0.3822803248,
+									"receive_absorption": 0.0,
+									"receive_control": 0.0,
+									"receive_redirection": 0.0,
+									"restitution": 0.23,
+									"retention": 0.45,
+									"scatter_radians": 0.0776209913,
+									"seed": 1,
+									"separation_offset": [
+										0.0,
+										0.0,
+										0.0
+									],
+									"side": 0.0,
+									"uncontrolled_fraction": 0.6064139942,
+									"velocity": [
+										0.3362436295,
+										7.7517561913,
+										0.1454081535
+									]
+								},
+								"recovery": "blown_away",
+								"recovery_penalty_seconds": 1.35,
+								"recovery_seconds": 1.35,
+								"rescue": false,
+								"simulation_time": 0.0,
+								"steering": {
+									"facing": [
+										0.0,
+										0.0,
+										-1.0
+									],
+									"lateral_offset": 0
+								},
+								"sweet": false,
+								"team": 0,
+								"zone": "UNDERCHARGED SHANK"
+							}
+						}
+					},
+					"pending_attacks": [],
+					"values": {
+						"pepper_0": 0.0,
+						"pepper_1": 0.0,
+						"pepper_2": 0.0,
+						"player": 0.0,
+						"training_bot_0": 0.0,
+						"training_bot_1": 0.0,
+						"training_bot_10": 0.0,
+						"training_bot_11": 0.0,
+						"training_bot_12": 0.0,
+						"training_bot_13": 0.0,
+						"training_bot_14": 0.0,
+						"training_bot_15": 0.0,
+						"training_bot_16": 0.0,
+						"training_bot_17": 0.0,
+						"training_bot_18": 0.0,
+						"training_bot_19": 0.0,
+						"training_bot_2": 0.0,
+						"training_bot_20": 0.0,
+						"training_bot_21": 0.0,
+						"training_bot_22": 0.0,
+						"training_bot_23": 0.0,
+						"training_bot_24": 0.0,
+						"training_bot_25": 0.0,
+						"training_bot_26": 0.0,
+						"training_bot_27": 0.0,
+						"training_bot_3": 0.0,
+						"training_bot_4": 0.0,
+						"training_bot_5": 0.0,
+						"training_bot_6": 0.0,
+						"training_bot_7": 0.0,
+						"training_bot_8": 0.0,
+						"training_bot_9": 0.0
+					}
+				},
+				"locks": {
+					"armed": false,
+					"endlag": 0.0,
+					"roll_lock": 0.0
+				},
+				"moc": {
+					"active": false,
+					"ball_scale": 1.0,
+					"events": 1,
+					"player_scale": 1.0
+				},
+				"player": {
+					"epoch": 0,
+					"exhausted": false,
+					"flow_field": 0.0,
+					"hp": 100.0,
+					"stamina": 100.0,
+					"winded": false
+				},
+				"rally": {
+					"bot_contacts": 1,
+					"bot_last_action": 0,
+					"bot_last_was_block": false,
+					"contacts": 0,
+					"last_touch_side": 0,
+					"pepper_exchanges": 0,
+					"pepper_player_contacts": 0,
+					"side_contacts": [
+						1,
+						0
+					]
+				}
+			}
+		}
+	]
+}

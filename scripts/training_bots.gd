@@ -4,12 +4,17 @@ extends Node3D
 
 # Dependencies and fixed configuration.
 const AttackTarget := preload("res://scripts/bot_attack_target.gd")
+const LiveBall := preload("res://scripts/live_ball.gd")
+const ContactCommit := preload("res://scripts/contact_commit.gd")
+const RallyLedger := preload("res://scripts/rally_ledger.gd")
+const RngSeed := preload("res://scripts/rng_seed.gd")
 const BotSettings := preload("res://scripts/bot_settings.gd")
 const ContactRequest := preload("res://scripts/contact/contact_request.gd")
 const ContactResolver := preload("res://scripts/contact/contact_resolver.gd")
 const ReceiveCharge := preload("res://scripts/receive_charge.gd")
 const Preparation := preload("res://scripts/bot_preparation.gd")
 const Execution := preload("res://scripts/contact_execution.gd")
+const Table := preload("res://scripts/action_table.gd")
 const Influence := preload("res://scripts/directional_influence.gd")
 const Geometry := preload("res://scripts/contact_geometry.gd")
 const Visual := preload("res://scripts/voli_visual.gd")
@@ -18,6 +23,7 @@ const Store := preload("res://scripts/athlete_store.gd")
 const BotAnimation :=  preload("res://scripts/bot_animation.gd")
 const Motion := preload("res://scripts/bot_motion.gd")
 const Vitals := preload("res://scripts/bot_vitals.gd")
+const ShoulderFrame := preload("res://scripts/shoulder_frame.gd")
 const NAMES := ["RECEIVE", "SET", "ATTACK", "BLOCK"]
 const HEIGHTS := [1.0, 2.25, 3.8, 3.15]
 const COLORS := [Color("74dacd"), Color("ac9df2"), Color("ffb46e"), Color("8bbdf4")]
@@ -40,6 +46,8 @@ var physique := Athlete.new()
 var athletes: Array[LabAthlete] = []
 var shapes: Array[Dictionary] = []
 var random := RandomNumberGenerator.new()
+# Optional base seed for reproducible rallies; -1 draws fresh seeds (the default).
+var rng_seed := -1
 var aim_random := RandomNumberGenerator.new()
 var last_aim: Dictionary = {}
 var lab: Node3D
@@ -71,13 +79,14 @@ func _init() -> void:
 		config.contact_order = (slot % 4 + 1) % 4
 		settings.append(config)
 
+func reseed(base_seed: int = -1) -> void:
+	RngSeed.seed_generators({"bots.random": random, "bots.aim": aim_random, "bots.charge": charge_random}, base_seed)
+
 func setup(owner_lab: Node3D) -> void:
 	lab = owner_lab
 	physique.build.height = Store.DEFAULT_INCHES * 0.0254
 	physique.build.span = 1.90
-	random.randomize()
-	aim_random.randomize()
-	charge_random.randomize()
+	reseed(rng_seed)
 	for slot in range(settings.size()):
 		athletes.append(Vitals.create(physique))
 		var action := slot_action(slot)
@@ -87,7 +96,7 @@ func setup(owner_lab: Node3D) -> void:
 		var rig := Visual.build(lab, actor, "Feli", {"palette_index": 0, "marking": "none"}, physique.build)
 		rigs.append(rig)
 		var scale: float = physique.body_height() / rig.rig_height
-		var shape := Geometry.definition(action, physique.body_height(), physique.reach(), false, 1.0, rig.arms[1].position.y * scale, absf(rig.arms[1].position.x) * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
+		var shape := Geometry.definition(action, physique.body_height(), physique.reach(), false, 1.0, ShoulderFrame.idle(rig.arms).x * scale, ShoulderFrame.idle(rig.arms).y * scale, physique.ball_control(), Geometry.arm_length(rig.arms[1], scale),physique.build)
 		if action == 0:
 			shape["platform_quality"] = physique.trait_effect("platform_quality")
 		shapes.append(shape)
@@ -333,8 +342,8 @@ func athlete_for(slot: int) -> LabAthlete:
 func move_speed_for(slot: int) -> float:
 	return settings[slot].move_speed*(0.55 if athlete_for(slot).exhausted else 1.0)
 
-func spend_stamina(slot: int,cost: float,resolved: bool = false) -> void:
-	Vitals.spend(athlete_for(slot),cost,lab.contact_flow,"training_bot_%d" % slot,resolved)
+func spend_stamina(slot: int,cost: float,resolved: bool = false,contact_spend: bool = false) -> void:
+	Vitals.spend(athlete_for(slot),cost,lab.contact_flow,"training_bot_%d" % slot,resolved,contact_spend)
 
 func spend_jump(slot: int) -> void:
 	spend_stamina(slot,athlete_for(slot).jump_stamina_cost(),true)
@@ -544,13 +553,13 @@ var pose_debt := {}
 func tick_motion(dt: float) -> void:
 	for slot in range(settings.size()):
 		if slot_enabled(slot):
-			preparation.tick(slot, dt * lab.moc.bot_scale("training_bot_%d" % slot))
+			preparation.tick(slot, dt * lab.moc.clock_record().bot("training_bot_%d" % slot))
 	var previous_positions: Array[Vector3] = []
 	for actor in actors:
 		previous_positions.append(actor.position)
 	var scales := {}
 	for slot in range(settings.size()):
-		scales[slot] = lab.moc.bot_scale("training_bot_%d" % slot)
+		scales[slot] = lab.moc.clock_record().bot("training_bot_%d" % slot)
 		motion_clocks[slot] = float(motion_clocks.get(slot,0))+dt*float(scales[slot])
 	returns.tick(self,dt)
 	dives.tick(self,dt,scales)
@@ -653,7 +662,7 @@ func tick(dt: float) -> bool:
 var resolving_contact := false
 
 func tick_contact(dt: float) -> bool:
-	dt *= lab.moc.simulation_scale()
+	dt *= lab.moc.clock_record().ball()
 	if not lab.ball_active or active_action < 0:
 		return false
 	remaining -= dt
@@ -662,7 +671,7 @@ func tick_contact(dt: float) -> bool:
 	if remaining > 0 and not passive:
 		return false
 	if passive and block_state_for(active_slot).latched: return false
-	if not passive and remaining < -Execution.contact_seconds(action):
+	if not passive and remaining < -Table.row(action).live_end:
 		active_action = -1
 		active_slot = -1
 		replan(action == 3)
@@ -678,7 +687,7 @@ func tick_contact(dt: float) -> bool:
 	var prepared := preparation.state_for(bot_slot)
 	if not passive and prepared.phase != "confirmed":
 		return false
-	if not passive and float(prepared.confirmation_age) > Execution.contact_seconds(action):
+	if not passive and float(prepared.confirmation_age) > Table.row(action).live_end:
 		active_action = -1
 		active_slot = -1
 		preparation.finish(bot_slot)
@@ -702,7 +711,7 @@ func tick_contact(dt: float) -> bool:
 			var local: Vector3 = (lab.ball.position - actors[bot_slot].position).rotated(Vector3.UP, -actors[bot_slot].rotation.y)
 			var local_velocity: Vector3 = lab.ball_velocity.rotated(Vector3.UP, -actors[bot_slot].rotation.y)
 			var cleared_block: bool = action == 3 and local_velocity.z > 0 and local.z > float(contact_shape(bot_slot).center.z) + float(contact_shape(bot_slot).size.z) * 0.5 + Geometry.BALL_RADIUS
-			if (not passive and remaining < -Execution.contact_seconds(action)) or cleared_block:
+			if (not passive and remaining < -Table.row(action).live_end) or cleared_block:
 				active_action = -1
 				active_slot = -1
 				if action == 3:
@@ -714,7 +723,7 @@ func tick_contact(dt: float) -> bool:
 	active_slot = -1
 	var side: int = int(slot_away(bot_slot))
 	var slot := bot_slot
-	if action != 3 and lab.side_contacts[side] >= 3:
+	if action != 3 and RallyLedger.bot_at_limit(lab,side):
 		lab._finish_fault("Four-contact fault / Bot #%d" % (slot+1),int(slot_away(slot)))
 		return true
 	if action != 3 and not responsible_for(slot,lab.side_contacts[side]+1,action):
@@ -723,7 +732,7 @@ func tick_contact(dt: float) -> bool:
 	if lab.block_serve_fault(action,lab.ball_shot,"Bot #%d" % (slot+1),int(slot_away(slot))): return true
 	lab.ball.position = intercept
 	if action != 3:
-		lab.side_contacts[side] += 1
+		RallyLedger.count_bot_touch(lab,side)
 	last_was_block = action == 3
 	incoming_action = action
 	var incoming: Vector3 = lab.ball_velocity
@@ -767,37 +776,36 @@ func tick_contact(dt: float) -> bool:
 		lab.ball_velocity *= Preparation.output_factor(lab.contact_flow.attack_charge(float(prepared.locked_charge),"training_bot_%d"%slot,lab.ball.position,execution) if action == 2 else float(prepared.locked_charge))
 	request.base_velocity = lab.ball_velocity
 	var result := ContactResolver.resolve(request, execution)
-	lab.ball_velocity = result.velocity
-	lab.ball.position += result.separation_offset
+	LiveBall.commit_contact(lab, result)
 	execution = result.assessment
 	last_aim = result.aiming
 	if action == 2 and motion.plans.has(slot):
 		motion.plans[slot]["swing_yaw"] = result.influence.shot_yaw_radians
-	lab.ball_shot = ReceiveCharge.shot(["receive", "set", "attack", "block"][action], lab.contact_flow.attack_charge(float(prepared.locked_charge),"training_bot_%d"%slot,lab.ball.position,execution) if action == 2 else float(prepared.locked_charge), "training_bot_%d" % slot)
-	if not result.outgoing_shot.is_empty():
-		lab.ball_shot = result.outgoing_shot
-	lab.ball_shot = lab.contact_flow.decorate_shot(lab.ball_shot,request.incoming_shot,"training_bot_%d"%slot,action,execution)
-	if action == 2 and execution.hit:
-		lab.contact_flow.consume_attack("training_bot_%d"%slot)
-	if passive: block_state_for(slot).latched = true
-	else: preparation.finish(slot)
-	lab._emit_external_impact("training_bot_%d" % slot, action, incoming, execution,incoming_shot)
-	var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), local_contact, move_speed_for(slot) if settings[slot].moves else 0.0) if action == 0 else "planted"
-	var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actors[slot].rotation.y, -PI, PI) if action == 2 else 0.0
-	animation.contact(rigs[slot], action, local_contact, posture, swing_yaw, execution.get("rescue", false), execution)
-	dives.contacted(slot)
-	return_after_contact(slot)
-	var contact_cost: float = request.athlete.contact_cost(action,1,execution,incoming_shot).x
-	athlete_for(slot).last_stamina_cost = request.athlete.last_stamina_cost
-	spend_stamina(slot,contact_cost,true)
-	total_contacts += 1
-	last_action = action
-	lab.trail_points.clear()
-	lab.contacts = 0
-	for memory_slot in range(4):
-		lab.contact_memory[memory_slot] = 0.0
-	lab.outgoing = false
-	lab._message(NAMES[action] + " BOT contact / Ball View tracks the new flight")
+	ContactCommit.outgoing_shot(lab, request, result, "training_bot_%d" % slot, action, float(prepared.locked_charge))
+	ContactCommit.run(lab, ContactCommit.BOT, {
+		"prepare": func() -> void:
+			if passive: block_state_for(slot).latched = true
+			else: preparation.finish(slot),
+		"publish": func() -> void: lab._emit_external_impact("training_bot_%d" % slot, action, incoming, execution,incoming_shot),
+		"present": func() -> void:
+			var posture := Geometry.ReceivePlatform.posture(contact_shape(slot), local_contact, move_speed_for(slot) if settings[slot].moves else 0.0) if action == 0 else "planted"
+			var swing_yaw := wrapf(atan2(-lab.ball_velocity.x, -lab.ball_velocity.z) - actors[slot].rotation.y, -PI, PI) if action == 2 else 0.0
+			animation.contact(rigs[slot], action, local_contact, posture, swing_yaw, execution.get("rescue", false), execution)
+			dives.contacted(slot)
+			return_after_contact(slot),
+		"spend": func() -> void:
+			var contact_cost: float = request.athlete.contact_cost(action,1,execution,incoming_shot).x
+			athlete_for(slot).last_stamina_cost = request.athlete.last_stamina_cost
+			spend_stamina(slot,contact_cost,true,true),
+		"settle": func() -> void:
+			total_contacts += 1
+			last_action = action
+			lab.trail_points.clear()
+			for memory_slot in range(4):
+				lab.contact_memory[memory_slot] = 0.0
+			lab.outgoing = false
+			lab._message(NAMES[action] + " BOT contact / Ball View tracks the new flight"),
+	})
 	resolving_contact = false
 	replan()
 	return true

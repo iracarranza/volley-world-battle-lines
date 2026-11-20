@@ -162,8 +162,8 @@ func build() -> void:
 	bottom.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	bottom.offset_left = -320
 	bottom.offset_right = 320
-	bottom.offset_top = -150
-	bottom.offset_bottom = -90
+	bottom.offset_top = -215
+	bottom.offset_bottom = -160
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	status = label("", 14, TEAL)
 	status.add_theme_color_override("font_outline_color", Color("0e2532"))

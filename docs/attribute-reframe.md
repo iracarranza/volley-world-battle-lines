@@ -1,5 +1,7 @@
 # Attribute reframe: working spec (draft 1)
 
+Not approved (2026-11-16 decision G-12); draft; code unchanged.
+
 Status: design draft for the designer's approval. Nothing here is a tuning commitment except where marked **done**. It records the
 shared understanding reached between the designer, Claude (design/implementation) and Codex (implementation review).
 

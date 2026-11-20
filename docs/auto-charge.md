@@ -77,3 +77,5 @@ Validation: `artifacts/reaction-auto-full` passed 99/99 suites. Final contact an
 stat/serve follow-ups passed in `artifacts/reaction-auto-contact-final` and
 `artifacts/reaction-auto-final-targeted`. Both graphical captures in
 `artifacts/reaction-auto-visual/renders` were visually verified.
+
+Clock (G-17, MS-18): Auto preparation ages on the same actor-scaled clock as manual charge. At normal speed that is world time; during a Moment of Contact slowdown of the player it advances at the slowed rate.

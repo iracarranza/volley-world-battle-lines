@@ -37,7 +37,7 @@ func run() -> void:
 	check(is_equal_approx(execution.SPIKE_WINDUP, 0.7), "Re-enabling restores the chosen duration")
 	lab._reset()
 	check(is_equal_approx(execution.SPIKE_WINDUP, 0.7), "Reset preserves spike tuning")
-	menu.spike_windup.value = 400
+	menu.spike_windup.value = 250
 	menu = null
 	lab.queue_free()
 	await process_frame

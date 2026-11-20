@@ -277,6 +277,36 @@ func spend_resolved(sta: float,hitting: float = 0.0) -> void:
 		else:
 			_enter_winded()
 
+## MS-09 mutators (SADR-13): outside the athlete, Stamina, HP and Flow change only through these. `restore` and `heal` are the capped adds that
+## used to be written inline; `cap` defaults to the maximum (`max_stamina()` / 100). The Serve Receive station passes its literal 100 explicitly (G-15, MS-21).
+func restore(amount: float, cap: float = -1.0) -> void:
+	stamina = minf(max_stamina() if cap < 0.0 else cap, stamina + amount)
+
+## The uncapped add the Energy Drink uses (its amount is already limited to the room left).
+func add_stamina(amount: float) -> void:
+	stamina += amount
+
+func heal(amount: float, cap: float = 100.0) -> void:
+	hp = minf(cap, hp + amount)
+
+## Full vitals for a new session or reset; fatigue state is reset by `reset_fatigue` separately and afterwards, as before.
+func refill() -> void:
+	hp = 100.0
+	stamina = max_stamina()
+
+## Flow: the player's amount lives here (PRB-13: `amount("player")` reads this field); ContactFlow owns the rules that change it.
+func award_flow(amount: float, cap: float) -> void:
+	flow = clampf(flow + amount, 0, cap)
+
+func set_flow(value: float) -> void:
+	flow = value
+
+func lose_flow() -> void:
+	flow = 0.0
+
+func add_modifier(id: String, spec: Dictionary) -> void:
+	modifiers.add(id, spec)
+
 func _enter_winded() -> void:
 	flow = 0.0
 	fatigue_epoch += 1

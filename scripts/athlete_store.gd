@@ -564,23 +564,68 @@ static func selected_config() -> Dictionary:
 		return {}
 	return migrate(roster[selected])
 
+## MS-13 repository: the file carries a schema number; a file from a newer schema is never overwritten; a corrupt file is kept aside; a save writes a
+## temp file, validates it, keeps the last good file as `.bak` and then replaces. `save_roster` returns {"ok": bool, "error": String}.
+const SCHEMA := 1
+static var load_state := "ok"  # ok, missing, corrupt, newer_schema
+
 static func load_roster() -> void:
 	roster = []
 	selected = -1
+	load_state = "ok"
 	if not FileAccess.file_exists(save_path):
+		load_state = "missing"
 		return
-	var parsed = JSON.parse_string(FileAccess.get_file_as_string(save_path))
+	var json := JSON.new()
+	var parsed = json.data if json.parse(FileAccess.get_file_as_string(save_path)) == OK else null
 	if parsed is Dictionary:
+		if int(parsed.get("schema", SCHEMA)) > SCHEMA:
+			load_state = "newer_schema"
+			return
 		for entry in parsed.get("athletes", []):
 			if entry is Dictionary:
 				roster.append(migrate(entry))
 		selected = int(parsed.get("selected", -1))
 		if selected >= roster.size():
 			selected = -1
+	else:
+		load_state = "corrupt"
 
-static func save_roster() -> void:
+## G-14 (MS-20): Workout and Setup growth is saved at completion. The three growth fields of the lab athlete's build are copied onto the selected roster
+## entry (only when that entry is the athlete in the lab, matched by name) and the roster is saved through `save_roster`. {"saved": false, "error": ""}
+## means "not a saved athlete, nothing written"; a failed write returns its error (never reported as saved).
+const GROWTH_KEYS := ["statistics", "workout_counts", "drill_auxiliaries"]
+
+static func persist_growth(build: Dictionary, athlete_name: String) -> Dictionary:
+	if selected < 0 or selected >= roster.size() or str(roster[selected].get("name", "")).strip_edges() != athlete_name:
+		return {"ok": true, "saved": false, "error": ""}
+	for key in GROWTH_KEYS:
+		if build.has(key):
+			roster[selected][key] = build[key].duplicate(true)
+	var result := save_roster()
+	result["saved"] = bool(result.ok)
+	return result
+
+static func save_roster() -> Dictionary:
+	if load_state == "newer_schema":
+		return {"ok": false, "error": "The save file is from a newer version and was left untouched."}
 	for index in range(roster.size()):
 		roster[index] = migrate(roster[index])
-	var file := FileAccess.open(save_path, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify({"athletes": roster, "selected": selected}))
+	if load_state == "corrupt" and FileAccess.file_exists(save_path):
+		DirAccess.copy_absolute(save_path, save_path + ".corrupt")
+		load_state = "ok"
+	var text := JSON.stringify({"schema": SCHEMA, "athletes": roster, "selected": selected})
+	var temp := save_path + ".tmp"
+	var file := FileAccess.open(temp, FileAccess.WRITE)
+	if file == null:
+		return {"ok": false, "error": "Could not write the save file."}
+	file.store_string(text)
+	file.close()
+	if not (JSON.parse_string(FileAccess.get_file_as_string(temp)) is Dictionary):
+		DirAccess.remove_absolute(temp)
+		return {"ok": false, "error": "The save did not verify."}
+	if FileAccess.file_exists(save_path):
+		DirAccess.copy_absolute(save_path, save_path + ".bak")
+	if DirAccess.rename_absolute(temp, save_path) != OK:
+		return {"ok": false, "error": "Could not replace the save file."}
+	return {"ok": true, "error": ""}
