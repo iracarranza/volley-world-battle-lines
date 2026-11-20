@@ -48,7 +48,7 @@ func run() -> void:
 	moc.set_mode(Clock.Mode.TUNED_SLOWDOWN)
 	moc.affect_ball = false
 	moc.begin({"id":"actor-only-bot","actor":"training_bot_0","action":2,"physical_hit":true})
-	check(moc.bot_scale("training_bot_0") == 1 and moc.bot_scale("training_bot_1") == 1,"G-04: a bot's own hit starts no window, even with the actor toggle on")
+	check(is_equal_approx(moc.bot_scale("training_bot_0"),0.1) and moc.bot_scale("training_bot_1") == 1,"Actor-only toggle slows just the contacting bot (G-04 keeps the bot's own slowdown)")
 	moc.begin({"id":"actor-only","actor":"player","action":2,"physical_hit":true})
 	check(is_equal_approx(moc.actor_scale("player"),0.1) and moc.bot_scale("training_bot_1") == 1,"Actor-only toggle slows just the contacting player")
 	moc.clear()

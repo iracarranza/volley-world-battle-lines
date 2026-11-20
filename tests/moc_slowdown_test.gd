@@ -52,9 +52,9 @@ func run() -> void:
 	lab._reset()
 	lab.moc.set_mode(Clock.Mode.CURRENT_SLOWDOWN)
 	lab.moc.begin({"action":2,"actor":"training_bot_2","physical_hit":true,"sweet":true,"incoming_velocity":Vector3(0,-12,0),"outgoing_velocity":Vector3(0,0,-24)})
-	check(not lab.moc.active and lab.moc.simulation_scale() == 1.0 and lab.moc.actor_scale("training_bot_2") == 1.0 and lab.moc.event_count > 0,"G-04: a bot contact publishes its impact but starts no slowdown")
+	check(lab.moc.active and lab.moc.simulation_scale() == 1.0 and lab.moc.actor_scale("training_bot_2") == 0.6 and lab.moc.actor_scale("player") == 1.0 and lab.moc.event_count > 0,"G-04: a bot contact slows that bot but not the ball")
 	lab.moc.begin({"action":2,"actor":"pepper_1","physical_hit":true,"sweet":true,"incoming_velocity":Vector3(0,-12,0),"outgoing_velocity":Vector3(0,0,-24)})
-	check(not lab.moc.active and lab.moc.simulation_scale() == 1.0,"G-04: a Pepper contact starts no slowdown")
+	check(lab.moc.simulation_scale() == 1.0,"G-04: a Pepper contact does not slow the ball")
 	lab.moc.begin({"action":2,"actor":"player","physical_hit":true,"sweet":true,"incoming_velocity":Vector3(0,-12,0),"outgoing_velocity":Vector3(0,0,-24)})
 	check(lab.moc.actor_scale("player") == 0.6 and lab.moc.actor_scale("training_bot_2") == 1.0,"Player contact slows the player and the ball")
 	var bots = lab.training_bots

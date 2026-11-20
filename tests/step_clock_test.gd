@@ -22,7 +22,7 @@ func run() -> void:
 			moc.begin({"id": "m%d%s" % [mode, toggles], "actor": "training_bot_2", "action": 2, "physical_hit": true, "outgoing_velocity": Vector3(0, 8, -10), "incoming_velocity": Vector3(0, -6, 24)})
 			now += 30000
 			var effect: float = moc._effect_scale()
-			var expected_ball: float = effect if toggles[0] else 1.0
+			var expected_ball: float = effect if toggles[0] and not moc._is_helper_actor(moc.acting_actor) else 1.0
 			var record = moc.clock_record()
 			var label := "mode %d toggles %s" % [mode, toggles]
 			check(is_equal_approx(record.ball(), expected_ball), "Ball scale matches (%s)" % label)

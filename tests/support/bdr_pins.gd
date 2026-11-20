@@ -78,9 +78,10 @@ static func pin_s04_slowdown(t: Object, f: Dictionary) -> void:
 	t.check(f.player.mode == 3 and f.player.enabled and near(f.player.steering_speed, 0.05), "BDR-03: the default MoC is Trajectory Steering at 0.05 steering speed")
 	for caller in ["bot", "pepper"]:
 		var h: Dictionary = f[caller]
-		t.check(not h.active and near(h.ball_scale, 1.0) and h.acting_actor == "" and not h.steering_active and near(h.player_scale, 1.0), "BDR-03 %s (MS-17, G-04): the hit starts no slowdown, the ball and player stay at full speed" % caller)
+		t.check(near(h.ball_scale, 1.0) and not h.steering_active and near(h.player_scale, 1.0), "BDR-03 %s (MS-17, G-04): the hit does not slow the ball and the player stays at full speed" % caller)
 	var c: Dictionary = f.serve
 	t.check(c.active and c.ball_scale < 0.2 and not c.steering_active and not c.steer_changed_velocity and near(c.player_scale, 1.0), "BDR-03 serve: the player's Serve still slows the ball (G-04 changes bot and Pepper hits only)")
+	t.check(f.bot.acting_actor == "training_bot_0" and f.pepper.acting_actor == "pepper_1", "BDR-03: a bot or Pepper hit still starts the effect for its own actor (actor slowdown kept, ball unaffected)")
 	t.check(f.serve.acting_actor == "player_serve", "BDR-03: the Serve starts the effect for its own actor")
 	t.check(f.player.acting_actor == "player" and f.player.steering_active and f.player.steer_changed_velocity and near(f.player.player_scale, f.player.ball_scale), "BDR-03 player: the player's own hit can be steered and slows the player too")
 	t.check(near(f.serve.ball_scale, 0.05), "BDR-03: the Serve window is at the steering speed after 50 ms")

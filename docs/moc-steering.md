@@ -26,7 +26,7 @@ of the window yet. Engine time scale, camera, world and other human athletes sta
 and Pepper bots follow the ball clock for motion, charging and contact timing;
 acting-bot slowdown also applies when the ball toggle is off.
 
-Decision G-04 (2026-11-16, provisional, designer-delegated; implemented in MS-17): the ball slows only for the player's own contacts, including the player's Serve. Court-bot and Pepper hits still publish the impact (visuals, `impact_started`) but start no slowdown window, in every mode. Bot clocks therefore follow the ball clock only while a player-started window is active.
+Decision G-04 (2026-11-16, provisional, designer-delegated; implemented in MS-17): the ball slows only for the player's own contacts, including the player's Serve. Court-bot and Pepper hits still publish the impact (visuals, `impact_started`) and keep their own actor slowdown, but the ball is not slowed by them, in every mode (the ball clock is 1.0 while the acting actor is a bot or Pepper).
 
 During the window, the preview remains visible even though preparation has ended.
 It projects the current ball velocity at normal flight speed and updates as DI

@@ -89,7 +89,9 @@ func _effect_scale() -> float:
 # The one place a scale is read. Consumers ask for a record where they used to ask for a scale.
 func clock_record() -> StepClock:
 	var scale := _effect_scale()
-	return StepClock.new(scale if affect_ball else 1.0, acting_actor, scale if affect_actor else 1.0, float(_now()) / 1000000.0)
+	# G-04 (MS-17): only the player's own contacts (including the player's Serve) slow the ball; a court bot's or Pepper partner's hit does not. The helper's own actor slowdown is kept.
+	var ball_scale := scale if affect_ball and not _is_helper_actor(acting_actor) else 1.0
+	return StepClock.new(ball_scale, acting_actor, scale if affect_actor else 1.0, float(_now()) / 1000000.0)
 
 func simulation_scale() -> float:
 	return clock_record().ball()
@@ -150,9 +152,6 @@ func begin(event: Dictionary) -> void:
 	if (int(event.action) == 1 and mode != Mode.TRAJECTORY_STEERING) or (mode == Mode.TUNED_SLOWDOWN and int(event.action) != 2):
 		clear()
 	impact_started.emit(last_event)
-	# G-04 (MS-17): only the player's own contacts (including the player's Serve) slow the ball; a court bot's or Pepper partner's hit does not.
-	if _is_helper_actor(str(event.get("actor", "player"))):
-		return
 	if duration <= 0 or not enabled or (is_instance_valid(owner_lab) and owner_lab.paused):
 		return
 	var now := _now()
